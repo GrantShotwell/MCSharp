@@ -1,0 +1,8 @@
+{
+  "runtimeOptions": {
+    "additionalProbingPaths": [
+      "C:\\Users\\Lenovo Legion\\.dotnet\\store\\|arch|\\|tfm|",
+      "C:\\Users\\Lenovo Legion\\.nuget\\packages"
+    ]
+  }
+}
