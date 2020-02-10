@@ -9,3 +9,6 @@ C:\Projects\MCSharp\MCSharp\obj\Debug\netcoreapp3.1\MCSharp.AssemblyInfoInputs.c
 C:\Projects\MCSharp\MCSharp\obj\Debug\netcoreapp3.1\MCSharp.AssemblyInfo.cs
 C:\Projects\MCSharp\MCSharp\obj\Debug\netcoreapp3.1\MCSharp.dll
 C:\Projects\MCSharp\MCSharp\obj\Debug\netcoreapp3.1\MCSharp.pdb
+C:\Projects\MCSharp\MCSharp\bin\Debug\netcoreapp3.1\LargeBaseNumbers.dll
+C:\Projects\MCSharp\MCSharp\bin\Debug\netcoreapp3.1\LargeBaseNumbers.pdb
+C:\Projects\MCSharp\MCSharp\obj\Debug\netcoreapp3.1\MCSharp.csproj.CopyComplete

@@ -7,14 +7,27 @@
   "targets": {
     ".NETCoreApp,Version=v3.1": {
       "MCSharp/1.0.0": {
+        "dependencies": {
+          "LargeBaseNumbers": "1.0.0"
+        },
         "runtime": {
           "MCSharp.dll": {}
+        }
+      },
+      "LargeBaseNumbers/1.0.0": {
+        "runtime": {
+          "LargeBaseNumbers.dll": {}
         }
       }
     }
   },
   "libraries": {
     "MCSharp/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "LargeBaseNumbers/1.0.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""

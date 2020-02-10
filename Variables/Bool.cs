@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace MCSharp.Variables {
+﻿namespace MCSharp.Variables {
 
     /// <summary>
     /// Represents a standard <see cref="bool"/>.
@@ -13,11 +11,14 @@ namespace MCSharp.Variables {
 
         public Bool() : base() { }
 
-        public Bool(string modifier, string objectName, string scope, bool value) : base(modifier, objectName, scope, value) { }
+        public Bool(AccessModifier[] accessModifiers, UsageModifier[] usageModifiers, string objectName, Compiler.Scope scope, bool value) :
+        base(accessModifiers, usageModifiers, objectName, scope, value) { }
 
         protected override bool ValueFromString(string str) => bool.Parse(str);
 
-        protected override void Compile(string modifier, string objectName, string scope, bool value) => new Bool(modifier, objectName, scope, value);
+        protected override void Compile(AccessModifier[] accessModifiers, UsageModifier[] usageModifiers, string objectName, Compiler.Scope scope, bool value)
+            => new Bool(accessModifiers, usageModifiers, objectName, scope, value);
+
     }
 
 }

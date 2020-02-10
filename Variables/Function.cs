@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using MCSharp.Compilation;
+using System;
+using System.Collections.Generic;
 using System.IO;
 
 namespace MCSharp.Variables {
@@ -8,24 +10,29 @@ namespace MCSharp.Variables {
     /// </summary>
     public class Function : Variable {
 
-        public override ICollection<string> AllowedModifiers => new string[] { "const" };
+        public override int Order => 100;
         public override string TypeName => "Function";
         public string FolderPath { get; }
         public string GamePath { get; }
         public List<string> Commands { get; } = new List<string>();
         public string Arguments { get; }
 
+        public override ICollection<AccessModifier> AllowedAccessModifiers => new AccessModifier[] { AccessModifier.Private, AccessModifier.Public };
+        public override ICollection<UsageModifier> AllowedUsageModifiers => new UsageModifier[] { UsageModifier.Constant, UsageModifier.Static };
+
+
         public Function() : base() { }
 
-        public Function(string modifier, string objectName, string scope, string gamePath, string arguments) : base(modifier, objectName, scope) {
+        public Function(AccessModifier[] accessModifiers, UsageModifier[] usageModifiers, string objectName, Compiler.Scope scope, string gamePath, string arguments) :
+        base(accessModifiers, usageModifiers, objectName, scope) {
             GamePath = gamePath;
             FolderPath = gamePath.Replace(':', '/') + ".mcfunction";
             Arguments = arguments;
         }
 
 
-        protected override void Compile(string modifier, string objectName, string scope, string[] arguments) {
-
+        protected override void Compile(AccessModifier[] accessModifiers, UsageModifier[] usageModifiers, string objectName, Compiler.Scope scope, Wild[] arguments) {
+            throw new NotImplementedException();
         }
 
         public override void Initialize(bool prep) {

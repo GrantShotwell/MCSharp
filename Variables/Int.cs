@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace MCSharp.Variables {
+﻿namespace MCSharp.Variables {
 
     /// <summary>
     /// Represents a standard <see cref="int"/>.
@@ -13,11 +11,13 @@ namespace MCSharp.Variables {
 
         public Int() : base() { }
 
-        public Int(string modifier, string objectName, string scope, int value) : base(modifier, objectName, scope, value) { }
+        public Int(AccessModifier[] accessModifiers, UsageModifier[] usageModifiers, string objectName, Compiler.Scope scope, int value) :
+        base(accessModifiers, usageModifiers, objectName, scope, value) { }
 
         protected override int ValueFromString(string str) => int.Parse(str);
 
-        protected override void Compile(string modifier, string objectName, string scope, int value) => new Int(modifier, objectName, scope, value);
+        protected override void Compile(AccessModifier[] accessModifiers, UsageModifier[] usageModifiers, string objectName, Compiler.Scope scope, int value)
+            => new Int(accessModifiers, usageModifiers, objectName, scope, value);
 
     }
 

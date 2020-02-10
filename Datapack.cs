@@ -1,4 +1,5 @@
 ﻿using MCSharp.Variables;
+using static MCSharp.Compiler;
 
 namespace MCSharp {
 

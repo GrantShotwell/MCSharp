@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using MCSharp.Compilation;
+using System;
+using System.Collections.Generic;
 using System.IO;
 
 namespace MCSharp.Variables {
@@ -8,19 +10,24 @@ namespace MCSharp.Variables {
     /// </summary>
     public class Entities : Variable {
 
-        public override ICollection<string> AllowedModifiers => new string[] { "public", "const" };
+        public override int Order => 100;
         public override string TypeName => "Entity";
         public string Selector { get; }
 
+        public override ICollection<AccessModifier> AllowedAccessModifiers => new AccessModifier[] { AccessModifier.Private, AccessModifier.Public };
+        public override ICollection<UsageModifier> AllowedUsageModifiers => new UsageModifier[] { UsageModifier.Constant, UsageModifier.Static };
+
+
         public Entities() : base() { }
 
-        public Entities(string modifier, string objectName, string scope, Selector selector) : base(modifier, objectName, scope) {
+        public Entities(AccessModifier[] accessModifiers, UsageModifier[] usageModifiers, string objectName, Compiler.Scope scope, Selector selector) :
+        base(accessModifiers, usageModifiers, objectName, scope) {
             Selector = selector.String;
         }
 
 
-        protected override void Compile(string modifier, string objectName, string scope, string[] arguments) {
-
+        protected override void Compile(AccessModifier[] accessModifiers, UsageModifier[] usageModifiers, string objectName, Compiler.Scope scope, Wild[] arguments) {
+            throw new NotImplementedException();
         }
 
         public override void Initialize(bool prep) {

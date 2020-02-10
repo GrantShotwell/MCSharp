@@ -1,4 +1,5 @@
-﻿using MCSharp.Variables;
+﻿using LargeBaseNumbers;
+using MCSharp.Variables;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -14,6 +15,8 @@ namespace MCSharp {
 
         public static string Directory { get; private set; }
         public static Datapack Datapack { get; private set; }
+
+        public static string ScriptsFolder => $"{Directory}\\{Datapack.Name}\\data\\{Datapack}\\scripts\\";
 
         public static string LoadMCScriptDefault {
             get {
@@ -39,7 +42,6 @@ namespace MCSharp {
                 { "pack", Pack },
                 { "create", Create },
                 { "compile", Compile },
-                { "throw_error", (arguments) => throw new Variable.InvalidModifierException("private", "Function") },
                 { "exit", Exit }
             };
             commands.Add("help", (arguments) => {
@@ -202,11 +204,15 @@ namespace MCSharp {
 
                 //Create files.
                 using(StreamWriter loadJSON_writer = File.CreateText(Datapack.Path + "\\data\\minecraft\\tags\\functions\\load.json")) {
-                    Datapack.Load = new Function("const", "load", "global", Datapack.Name + ":load", "");
+                    Datapack.Load = new Function(new AccessModifier[] { AccessModifier.Private },
+                                                 new UsageModifier[] { UsageModifier.Constant },
+                                                 "load", null, Datapack.Name + ":load", "");
                     loadJSON_writer.WriteLine("{\n\t\"values\": [\n\t\t\"" + Datapack.Load.FolderPath + "\"\n\t]\n}");
                 }
                 using(StreamWriter tickJSON_writer = File.CreateText(Datapack.Path + "\\data\\minecraft\\tags\\functions\\tick.json")) {
-                    Datapack.Main = new Function("const", "main", "global", Datapack.Name + ":main", "");
+                    Datapack.Main = new Function(new AccessModifier[] { AccessModifier.Private },
+                                                 new UsageModifier[] { UsageModifier.Constant },
+                                                 "main", null, Datapack.Name + ":main", "");
                     tickJSON_writer.WriteLine("{\n\t\"values\": [\n\t\t\"" + Datapack.Main.FolderPath + "\"\n\t]\n}");
                 }
                 using(StreamWriter loadMCS_writer = File.CreateText(Datapack.Path + "\\data\\" + Datapack.Name + "\\scripts\\load.mcsharp")) {
