@@ -1,6 +1,7 @@
 ﻿using MCSharp.Compilation;
 using System;
 using System.Collections.Generic;
+using System.IO;
 
 namespace MCSharp.Variables {
 
@@ -9,8 +10,8 @@ namespace MCSharp.Variables {
     /// </summary>
     public abstract class Variable {
 
-        public static Dictionary<string, Action<AccessModifier[], UsageModifier[], string, Compiler.Scope, Wild[]>> Compilers { get; }
-                = new Dictionary<string, Action<AccessModifier[], UsageModifier[], string, Compiler.Scope, Wild[]>>();
+        public static Dictionary<string, Action<AccessModifier[], UsageModifier[], string, Compiler.Scope, ScriptWild[]>> Compilers { get; }
+                = new Dictionary<string, Action<AccessModifier[], UsageModifier[], string, Compiler.Scope, ScriptWild[]>>();
 
         public abstract int Order { get; }
         public abstract string TypeName { get; }
@@ -58,12 +59,31 @@ namespace MCSharp.Variables {
         /// <summary>
         /// Adds an item to <see cref="Compilers"/>.
         /// </summary>
-        protected abstract void Compile(AccessModifier[] accessModifiers, UsageModifier[] usageModifiers, string objectName, Compiler.Scope scope, Wild[] arguments);
+        protected abstract void Compile(AccessModifier[] accessModifiers, UsageModifier[] usageModifiers, string objectName, Compiler.Scope scope, ScriptWild[] arguments);
 
         /// <summary>
-        /// Writes the initialization commands to <see cref="Compiler.FunctionStack"/> and <see cref="Compiler.PrepFunction"/>
+        /// Writes the initialization commands to <see cref="Compiler.FunctionStack"/>.
         /// </summary>
-        public abstract void Initialize(bool prep);
+        public virtual void WriteInit() { }
+
+        /// <summary>
+        /// Writes the initialization commands to <see cref="Compiler.PrepFunction"/>.
+        /// </summary>
+        public virtual void WritePrep() { }
+
+        /// <summary>
+        /// Writes 'dispose' commands to <see cref="Compiler.FunctionStack"/>.
+        /// </summary>
+        public virtual void WriteDemo() { }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public virtual string GetConstant() {
+            if(AllowedUsageModifiers.Contains(UsageModifier.Constant))
+                throw new NotImplementedException($"Calling '{nameof(GetConstant)}' on this object should have worked, but the writer of the class didn't not implement it.");
+            else throw new InvalidOperationException($"Cannot call '{nameof(GetConstant)}' on this object because it is does not allow the 'constant' usage modifier.");
+        }
 
         public class InvalidModifierException : Exception {
             public InvalidModifierException(string modifier, string type)

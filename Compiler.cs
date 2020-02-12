@@ -72,11 +72,17 @@ namespace MCSharp {
                 Console.WriteLine($"Compiling '{scriptName}'... ");
 
                 using(StreamReader reader = File.OpenText(scriptPath)) {
-                    var script = new Script(scriptPath, reader.ReadToEnd().Replace('\n', ' ').Replace('\t', ' ').Replace('\r', ' '));
-                    WriteFunction(functionPath, functionName, script);
+                    var scriptFile = new ScriptFile(scriptPath, reader.ReadToEnd().Replace('\n', ' ').Replace('\t', ' ').Replace('\r', ' '));
+                    foreach(ScriptClass scriptClass in scriptFile) {
+                        string path = functionsPath + "\\" + scriptClass.Alias;
+                        string name = functionName[..^".mcfunction".Length] + "\\" + scriptClass.Alias;
+                        foreach(ScriptFunction scriptFunction in scriptClass) {
+                            WriteFunction(path + "\\" + scriptFunction.Alias + ".mcfunction", name + "\\" + scriptFunction.Alias + ".mcfunction", scriptFunction);
+                        }
+                    }
                 }
 
-                Console.CursorTop -= maxFunctionStackSize;
+                Console.CursorTop -= maxFunctionStackSize + 1;
                 Program.ClearCurrentConsoleLine();
                 Console.ForegroundColor = ConsoleColor.Green;
                 Console.WriteLine($"Compiled '{scriptPath.Split('\\')[^1]}'.");
@@ -93,7 +99,7 @@ namespace MCSharp {
             if(VariableScopes.TryGetValue(RootScope, out List<Variable> variables)) {
                 variables.Sort((a, b) => a.Order - b.Order);
                 foreach(Variable variable in variables) {
-                    variable.Initialize(true);
+                    try { variable.WritePrep(); } catch(Exception e) { Console.WriteLine(e); }
                 }
             }
 
@@ -109,13 +115,17 @@ namespace MCSharp {
         /// <summary>
         /// Compiles a new function file with the given <paramref name="functionPath"/> from the given <paramref name="script"/>.
         /// </summary>
-        public static void WriteFunction(string functionPath, string functionName, Script script) {
+        public static void WriteFunction(string path, string alias, ScriptFunction script) {
 
             Console.ForegroundColor = ConsoleColor.Gray;
-            Console.Write($" - Writing '{functionName}'... ");
+            Console.Write($" - Writing '{alias}'... ");
             maxFunctionStackSize++;
 
-            StreamWriter writer = File.CreateText(functionPath);
+            string[] directorySplit = path.Split('\\')[..^1];
+            string directory = "";
+            foreach(string part in directorySplit) directory += '\\' + part;
+            Directory.CreateDirectory(directory[1..]);
+            StreamWriter writer = File.CreateText(path.Replace("(", "").Replace(")", ""));
             FunctionStack.Push(writer);
 
             CurrentScope = new Scope(RootScope);
@@ -123,7 +133,7 @@ namespace MCSharp {
 
             //
 
-            var phrases = (IReadOnlyList<Phrase>)script;
+            var phrases = (IReadOnlyList<ScriptLine>)script;
             for(int i = 0; i < phrases.Count; i++) {
                 var phrase = phrases[i];
 
@@ -131,11 +141,11 @@ namespace MCSharp {
 
                 var accessModifiers = new List<AccessModifier>();
                 var usageModifiers = new List<UsageModifier>();
-                var arguments = new List<Wild>();
+                var arguments = new List<ScriptWild>();
 
-                Action<AccessModifier[], UsageModifier[], string, Scope, Wild[]> compiler = null;
+                Action<AccessModifier[], UsageModifier[], string, Scope, ScriptWild[]> compiler = null;
 
-                var wilds = (IReadOnlyList<Wild>)phrase;
+                var wilds = (IReadOnlyList<ScriptWild>)phrase;
                 for(int j = 0; j < wilds.Count; j++) {
                     var wild = wilds[j];
 
@@ -144,7 +154,7 @@ namespace MCSharp {
                         arguments.Add(wild);
 
                     } else if(wild.IsWord) {
-                        Word word = wild.Word;
+                        ScriptWord word = wild.Word;
 
                         //Check for keywords: [MODIFIER]
                         if(AccessModifiers.TryGetValue(word, out AccessModifier modifier1)) {
@@ -179,7 +189,7 @@ namespace MCSharp {
             if(VariableScopes.TryGetValue(CurrentScope, out List<Variable> variables)) {
                 variables.Sort((a, b) => a.Order - b.Order);
                 foreach(Variable variable in variables) {
-                    variable.Initialize(false);
+                    try { variable.WriteInit(); } catch(Exception e) { Console.WriteLine(e); }
                 }
             }
 
@@ -190,7 +200,17 @@ namespace MCSharp {
 
             Program.ClearCurrentConsoleLine();
             Console.ForegroundColor = ConsoleColor.Green;
-            Console.Write($" - Wrote '{functionName}'.");
+            Console.WriteLine($" - Wrote '{alias}'.");
+
+        }
+
+        public static bool WhatIsThis(ScriptWild wild, string name, out object result) {
+
+            result = null;
+
+            //todo
+
+            return false;
 
         }
 
@@ -206,7 +226,27 @@ namespace MCSharp {
             throw new ArgumentException($"The given argument is not a {nameof(TraceFormat)}.", nameof(format));
         }
 
+        public static bool TryGetVariable(string name, Scope scope, out Variable variable) {
+            variable = null;
+            if(VariableNames.TryGetValue(name, out Dictionary<Scope, Variable> dictionary)) {
+                int min = int.MaxValue;
+                foreach(KeyValuePair<Scope, Variable> pair in dictionary) {
+                    Scope s = pair.Key;
+                    Variable v = pair.Value;
+                    scope.IsChildOf(s, out int d);
+                    if(d < min) {
+                        variable = v;
+                        min = d;
+                    }
+                }
+            }
+            return variable != null;
+        }
+
         private static void Reload() {
+
+            //Clear files from last compile.
+            ScriptFile.Files.Clear();
 
             //Clear compilers from last compile.
             Variable.Compilers.Clear();
@@ -215,7 +255,7 @@ namespace MCSharp {
             Datatypes.Clear();
 
             //Reset objective ids.
-            Objective.ResetID();
+            VarObjective.ResetID();
 
             //Clear scopes from last compile.
             allScopes.Clear();
@@ -267,21 +307,28 @@ namespace MCSharp {
                 allScopes.Add(this);
             }
 
-            public bool IsChildOf(Scope scope) {
+            public bool IsChildOf(Scope scope, out int delta) {
                 Scope parent = Parent;
-                while(Parent != null) {
+                delta = -1;
+                while(parent != null) {
+                    delta++;
                     if(scope == parent) return true;
                     else parent = parent.Parent;
                 }
                 return false;
             }
 
-            public bool IsParentOf(Scope scope) {
-                foreach(Scope child in Children) {
-                    if(scope == child) return true;
-                    else if(child.IsParentOf(scope)) return true;
+            public bool IsParentOf(Scope scope, out int delta) {
+                static bool Recursion(Scope me, Scope scope, ref int delta) {
+                    delta++;
+                    foreach(Scope child in me.Children) {
+                        if(scope == child) return true;
+                        else if(Recursion(child, scope, ref delta)) return true;
+                    }
+                    return false;
                 }
-                return false;
+                delta = -1;
+                return Recursion(this, scope, ref delta);
             }
 
             public static int GetNewID() {

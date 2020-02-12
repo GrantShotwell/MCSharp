@@ -7,8 +7,8 @@ namespace MCSharp {
 
         public string Name { get; set; }
         public string Path => Program.Directory + "\\" + Name;
-        public Function Load { get; set; }
-        public Function Main { get; set; }
+        public VarFunction Load { get; set; }
+        public VarFunction Main { get; set; }
 
     }
 

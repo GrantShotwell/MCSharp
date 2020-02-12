@@ -204,13 +204,13 @@ namespace MCSharp {
 
                 //Create files.
                 using(StreamWriter loadJSON_writer = File.CreateText(Datapack.Path + "\\data\\minecraft\\tags\\functions\\load.json")) {
-                    Datapack.Load = new Function(new AccessModifier[] { AccessModifier.Private },
+                    Datapack.Load = new VarFunction(new AccessModifier[] { AccessModifier.Private },
                                                  new UsageModifier[] { UsageModifier.Constant },
                                                  "load", null, Datapack.Name + ":load", "");
                     loadJSON_writer.WriteLine("{\n\t\"values\": [\n\t\t\"" + Datapack.Load.FolderPath + "\"\n\t]\n}");
                 }
                 using(StreamWriter tickJSON_writer = File.CreateText(Datapack.Path + "\\data\\minecraft\\tags\\functions\\tick.json")) {
-                    Datapack.Main = new Function(new AccessModifier[] { AccessModifier.Private },
+                    Datapack.Main = new VarFunction(new AccessModifier[] { AccessModifier.Private },
                                                  new UsageModifier[] { UsageModifier.Constant },
                                                  "main", null, Datapack.Name + ":main", "");
                     tickJSON_writer.WriteLine("{\n\t\"values\": [\n\t\t\"" + Datapack.Main.FolderPath + "\"\n\t]\n}");

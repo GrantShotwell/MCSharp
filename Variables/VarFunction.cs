@@ -8,7 +8,7 @@ namespace MCSharp.Variables {
     /// <summary>
     /// Represents a .mcfunction file.
     /// </summary>
-    public class Function : Variable {
+    public class VarFunction : Variable {
 
         public override int Order => 100;
         public override string TypeName => "Function";
@@ -21,9 +21,9 @@ namespace MCSharp.Variables {
         public override ICollection<UsageModifier> AllowedUsageModifiers => new UsageModifier[] { UsageModifier.Constant, UsageModifier.Static };
 
 
-        public Function() : base() { }
+        public VarFunction() : base() { }
 
-        public Function(AccessModifier[] accessModifiers, UsageModifier[] usageModifiers, string objectName, Compiler.Scope scope, string gamePath, string arguments) :
+        public VarFunction(AccessModifier[] accessModifiers, UsageModifier[] usageModifiers, string objectName, Compiler.Scope scope, string gamePath, string arguments) :
         base(accessModifiers, usageModifiers, objectName, scope) {
             GamePath = gamePath;
             FolderPath = gamePath.Replace(':', '/') + ".mcfunction";
@@ -31,21 +31,20 @@ namespace MCSharp.Variables {
         }
 
 
-        protected override void Compile(AccessModifier[] accessModifiers, UsageModifier[] usageModifiers, string objectName, Compiler.Scope scope, Wild[] arguments) {
+        protected override void Compile(AccessModifier[] accessModifiers, UsageModifier[] usageModifiers, string objectName, Compiler.Scope scope, ScriptWild[] arguments) {
             throw new NotImplementedException();
         }
 
-        public override void Initialize(bool prep) {
-            if(prep) {
-                //todo
-            } else {
-                StreamWriter function = File.CreateText(Program.Datapack.Path + "\\" + FolderPath);
-                Compiler.FunctionStack.Push(function);
-
-                _ = Compiler.FunctionStack.Pop();
-            }
+        public override void WriteInit() {
+            StreamWriter function = File.CreateText(Program.Datapack.Path + "\\" + FolderPath);
+            Compiler.FunctionStack.Push(function);
+            //todo
+            _ = Compiler.FunctionStack.Pop();
         }
 
+        public override void WritePrep() {
+            throw new NotImplementedException();
+        }
     }
 
 }
