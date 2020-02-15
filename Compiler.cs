@@ -22,7 +22,8 @@ namespace MCSharp {
         public static Scope RootScope { get; } = new Scope(0, null);
 
         public static StreamWriter PrepFunction { get; private set; }
-        public static StreamWriter UndoFunction { get; private set; }
+        public static StreamWriter DemoFunction { get; private set; }
+        public static StreamWriter TickFunction { get; private set; }
         public static Stack<StreamWriter> FunctionStack { get; } = new Stack<StreamWriter>();
         public static Dictionary<string, Dictionary<Scope, Variable>> VariableNames { get; } = new Dictionary<string, Dictionary<Scope, Variable>>();
         public static Dictionary<Scope, List<Variable>> VariableScopes { get; } = new Dictionary<Scope, List<Variable>>();
@@ -59,8 +60,8 @@ namespace MCSharp {
 
             Directory.CreateDirectory(functionsPath + "\\mcscript");
             PrepFunction = File.CreateText(functionsPath + "\\mcscript\\prep.mcfunction");
-            UndoFunction = File.CreateText(functionsPath + "\\mcscript\\undo.mcfunction");
-
+            DemoFunction = File.CreateText(functionsPath + "\\mcscript\\demo.mcfunction");
+            TickFunction = File.CreateText(functionsPath + "\\mcscript\\tick.mcfunction");
 
             foreach(string scriptPath in scripts) {
 
@@ -74,13 +75,8 @@ namespace MCSharp {
 
                 using(StreamReader reader = File.OpenText(scriptPath)) {
                     var scriptFile = new ScriptFile(scriptPath, reader.ReadToEnd().Replace('\n', ' ').Replace('\t', ' ').Replace('\r', ' '));
-                    foreach(ScriptClass scriptClass in scriptFile) {
-                        string path = functionsPath + "\\" + scriptClass.Alias;
-                        string name = functionName[..^".mcfunction".Length] + "\\" + scriptClass.Alias;
-                        foreach(ScriptFunction scriptFunction in scriptClass) {
+                    foreach(ScriptClass scriptClass in scriptFile) foreach(ScriptFunction scriptFunction in scriptClass)
                             WriteFunction(scriptFunction.FilePath, scriptFunction.FileName, RootScope, scriptFunction);
-                        }
-                    }
                 }
 
                 Console.CursorTop -= maxFunctionStackSize + 1;
@@ -93,22 +89,53 @@ namespace MCSharp {
 
             }
 
+            VariableScopes.TryGetValue(RootScope, out List<Variable> publicVariables);
+            var allVariables = new List<Variable>();
+            foreach(KeyValuePair<Scope, List<Variable>> pair in VariableScopes)
+                foreach(Variable variable in pair.Value) allVariables.Add(variable);
+            allVariables.Sort((a, b) => a.Order - b.Order);
 
-            Console.ForegroundColor = ConsoleColor.Gray;
-            Console.Write("Compiling 'mcsript\\prep.mcfunction'...");
+            {
+                Console.ForegroundColor = ConsoleColor.Gray;
+                Console.Write("Compiling 'mcsript\\prep.mcfunction'...");
 
-            if(VariableScopes.TryGetValue(RootScope, out List<Variable> variables)) {
-                foreach(Variable variable in variables) {
-                    variable.WritePrep();
-                }
+                PrepFunction.WriteLine($"function {Program.Datapack.Name}:mcscript/demo");
+                if(publicVariables != null) foreach(Variable variable in publicVariables) variable.WritePrep(PrepFunction);
+                PrepFunction.WriteLine($"function {Program.Datapack.Name}:program/load");
+
+                PrepFunction.Close();
+
+                Program.ClearCurrentConsoleLine();
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine("Compiled 'mcsript\\prep.mcfunction'.");
             }
 
-            PrepFunction.Close();
-            UndoFunction.Close();
+            {
+                Console.ForegroundColor = ConsoleColor.Gray;
+                Console.Write("Compiling 'mcscript\\tick.mcfunction'...");
 
-            Program.ClearCurrentConsoleLine();
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine("Compiled 'mcsript\\prep.mcfunction'.");
+                TickFunction.WriteLine($"function {Program.Datapack.Name}:program/main");
+                foreach(Variable variable in allVariables) variable.WriteTick(TickFunction);
+
+                TickFunction.Close();
+
+                Program.ClearCurrentConsoleLine();
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine("Compiled 'mcsript\\tick.mcfunction'.");
+            }
+
+            {
+                Console.ForegroundColor = ConsoleColor.Gray;
+                Console.Write("Compiling 'mcscript\\demo.mcfunction'...");
+
+                if(publicVariables != null) foreach(Variable variable in publicVariables) variable.WriteDemo(DemoFunction);
+
+                DemoFunction.Close();
+
+                Program.ClearCurrentConsoleLine();
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine("Compiled 'mcsript\\demo.mcfunction'.");
+            }
 
         }
 
@@ -254,9 +281,8 @@ namespace MCSharp {
             }
 
             if(VariableScopes.TryGetValue(CurrentScope, out List<Variable> variables)) {
-                foreach(Variable variable in variables) {
-                    variable.WriteInit();
-                }
+                foreach(Variable variable in variables) variable.WriteInit(FunctionStack.Peek());
+                foreach(Variable variable in variables) variable.WriteDemo(FunctionStack.Peek());
             }
 
             //
@@ -348,7 +374,7 @@ namespace MCSharp {
                 if(info.IsSubclassOf(typeof(Variable)) && !info.IsAbstract) {
                     ConstructorInfo constructor = info.GetConstructor(new Type[] { });
                     var variable = constructor.Invoke(new object[] { }) as Variable;
-                    if(!(variable is MethodSpy)) Datatypes.Add(variable.TypeName, info.AsType());
+                    if(!(variable is Spy)) Datatypes.Add(variable.TypeName, info.AsType());
                 }
             }
 

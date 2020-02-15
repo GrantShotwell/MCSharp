@@ -66,7 +66,7 @@ namespace MCSharp.Variables {
             switch(operation) {
                 case "+=": {
                     string[] init = new string[] { $"scoreboard players operation var {Objective.ID} += var {varInt.Objective.ID}" };
-                    new MethodSpy(Compiler.CurrentScope, null, init, null);
+                    new Spy(Compiler.CurrentScope, null, init, null);
                     break;
                 }
             }

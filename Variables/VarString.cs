@@ -28,17 +28,20 @@ namespace MCSharp.Variables {
         public VarString(Access access, string objectName, Compiler.Scope scope, VarSelector value) : base(access, Usage.Constant, objectName, scope) {
             SelectorValue = value;
         }
-
+        
         protected override Variable Compile(Access access, Usage usage, string objectName, Compiler.Scope scope, ScriptWild[] arguments) {
             if(arguments.Length < 2 || arguments[0].IsWilds || arguments[0].Word != "=")
                 throw new Compiler.SyntaxException("Unexpected format for declaring a 'string'.");
-            if(((string)arguments[1])[0] == '"' && usage == Usage.Default) {
+            if(usage == Usage.Constant) {
                 string value = CompileStringValue(arguments[1..]);
                 return new VarString(access, objectName, scope, value);
-            } else if(Compiler.TryGetVariable(new ScriptWild(arguments[1..], null), scope, out Variable variable)
-                && (variable is VarSelector selector || variable.TryCast(out selector))) {
-                return new VarString(access, objectName, scope, selector);
-            } else throw new Compiler.SyntaxException("Unexpected 'string' declaration.");
+            } else { // Usage.Default
+                string tag = $"{scope}.{objectName}";
+                new Spy(scope, null, new string[] {
+                    $"execute as @p run summon minecraft:area_effect_cloud ~ ~ ~ {{CustomName:\"{""}\",Tags:[\"{tag}\"]}}" }, null);
+                return new VarString(access, objectName, scope,
+                    new VarSelector(access, usage, $"{objectName}.Selector", scope, $"@e[nbt={{Tags:[\"{tag}\"]}}]"));
+            }
         }
 
         public static string CompileStringValue(ScriptWild[] arguments) {
@@ -50,6 +53,9 @@ namespace MCSharp.Variables {
         public override void CompileOperation(ScriptWord operation, ScriptWild[] arguments) {
             throw new NotImplementedException();
         }
+
+        public override void WriteTick(StreamWriter function) { if(IsSelector) function.WriteLine($"tp {SelectorValue.String} @p[sort=arbitrary]"); }
+        public override void WriteDemo(StreamWriter function) { if(IsSelector) function.WriteLine($"kill {SelectorValue.String}"); }
 
         public override string GetConstant() => ConstantValue;
         public override VarString GetString() => this;

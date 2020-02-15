@@ -19,7 +19,7 @@ namespace MCSharp.Methods {
                 if(!(parameters[1] is VarString arg2))
                     throw new Compiler.SyntaxException("The second argument of Chat.Say needs to be a string!");
                 string[] init = new string[] { $"say {arg1.GetConstant()}" };
-                new MethodSpy(Compiler.CurrentScope, null, init, null);
+                new Spy(Compiler.CurrentScope, null, init, null);
             }
 
         }
@@ -35,7 +35,7 @@ namespace MCSharp.Methods {
                 if(!(parameters[1] is VarJSON arg2))
                     throw new Compiler.SyntaxException("The second argument of Chat.Tellraw needs to be a JSON!");
                 string[] init = new string[] { $"tellraw {arg1.GetConstant()} {arg2.GetConstant()}" };
-                new MethodSpy(Compiler.CurrentScope, null, init, null);
+                new Spy(Compiler.CurrentScope, null, init, null);
             }
 
         }

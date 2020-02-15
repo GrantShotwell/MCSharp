@@ -66,20 +66,9 @@ namespace MCSharp.Variables {
 
         }
 
-        public override void WriteInit() {
-            StreamWriter function = Compiler.FunctionStack.Peek();
-            function.WriteLine($"scoreboard objectives add {ID} {Type}");
-        }
-
-        public override void WritePrep() {
-            StreamWriter function = Compiler.PrepFunction;
-            function.WriteLine($"scoreboard objectives add {ID} {Type}");
-        }
-
-        public override void WriteDemo() {
-            StreamWriter function = Compiler.FunctionStack.Peek();
-            function.WriteLine($"scoreboard objectives remove {ID}");
-        }
+        public override void WriteInit(StreamWriter function) => function.WriteLine($"scoreboard objectives add {ID} {Type}");
+        public override void WritePrep(StreamWriter function) => function.WriteLine($"scoreboard objectives add {ID} {Type}");
+        public override void WriteDemo(StreamWriter function) => function.WriteLine($"scoreboard objectives remove {ID}");
 
         public static void ResetID() => NextID = 0;
 

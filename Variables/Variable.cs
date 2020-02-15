@@ -29,14 +29,14 @@ namespace MCSharp.Variables {
 
 
         public Variable() {
-            if(GetType() != typeof(MethodSpy)) Compilers.Add(TypeName, Compile);
+            if(GetType() != typeof(Spy)) Compilers.Add(TypeName, Compile);
         }
 
         public Variable(Access accessModifier, Usage usageModifier, string objectName, Compiler.Scope scope) {
 
             if(objectName == null) throw new ArgumentNullException(nameof(objectName));
             if(scope == null) throw new ArgumentNullException(nameof(scope));
-            if(GetType() != typeof(MethodSpy)) {
+            if(GetType() != typeof(Spy)) {
                 if(!AllowedAccessModifiers.Contains(accessModifier)) throw new InvalidModifierException(accessModifier.ToString(), TypeName);
                 if(!AllowedUsageModifiers.Contains(usageModifier)) throw new InvalidModifierException(usageModifier.ToString(), TypeName);
             }
@@ -75,22 +75,22 @@ namespace MCSharp.Variables {
         /// <summary>
         /// Writes the initialization commands to <see cref="Compiler.FunctionStack"/>.
         /// </summary>
-        public virtual void WriteInit() { }
+        public virtual void WriteInit(StreamWriter function) { }
 
         /// <summary>
-        /// Writes commands needed to keep this variable loaded if it is required.
+        /// Writes commands needed to keep this variable 'maintained' for the next tick, if it is required.
         /// </summary>
-        public virtual void WriteMain() { }
+        public virtual void WriteTick(StreamWriter function) { }
 
         /// <summary>
         /// Writes the initialization commands to <see cref="Compiler.PrepFunction"/>.
         /// </summary>
-        public virtual void WritePrep() { }
+        public virtual void WritePrep(StreamWriter function) { }
 
         /// <summary>
-        /// Writes 'dispose' commands to <see cref="Compiler.FunctionStack"/>.
+        /// Writes 'dispose' commands.
         /// </summary>
-        public virtual void WriteDemo() { }
+        public virtual void WriteDemo(StreamWriter function) { }
 
         /// <summary>
         /// 

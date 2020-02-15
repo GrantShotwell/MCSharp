@@ -32,15 +32,9 @@ namespace MCSharp.Variables {
         }
 
 
-        public override void WriteInit() {
-            StreamWriter function = Compiler.FunctionStack.Peek();
+        public override void WriteInit(StreamWriter function) {
             if(InitValue.HasValue) function.WriteLine($"scoreboard players set {Selector.String} {Objective.ID} {InitValue}");
             else function.WriteLine($"scoreboard players operation {Selector.String} {Objective.ID} = {FromSelector.String} {FromObjective.ID}");
-        }
-
-        public override void WriteDemo() {
-            StreamWriter function = Compiler.FunctionStack.Peek();
-
         }
 
     }

@@ -34,8 +34,8 @@ namespace MCSharp.Variables {
         protected override Variable Compile(Access access, Usage usage, string objectName, Compiler.Scope scope, ScriptWild[] arguments) {
             throw new NotImplementedException();
         }
-
-        public override void WriteInit() {
+        
+        public override void WriteInit(StreamWriter f) {
             StreamWriter function = File.CreateText(Program.Datapack.Path + "\\" + FolderPath);
             Compiler.FunctionStack.Push(function);
 
@@ -46,7 +46,7 @@ namespace MCSharp.Variables {
             throw new NotImplementedException();
         }
 
-        public override void WritePrep() {
+        public override void WritePrep(StreamWriter function) {
             throw new NotImplementedException();
         }
     }

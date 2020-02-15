@@ -30,21 +30,20 @@ namespace MCSharp.Variables {
             throw new NotImplementedException();
         }
 
-        public override void WriteInit() {
-            StreamWriter function = Compiler.FunctionStack.Peek();
-            function.WriteLine($"tag {(Selector.StartsWith("@e") ? "@e" : "@a")} remove var_{TypeName}_{ObjectName}");
-            function.WriteLine($"tag {Selector} add var_{TypeName}_{ObjectName}");
-        }
-
         public override void CompileOperation(ScriptWord operation, ScriptWild[] arguments) {
             throw new NotImplementedException();
         }
 
-        public override void WritePrep() {
-            StreamWriter function = Compiler.PrepFunction;
+        public override void WriteInit(StreamWriter function) {
             function.WriteLine($"tag {(Selector.StartsWith("@e") ? "@e" : "@a")} remove var_{TypeName}_{ObjectName}");
             function.WriteLine($"tag {Selector} add var_{TypeName}_{ObjectName}");
         }
+
+        public override void WritePrep(StreamWriter function) {
+            function.WriteLine($"tag {(Selector.StartsWith("@e") ? "@e" : "@a")} remove var_{TypeName}_{ObjectName}");
+            function.WriteLine($"tag {Selector} add var_{TypeName}_{ObjectName}");
+        }
+
     }
 
 }

@@ -41,7 +41,7 @@ namespace MCSharp.Methods {
         }
 
         private static void Show(VarSelector selector, string type, VarJSON json) {
-            new MethodSpy(Compiler.CurrentScope, null, new string[] { $"title {selector.GetConstant()} {type} {json.GetConstant()}" }, null);
+            new Spy(Compiler.CurrentScope, null, new string[] { $"title {selector.GetConstant()} {type} {json.GetConstant()}" }, null);
         }
 
     }
