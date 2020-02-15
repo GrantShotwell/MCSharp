@@ -104,6 +104,7 @@ namespace MCSharp.Compilation {
         public override string ToString() => str;
 
         public static implicit operator string(ScriptWild wild) => wild.str;
+        public static implicit operator ScriptWild(ScriptWord word) => new ScriptWild(word);
 
     }
 

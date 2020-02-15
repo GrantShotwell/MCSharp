@@ -6,7 +6,7 @@ namespace MCSharp.Compilation {
 
     public struct ScriptLine : IReadOnlyList<ScriptWild> {
 
-        public static string[] BlockTypes { get; } = new string[] { "{\\}", "[\\]", "(\\)", "\"\\\"" };
+        public static string[] BlockTypes { get; } = new string[] { "{\\}", "[\\]", "(\\)" };
         public static IReadOnlyList<char> BlockTypesStart {
             get {
                 var starts = new char[BlockTypes.Length];

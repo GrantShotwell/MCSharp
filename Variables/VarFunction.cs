@@ -17,29 +17,33 @@ namespace MCSharp.Variables {
         public List<string> Commands { get; } = new List<string>();
         public string Arguments { get; }
 
-        public override ICollection<AccessModifier> AllowedAccessModifiers => new AccessModifier[] { AccessModifier.Private, AccessModifier.Public };
-        public override ICollection<UsageModifier> AllowedUsageModifiers => new UsageModifier[] { UsageModifier.Constant, UsageModifier.Static };
+        public override ICollection<Access> AllowedAccessModifiers => new Access[] { Access.Private, Access.Public };
+        public override ICollection<Usage> AllowedUsageModifiers => new Usage[] { Usage.Constant, Usage.Static };
 
 
         public VarFunction() : base() { }
 
-        public VarFunction(AccessModifier[] accessModifiers, UsageModifier[] usageModifiers, string objectName, Compiler.Scope scope, string gamePath, string arguments) :
-        base(accessModifiers, usageModifiers, objectName, scope) {
+        public VarFunction(Access access, Usage usage, string objectName, Compiler.Scope scope, string gamePath, string arguments) :
+        base(access, usage, objectName, scope) {
             GamePath = gamePath;
             FolderPath = gamePath.Replace(':', '/') + ".mcfunction";
             Arguments = arguments;
         }
 
 
-        protected override void Compile(AccessModifier[] accessModifiers, UsageModifier[] usageModifiers, string objectName, Compiler.Scope scope, ScriptWild[] arguments) {
+        protected override Variable Compile(Access access, Usage usage, string objectName, Compiler.Scope scope, ScriptWild[] arguments) {
             throw new NotImplementedException();
         }
 
         public override void WriteInit() {
             StreamWriter function = File.CreateText(Program.Datapack.Path + "\\" + FolderPath);
             Compiler.FunctionStack.Push(function);
-            //todo
+
             _ = Compiler.FunctionStack.Pop();
+        }
+
+        public override void CompileOperation(ScriptWord operation, ScriptWild[] arguments) {
+            throw new NotImplementedException();
         }
 
         public override void WritePrep() {

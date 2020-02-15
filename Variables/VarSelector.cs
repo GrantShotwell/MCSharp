@@ -13,23 +13,33 @@ namespace MCSharp.Variables {
         public override string TypeName => "Selector";
         public string String { get; }
 
-        public override ICollection<AccessModifier> AllowedAccessModifiers => new AccessModifier[] { AccessModifier.Private, AccessModifier.Public };
-        public override ICollection<UsageModifier> AllowedUsageModifiers => new UsageModifier[] { UsageModifier.Constant, UsageModifier.Static };
+        public override ICollection<Access> AllowedAccessModifiers => new Access[] { Access.Private, Access.Public };
+        public override ICollection<Usage> AllowedUsageModifiers => new Usage[] { Usage.Default, Usage.Constant, Usage.Static };
 
 
         public VarSelector() : base() { }
 
-        public VarSelector(AccessModifier[] accessModifiers, UsageModifier[] usageModifiers, string objectName, Compiler.Scope scope, string value) :
-        base(accessModifiers, usageModifiers, objectName, scope) {
+        public VarSelector(Access accessModifier, Usage usageModifier, string objectName, Compiler.Scope scope, string value) :
+        base(accessModifier, usageModifier, objectName, scope) {
             String = value;
         }
 
-        protected override void Compile(AccessModifier[] accessModifiers, UsageModifier[] usageModifiers, string objectName, Compiler.Scope scope, ScriptWild[] arguments) {
+        protected override Variable Compile(Access accessModifier, Usage usageModifier, string objectName, Compiler.Scope scope, ScriptWild[] arguments) {
+            //expected format Selector sel = "@a[team = blue, gamemode = adventure]";
+            //                Selector sel = "@a[team=blue,gamemode=adventure]";
+            if(arguments.Length < 2 || arguments[0].IsWilds || arguments[0].Word != "=")
+                throw new Compiler.SyntaxException("Expected format of '= \"...\"'.");
+            string value = ((string)new ScriptWild(arguments[1..], "")).Trim();
+            if(value[0] != '\"' || value[^1] != '\"') throw new Compiler.SyntaxException("Expected a string for declaring a Selector.");
+            value = value[1..^1];
+            return new VarSelector(accessModifier, usageModifier, objectName, scope, value);
+        }
+
+        public override void CompileOperation(ScriptWord operation, ScriptWild[] arguments) {
             throw new NotImplementedException();
         }
 
-        public override void WriteInit() { }
-        public override void WritePrep() { }
+        public override string GetConstant() => String;
 
     }
 

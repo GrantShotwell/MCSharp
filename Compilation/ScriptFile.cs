@@ -39,9 +39,15 @@ namespace MCSharp.Compilation {
                 word = "";
             }
 
+            bool inString = false;
             for(int end = 0; end < scriptFile.Length; end++) {
-
                 char current = scriptFile[end];
+
+                if(current == '"' && scriptFile[end - 1] != '\\') {
+                    inString = !inString;
+                    continue;
+                }
+
                 if(char.IsWhiteSpace(current)) {
                     if(word != "" && blocks == 0) Rotate();
                 } else if(current == '{') {
@@ -62,6 +68,8 @@ namespace MCSharp.Compilation {
                 }
 
             }
+
+            if(inString) throw new Compiler.SyntaxException("Unclosed string!");
 
             return functions.ToArray();
         }

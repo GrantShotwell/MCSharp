@@ -14,19 +14,19 @@ namespace MCSharp.Variables {
         public override string TypeName => "Entity";
         public string Selector { get; }
 
-        public override ICollection<AccessModifier> AllowedAccessModifiers => new AccessModifier[] { AccessModifier.Private, AccessModifier.Public };
-        public override ICollection<UsageModifier> AllowedUsageModifiers => new UsageModifier[] { UsageModifier.Constant, UsageModifier.Static };
+        public override ICollection<Access> AllowedAccessModifiers => new Access[] { Access.Private, Access.Public };
+        public override ICollection<Usage> AllowedUsageModifiers => new Usage[] { Usage.Default, Usage.Constant, Usage.Static };
 
 
         public VarEntities() : base() { }
 
-        public VarEntities(AccessModifier[] accessModifiers, UsageModifier[] usageModifiers, string objectName, Compiler.Scope scope, VarSelector selector) :
-        base(accessModifiers, usageModifiers, objectName, scope) {
+        public VarEntities(Access access, Usage usage, string objectName, Compiler.Scope scope, VarSelector selector) :
+        base(access, usage, objectName, scope) {
             Selector = selector.String;
         }
 
 
-        protected override void Compile(AccessModifier[] accessModifiers, UsageModifier[] usageModifiers, string objectName, Compiler.Scope scope, ScriptWild[] arguments) {
+        protected override Variable Compile(Access access, Usage usage, string objectName, Compiler.Scope scope, ScriptWild[] arguments) {
             throw new NotImplementedException();
         }
 
@@ -34,6 +34,10 @@ namespace MCSharp.Variables {
             StreamWriter function = Compiler.FunctionStack.Peek();
             function.WriteLine($"tag {(Selector.StartsWith("@e") ? "@e" : "@a")} remove var_{TypeName}_{ObjectName}");
             function.WriteLine($"tag {Selector} add var_{TypeName}_{ObjectName}");
+        }
+
+        public override void CompileOperation(ScriptWord operation, ScriptWild[] arguments) {
+            throw new NotImplementedException();
         }
 
         public override void WritePrep() {

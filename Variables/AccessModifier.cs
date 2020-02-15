@@ -4,6 +4,6 @@ using System.Text;
 
 namespace MCSharp.Variables {
 
-    public enum AccessModifier { Public, Private }
+    public enum Access { Public, Private }
 
 }

@@ -13,17 +13,18 @@ namespace MCSharp.Compilation {
         public string FilePath { get; }
         public string FileName { get; }
         public string Alias { get; }
+        public string AliasDotted => Alias.Replace('\\', '.');
 
         int IReadOnlyCollection<ScriptLine>.Count => ((IReadOnlyList<ScriptLine>)phrases).Count;
 
 
-        public ScriptFunction(string file, string alias, string script) : this(file, alias, GetLines(script)) { }
+        public ScriptFunction(string alias, string script) : this(alias, GetLines(script)) { }
 
-        public ScriptFunction(string file, string alias, ScriptLine[] phrases) {
+        public ScriptFunction(string alias, ScriptLine[] phrases) {
 
-            FilePath = file;
-            FileName = file.Split('\\')[^1];
-            Alias = alias;
+            FileName = Script.FixAlias($"{alias}.mcfunction");
+            FilePath = $"{Program.FunctionsFolder}\\{FileName}";
+            Alias = Script.FixAlias(alias);
             this.phrases = phrases;
 
             int length = phrases.Length;
@@ -39,6 +40,7 @@ namespace MCSharp.Compilation {
             if(scriptFunction is null) return new ScriptLine[] { };
             var lines = new List<ScriptLine>();
 
+            bool inString = false;
             int start = 0;
             var stack = new Stack<string>();
             for(int end = 0; end < scriptFunction.Length; end++) {
@@ -50,18 +52,27 @@ namespace MCSharp.Compilation {
                     lines.Add(new ScriptLine(scriptFunction[start..end]));
                     start = end + 1;
                 } else {
-                    if(ScriptLine.IsBlockCharStart(chr, out string block)) {
-                        //Check for mistakes.
-
-                        //If not a mistake, then start a block.
-                        stack.Push(block);
-                    }
-                    if(ScriptLine.IsBlockCharEnd(chr, out block)) {
-                        //Check for mistakes.
-                        if(!inBlock) throw new Compiler.SyntaxException("Got too many end-of-block characters without enough start-of-block characters to match!");
-                        if(stack.Peek() != block) throw new Compiler.SyntaxException("Expected a different end-of-block character.");
-                        //If not a mistake, then end the block.
-                        stack.Pop();
+                    if(chr == '"') {
+                        inString = !inString;
+                        if(inString) {
+                            stack.Push("\"\\\"");
+                        } else {
+                            stack.Pop();
+                        }
+                    } else {
+                        if(ScriptLine.IsBlockCharStart(chr, out string block)) {
+                            //Start a block.
+                            stack.Push(block);
+                            continue;
+                        }
+                        if(ScriptLine.IsBlockCharEnd(chr, out block)) {
+                            //Check for mistakes.
+                            if(!inBlock) throw new Compiler.SyntaxException("Got too many end-of-block characters without enough start-of-block characters to match!");
+                            if(stack.Peek() != block) throw new Compiler.SyntaxException("Expected a different end-of-block character.");
+                            //If not a mistake, then end the block.
+                            stack.Pop();
+                            continue;
+                        }
                     }
                 }
 

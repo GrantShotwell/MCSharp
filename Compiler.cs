@@ -1,5 +1,6 @@
 ﻿using LargeBaseNumbers;
 using MCSharp.Compilation;
+using MCSharp.Methods;
 using MCSharp.Variables;
 using System;
 using System.Collections.Generic;
@@ -36,13 +37,13 @@ namespace MCSharp {
         public static int CurrentWordIndex { get; private set; }
         public static string CurrentFile { get; private set; }
 
-        public static Dictionary<string, AccessModifier> AccessModifiers { get; } = new Dictionary<string, AccessModifier>() {
-            { "public", AccessModifier.Public },
-            { "private", AccessModifier.Private }
+        public static Dictionary<string, Access> AccessModifiers { get; } = new Dictionary<string, Access>() {
+            { "public", Access.Public },
+            { "private", Access.Private }
         };
-        public static Dictionary<string, UsageModifier> UsageModifiers { get; } = new Dictionary<string, UsageModifier>() {
-            { "static", UsageModifier.Static },
-            { "const", UsageModifier.Constant }
+        public static Dictionary<string, Usage> UsageModifiers { get; } = new Dictionary<string, Usage>() {
+            { "static", Usage.Static },
+            { "const", Usage.Constant }
         };
         public static Dictionary<string, Type> Datatypes { get; } = new Dictionary<string, Type>();
         
@@ -66,7 +67,7 @@ namespace MCSharp {
                 string scriptName = scriptPath.Split('\\')[^1];
                 string functionName = scriptName.Replace(".mcsharp", ".mcfunction");
                 string functionPath = $"{functionsPath}\\{functionName}";
-                if(!scriptPath.EndsWith(".mcsharp")) return;
+                if(!scriptPath.EndsWith(".mcsharp")) continue;
 
                 Console.ForegroundColor = ConsoleColor.Gray;
                 Console.WriteLine($"Compiling '{scriptName}'... ");
@@ -77,7 +78,7 @@ namespace MCSharp {
                         string path = functionsPath + "\\" + scriptClass.Alias;
                         string name = functionName[..^".mcfunction".Length] + "\\" + scriptClass.Alias;
                         foreach(ScriptFunction scriptFunction in scriptClass) {
-                            WriteFunction(path + "\\" + scriptFunction.Alias + ".mcfunction", name + "\\" + scriptFunction.Alias + ".mcfunction", scriptFunction);
+                            WriteFunction(scriptFunction.FilePath, scriptFunction.FileName, RootScope, scriptFunction);
                         }
                     }
                 }
@@ -97,9 +98,8 @@ namespace MCSharp {
             Console.Write("Compiling 'mcsript\\prep.mcfunction'...");
 
             if(VariableScopes.TryGetValue(RootScope, out List<Variable> variables)) {
-                variables.Sort((a, b) => a.Order - b.Order);
                 foreach(Variable variable in variables) {
-                    try { variable.WritePrep(); } catch(Exception e) { Console.WriteLine(e); }
+                    variable.WritePrep();
                 }
             }
 
@@ -115,20 +115,20 @@ namespace MCSharp {
         /// <summary>
         /// Compiles a new function file with the given <paramref name="functionPath"/> from the given <paramref name="script"/>.
         /// </summary>
-        public static void WriteFunction(string path, string alias, ScriptFunction script) {
+        public static void WriteFunction(string path, string alias, Scope scope, ScriptFunction script) {
 
             Console.ForegroundColor = ConsoleColor.Gray;
-            Console.Write($" - Writing '{alias}'... ");
+            Console.Write($" · Writing '{alias}'... ");
             maxFunctionStackSize++;
 
             string[] directorySplit = path.Split('\\')[..^1];
             string directory = "";
             foreach(string part in directorySplit) directory += '\\' + part;
             Directory.CreateDirectory(directory[1..]);
-            StreamWriter writer = File.CreateText(path.Replace("(", "").Replace(")", ""));
+            StreamWriter writer = File.CreateText(path.Split("(", 2)[0]);
             FunctionStack.Push(writer);
 
-            CurrentScope = new Scope(RootScope);
+            CurrentScope = new Scope(scope);
             ScopeStack.Push(CurrentScope);
 
             //
@@ -137,59 +137,125 @@ namespace MCSharp {
             for(int i = 0; i < phrases.Count; i++) {
                 var phrase = phrases[i];
 
-                bool sendingMode = false;
-
-                var accessModifiers = new List<AccessModifier>();
-                var usageModifiers = new List<UsageModifier>();
                 var arguments = new List<ScriptWild>();
-
-                Action<AccessModifier[], UsageModifier[], string, Scope, ScriptWild[]> compiler = null;
+                Action onFinish = null;
 
                 var wilds = (IReadOnlyList<ScriptWild>)phrase;
                 for(int j = 0; j < wilds.Count; j++) {
                     var wild = wilds[j];
 
-                    if(sendingMode) {
+                    if(onFinish == null) {
+                        if(wild.IsWord) {
+                            ScriptWord word = wild.Word;
+                            string wordStr = word;
+                            
+                            //Check for: [TYPE]
+                            if(Variable.Compilers.TryGetValue(word, out Func<Access, Usage, string, Scope, ScriptWild[], Variable> compiler)) {
+                                onFinish = () => {
+                                    compiler.Invoke(Access.Private, Usage.Default, arguments[0], CurrentScope, arguments.ToArray()[1..]);
+                                };
+                                continue;
+                            }
 
-                        arguments.Add(wild);
+                            //Check for: [NAME]
+                            if(TryGetVariable(word, CurrentScope, out Variable variable)) {
+                                onFinish = () => {
+                                    variable.CompileOperation(arguments[0].Word, arguments.ToArray()[1..]);
+                                };
+                                continue;
+                            }
+                            
+                            //Check for: [STATIC METHOD]
+                            if(MethodGroup.Dictionary.TryGetValue(word, out Action<Variable[]> stcMethod)) {
+                                onFinish = () => {
+                                    #region Call Static Method
 
-                    } else if(wild.IsWord) {
-                        ScriptWord word = wild.Word;
+                                    //Check that 'arguments' are method arguments.
+                                    if(arguments.Count != 1 && arguments[0].IsWord && arguments[0].BlockType != "(\\)")
+                                        throw new SyntaxException("Expected arguments for a static method.");
 
-                        //Check for keywords: [MODIFIER]
-                        if(AccessModifiers.TryGetValue(word, out AccessModifier modifier1)) {
-                            accessModifiers.Add(modifier1);
-                            continue;
+                                    //Translate 'arguments' into a Variable array.
+                                    int i = 0;
+                                    var variables = new Variable[arguments[0].Wilds.Count];
+                                    if(variables.Length > 0) {
+                                        foreach(string name in ((string)arguments[0]).Split(',')) {
+                                        if(!TryGetVariable(name.Trim(), CurrentScope, out variables[i++]))
+                                            throw new SyntaxException("Expected an initialized variable as argument for static method.");
+                                        }
+                                    }
+
+                                    //Invoke the method.
+                                    stcMethod.Invoke(variables);
+
+                                    #endregion
+                                };
+                                continue;
+                            }
+
+                            //Check for: [VARIABLE METHOD]
+                            if(TryGetVariable(wordStr.Split('.', 2)[0], CurrentScope, out variable)) {
+                                int stop;
+                                for(stop = 0; stop < wordStr.Length; stop++) if(wordStr[stop] == '(') break;
+                                string call = wordStr[variable.ObjectName.Length..(stop)];
+                                foreach(MethodGroup.GenericDictionary genericDictionary in MethodGroup.GenericDictionaries) {
+                                    if(genericDictionary.Type.IsAssignableFrom(variable.GetType())) {
+                                        foreach(KeyValuePair<string, Action<Variable, Variable[]>> pair in genericDictionary) {
+                                            if(pair.Key == call) {
+                                                var varMethod = pair.Value;
+                                                onFinish = () => {
+                                                    #region Call Non-Static Method
+
+                                                    //Check that 'arguments' are method arguments.
+                                                    if(arguments.Count != 1 && arguments[0].IsWord && arguments[0].BlockType != "(\\)")
+                                                        throw new SyntaxException("Expected arguments for a non-static method.");
+
+                                                    //Translate 'arguments' into a Variable array.
+                                                    int i = 0;
+                                                    var variables = new Variable[arguments[0].Wilds.Count];
+                                                    if(variables.Length > 0) {
+                                                        foreach(string name in ((string)arguments[0]).Split(',')) {
+                                                            if(!TryGetVariable(name.Trim(), CurrentScope, out variables[i++]))
+                                                                throw new SyntaxException("Expected an initialized variable as argument for non-static method.");
+                                                        }
+                                                    }
+
+                                                    //Invoke the method.
+                                                    varMethod.Invoke(variable, variables);
+
+                                                    #endregion
+                                                };
+                                                goto BreakAll;
+                                            }
+                                        }
+                                    }
+                                    continue;
+                                    BreakAll: break;
+                                }
+                                continue;
+                            }
+
+
+                            throw new SyntaxException($"Unexpected keyword '{(string)wild}'.");
+
+                        } else {
+
+                            throw new SyntaxException($"Unexpected block '{(string)wild}'.");
+
                         }
-                        if(UsageModifiers.TryGetValue(word, out UsageModifier modifier2)) {
-                            usageModifiers.Add(modifier2);
-                            continue;
-                        }
-
-                        //Check for keywords: [VARIABLE]
-                        if(Variable.Compilers.TryGetValue(word, out compiler)) {
-                            sendingMode = true;
-                            continue;
-                        }
-
                     } else {
 
-                        //Should not get to a Wild.IsWild if not in sending mode!
-                        throw new SyntaxException("Compiler expected a variable keyword.");
+                        arguments.Add(wild);
 
                     }
                 }
 
-                if(sendingMode) compiler.Invoke(accessModifiers.ToArray(), usageModifiers.ToArray(), arguments[0],
-                                                accessModifiers.Contains(AccessModifier.Public) ? RootScope : CurrentScope,
-                                                arguments.ToArray()[1..]);
+                if(onFinish != null) onFinish.Invoke();
 
             }
 
             if(VariableScopes.TryGetValue(CurrentScope, out List<Variable> variables)) {
-                variables.Sort((a, b) => a.Order - b.Order);
                 foreach(Variable variable in variables) {
-                    try { variable.WriteInit(); } catch(Exception e) { Console.WriteLine(e); }
+                    variable.WriteInit();
                 }
             }
 
@@ -200,7 +266,7 @@ namespace MCSharp {
 
             Program.ClearCurrentConsoleLine();
             Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine($" - Wrote '{alias}'.");
+            Console.WriteLine($" · Wrote '{alias}'.");
 
         }
 
@@ -251,6 +317,11 @@ namespace MCSharp {
             //Clear compilers from last compile.
             Variable.Compilers.Clear();
 
+            //Clear method groups from last compile.
+            MethodGroup.Dictionary.Clear();
+            foreach(var dictionary in MethodGroup.GenericDictionaries)
+                dictionary.Clear();
+
             //Clear datatypes from last compile.
             Datatypes.Clear();
 
@@ -269,13 +340,23 @@ namespace MCSharp {
             VariableNames.Clear();
             VariableScopes.Clear();
 
-            //Find the Variable types from this assembly, and add them to 'Datatypes'.
+            //Get executing assembly.
             var assembly = Assembly.GetExecutingAssembly();
+
+            //Find the Variable types from this assembly, and add them to 'Datatypes'.
             foreach(TypeInfo info in assembly.DefinedTypes) {
                 if(info.IsSubclassOf(typeof(Variable)) && !info.IsAbstract) {
                     ConstructorInfo constructor = info.GetConstructor(new Type[] { });
                     var variable = constructor.Invoke(new object[] { }) as Variable;
-                    Datatypes.Add(variable.TypeName, info.AsType());
+                    if(!(variable is MethodSpy)) Datatypes.Add(variable.TypeName, info.AsType());
+                }
+            }
+
+            //Find the MethodGroup types from this assembly, and call their empty constructor.
+            foreach(TypeInfo info in assembly.DefinedTypes) {
+                if(info.IsSubclassOf(typeof(MethodGroup)) && !info.IsAbstract) {
+                    ConstructorInfo constructor = info.GetConstructor(new Type[] { });
+                    constructor.Invoke(new object[] { });
                 }
             }
 

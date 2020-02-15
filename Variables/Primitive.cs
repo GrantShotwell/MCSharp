@@ -7,24 +7,40 @@ namespace MCSharp.Variables {
 
     public abstract class Primitive : Variable {
 
-        public string[] Init { get; protected set; }
-        public string[] Copy { get; protected set; }
-        public string[] Demo { get; protected set; }
-        public string[] Prep { get; protected set; }
+        public VarSelector Selector { get; }
+        public VarObjective Objective { get; }
+        public int? InitValue { get; } = null;
+        public VarSelector FromSelector { get; } = null;
+        public VarObjective FromObjective { get; } = null;
+
 
         public Primitive() : base() { }
 
-        public Primitive(AccessModifier[] accessModifiers, UsageModifier[] usageModifiers, string objectName, Compiler.Scope scope) :
-        base(accessModifiers, usageModifiers, objectName, scope) { }
+        public Primitive(Access access, Usage usage, string objectName, Compiler.Scope scope, int initValue,
+                         VarSelector selector, VarObjective objective) : base(access, usage, objectName, scope) {
+            Selector = selector;
+            Objective = objective;
+            InitValue = initValue;
+        }
+
+        public Primitive(Access access, Usage usage, string objectName, Compiler.Scope scope, VarSelector fromSelector,
+                         VarObjective fromObjective, VarSelector selector, VarObjective objective) : base(access, usage, objectName, scope) {
+            Selector = selector;
+            Objective = objective;
+            FromSelector = fromSelector;
+            FromObjective = fromObjective;
+        }
+
 
         public override void WriteInit() {
             StreamWriter function = Compiler.FunctionStack.Peek();
-            foreach(string command in Init) function.WriteLine(command);
+            if(InitValue.HasValue) function.WriteLine($"scoreboard players set {Selector.String} {Objective.ID} {InitValue}");
+            else function.WriteLine($"scoreboard players operation {Selector.String} {Objective.ID} = {FromSelector.String} {FromObjective.ID}");
         }
 
-        public override void WritePrep() {
-            StreamWriter function = Compiler.PrepFunction;
-            foreach(string command in Prep) function.WriteLine(command);
+        public override void WriteDemo() {
+            StreamWriter function = Compiler.FunctionStack.Peek();
+
         }
 
     }

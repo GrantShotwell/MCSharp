@@ -12,19 +12,19 @@ namespace MCSharp.Compilation {
         public string FilePath { get; }
         public string FileName { get; }
         public string Alias { get; }
-        
 
-        public ScriptClass(string file, string alias, string scriptClass) : this(file, alias, GetFunctions(file, scriptClass)) { }
+
+        public ScriptClass(string file, string alias, string scriptClass) : this(file, alias, GetFunctions(alias, scriptClass)) { }
 
         public ScriptClass(string file, string alias, ScriptFunction[] functions) {
             FilePath = file;
-            FileName = file.Split('\\')[^1];
+            FileName = file[Program.ScriptsFolder.Length..];
             Alias = alias;
             this.functions = functions;
         }
 
 
-        public static ScriptFunction[] GetFunctions(string file, string scriptClass) {
+        public static ScriptFunction[] GetFunctions(string root, string scriptClass) {
             if(scriptClass is null) return new ScriptFunction[] { };
             var functions = new List<ScriptFunction>();
 
@@ -52,7 +52,7 @@ namespace MCSharp.Compilation {
                 } else if(current == '}') {
                     blocks--;
                     if(blocks == 0) {
-                        functions.Add(new ScriptFunction(file, alias, scriptClass[start..end]));
+                        functions.Add(new ScriptFunction(root + "\\" + alias, scriptClass[start..end]));
                     }
                     Rotate();
                 } else if(blocks == 0) {
