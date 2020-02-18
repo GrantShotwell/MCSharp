@@ -18,13 +18,15 @@ namespace MCSharp.Compilation {
         int IReadOnlyCollection<ScriptLine>.Count => ((IReadOnlyList<ScriptLine>)phrases).Count;
 
 
-        public ScriptFunction(string alias, string script) : this(alias, GetLines(script)) { }
+        public ScriptFunction(string alias, string script, bool fixAlias = true) : this(alias, GetLines(script), fixAlias) { }
 
-        public ScriptFunction(string alias, ScriptLine[] phrases) {
+        public ScriptFunction(string alias, ScriptWild wild, bool fixAlias = true) : this(alias, GetLines(wild), fixAlias) { }
 
-            FileName = Script.FixAlias($"{alias}.mcfunction");
+        public ScriptFunction(string alias, ScriptLine[] phrases, bool fixAlias = true) {
+
+            FileName = fixAlias ? Script.FixAlias($"{alias}.mcfunction") : alias;
             FilePath = $"{Program.FunctionsFolder}\\{FileName}";
-            Alias = Script.FixAlias(alias);
+            Alias = fixAlias ? Script.FixAlias(alias) : alias;
             this.phrases = phrases;
 
             int length = phrases.Length;
@@ -34,6 +36,15 @@ namespace MCSharp.Compilation {
             foreach(string s in array) str += " " + s;
             this.str = str.Length > 0 ? str[1..] : "";
 
+        }
+
+        public static ScriptLine[] GetLines(ScriptWild wild) {
+            if(wild.FullBlockType == "{\\;\\}") {
+                ScriptLine[] array = new ScriptLine[wild.Wilds.Count];
+                for(int i = 0; i < wild.Wilds.Count; i++)
+                    array[i] = new ScriptLine(wild.Wilds[i]);
+                return array;
+            } else throw new System.Exception();
         }
 
         public static ScriptLine[] GetLines(string scriptFunction) {

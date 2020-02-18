@@ -43,6 +43,7 @@ namespace MCSharp {
                 { "pack", Pack },
                 { "create", Create },
                 { "compile", Compile },
+                { "c", Compile },
                 { "exit", Exit }
             };
             commands.Add("help", (arguments) => {
@@ -205,11 +206,9 @@ namespace MCSharp {
 
                 //Create files.
                 using(StreamWriter loadJSON_writer = File.CreateText(Datapack.Path + "\\data\\minecraft\\tags\\functions\\load.json")) {
-                    Datapack.Load = new VarFunction(Access.Private, Usage.Constant, "load", null, Datapack.Name + ":load", "");
                     loadJSON_writer.WriteLine("{\n\t\"values\": [\n\t\t\"" + Datapack.Load.FolderPath + "\"\n\t]\n}");
                 }
                 using(StreamWriter tickJSON_writer = File.CreateText(Datapack.Path + "\\data\\minecraft\\tags\\functions\\tick.json")) {
-                    Datapack.Main = new VarFunction(Access.Private, Usage.Constant, "main", null, Datapack.Name + ":main", "");
                     tickJSON_writer.WriteLine("{\n\t\"values\": [\n\t\t\"" + Datapack.Main.FolderPath + "\"\n\t]\n}");
                 }
                 using(StreamWriter loadMCS_writer = File.CreateText(Datapack.Path + "\\data\\" + Datapack.Name + "\\scripts\\load.mcsharp")) {

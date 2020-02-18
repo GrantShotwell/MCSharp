@@ -32,26 +32,24 @@ namespace MCSharp.Variables {
         protected override Variable Compile(Access access, Usage usage, string objectName, Compiler.Scope scope, ScriptWild[] arguments) {
             if(arguments.Length < 2 || arguments[0].IsWilds || arguments[0].Word != "=")
                 throw new Compiler.SyntaxException("Unexpected format for declaring a 'string'.");
-            if(usage == Usage.Constant) {
-                string value = CompileStringValue(arguments[1..]);
-                return new VarString(access, objectName, scope, value);
-            } else { // Usage.Default
-                string tag = $"{scope}.{objectName}";
-                new Spy(scope, null, new string[] {
-                    $"execute as @p run summon minecraft:area_effect_cloud ~ ~ ~ {{CustomName:\"{""}\",Tags:[\"{tag}\"]}}" }, null);
-                return new VarString(access, objectName, scope,
-                    new VarSelector(access, usage, $"{objectName}.Selector", scope, $"@e[nbt={{Tags:[\"{tag}\"]}}]"));
-            }
+            string value = CompileStringValue(arguments[1..]);
+            return usage == Usage.Constant
+                ? new VarString(access, objectName, scope, value)
+                : new VarString(access, objectName, scope, CreateStringEntity(access, usage, objectName, scope, value));
         }
 
+        public static VarSelector CreateStringEntity(Access access, Usage usage, string stringObjectName, Compiler.Scope scope, string value, bool auto = true) {
+            string tag = $"{scope}.{stringObjectName}";
+            new Spy(null, new string[] { $"execute as @p run summon minecraft:area_effect_cloud ~ ~ ~ " +
+                $"{{CustomName:\"{(auto ? VarJSON.EscapeValue($"\\\"text\\\":\\\"{value}\\\"", 1) : value)}\"," +
+                $"CustomNameVisible:0b,Tags:[\"{tag}\"],Particle:mobSpell}}" }, null);
+            return new VarSelector(access, usage, $"{stringObjectName}.Selector", scope, $"@e[nbt={{Tags:[\"{tag}\"]}}]");
+        }
+        
         public static string CompileStringValue(ScriptWild[] arguments) {
-            string value = ((string)new ScriptWild(arguments, "\"\\\"")).Trim();
+            string value = ((string)new ScriptWild(arguments, "\"\\\"", ' ')).Trim();
             if(value[0] != '\"' || value[^1] != '\"') throw new Compiler.SyntaxException("Expected a string for declaring a string.");
             return value[1..^1];
-        }
-
-        public override void CompileOperation(ScriptWord operation, ScriptWild[] arguments) {
-            throw new NotImplementedException();
         }
 
         public override void WriteTick(StreamWriter function) { if(IsSelector) function.WriteLine($"tp {SelectorValue.String} @p[sort=arbitrary]"); }

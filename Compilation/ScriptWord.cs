@@ -46,6 +46,7 @@ namespace MCSharp.Compilation {
         IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable<ScriptChar>)characters).GetEnumerator();
 
         public static implicit operator string(ScriptWord word) => word.str;
+        public static implicit operator ScriptWord(string str) => new ScriptWord(str);
 
         public override string ToString() => $"Line {FileLine}: \"{str}\"";
 

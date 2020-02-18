@@ -58,6 +58,10 @@ namespace MCSharp {
             string scriptsPath = directory + "\\scripts";
             string[] scripts = Directory.GetFiles(scriptsPath);
 
+            var funcDirectory = new DirectoryInfo(functionsPath);
+            foreach(FileInfo file in funcDirectory.GetFiles()) file.Delete();
+            foreach(DirectoryInfo d in funcDirectory.GetDirectories()) d.Delete(true);
+
             Directory.CreateDirectory(functionsPath + "\\mcscript");
             PrepFunction = File.CreateText(functionsPath + "\\mcscript\\prep.mcfunction");
             DemoFunction = File.CreateText(functionsPath + "\\mcscript\\demo.mcfunction");
@@ -76,7 +80,7 @@ namespace MCSharp {
                 using(StreamReader reader = File.OpenText(scriptPath)) {
                     var scriptFile = new ScriptFile(scriptPath, reader.ReadToEnd().Replace('\n', ' ').Replace('\t', ' ').Replace('\r', ' '));
                     foreach(ScriptClass scriptClass in scriptFile) foreach(ScriptFunction scriptFunction in scriptClass)
-                            WriteFunction(scriptFunction.FilePath, scriptFunction.FileName, RootScope, scriptFunction);
+                            WriteFunction(RootScope, scriptFunction);
                 }
 
                 Console.CursorTop -= maxFunctionStackSize + 1;
@@ -139,10 +143,18 @@ namespace MCSharp {
 
         }
 
+        public static Scope WriteFunction(Scope scope, ScriptFunction function) {
+            CurrentScope = new Scope(scope);
+            return WriteFunction(CurrentScope, scope, function);
+        }
+
         /// <summary>
-        /// Compiles a new function file with the given <paramref name="functionPath"/> from the given <paramref name="script"/>.
+        /// Compiles a new function file with the given <paramref name="functionPath"/> from the given <paramref name="function"/>.
         /// </summary>
-        public static void WriteFunction(string path, string alias, Scope scope, ScriptFunction script) {
+        public static Scope WriteFunction(Scope parent, Scope scope, ScriptFunction function) {
+
+            string path = function.FilePath;
+            string alias = function.FileName;
 
             Console.ForegroundColor = ConsoleColor.Gray;
             Console.Write($" · Writing '{alias}'... ");
@@ -155,124 +167,42 @@ namespace MCSharp {
             StreamWriter writer = File.CreateText(path.Split("(", 2)[0]);
             FunctionStack.Push(writer);
 
-            CurrentScope = new Scope(scope);
-            ScopeStack.Push(CurrentScope);
+            ScopeStack.Push(parent);
 
             //
 
-            var phrases = (IReadOnlyList<ScriptLine>)script;
+            var phrases = (IReadOnlyList<ScriptLine>)function;
             for(int i = 0; i < phrases.Count; i++) {
                 var phrase = phrases[i];
 
-                var arguments = new List<ScriptWild>();
+                var args = new List<ScriptWild>();
                 Action onFinish = null;
 
                 var wilds = (IReadOnlyList<ScriptWild>)phrase;
                 for(int j = 0; j < wilds.Count; j++) {
                     var wild = wilds[j];
-
                     if(onFinish == null) {
-                        if(wild.IsWord) {
-                            ScriptWord word = wild.Word;
-                            string wordStr = word;
-                            
-                            //Check for: [TYPE]
-                            if(Variable.Compilers.TryGetValue(word, out Func<Access, Usage, string, Scope, ScriptWild[], Variable> compiler)) {
-                                onFinish = () => {
-                                    compiler.Invoke(Access.Private, Usage.Default, arguments[0], CurrentScope, arguments.ToArray()[1..]);
-                                };
-                                continue;
-                            }
 
-                            //Check for: [NAME]
-                            if(TryGetVariable(word, CurrentScope, out Variable variable)) {
-                                onFinish = () => {
-                                    variable.CompileOperation(arguments[0].Word, arguments.ToArray()[1..]);
-                                };
-                                continue;
-                            }
-                            
-                            //Check for: [STATIC METHOD]
-                            if(MethodGroup.Dictionary.TryGetValue(word, out Action<Variable[]> stcMethod)) {
-                                onFinish = () => {
-                                    #region Call Static Method
-
-                                    //Check that 'arguments' are method arguments.
-                                    if(arguments.Count != 1 && arguments[0].IsWord && arguments[0].BlockType != "(\\)")
-                                        throw new SyntaxException("Expected arguments for a static method.");
-
-                                    //Translate 'arguments' into a Variable array.
-                                    int i = 0;
-                                    var variables = new Variable[arguments[0].Wilds.Count];
-                                    if(variables.Length > 0) {
-                                        foreach(string name in ((string)arguments[0]).Split(',')) {
-                                        if(!TryGetVariable(name.Trim(), CurrentScope, out variables[i++]))
-                                            throw new SyntaxException("Expected an initialized variable as argument for static method.");
-                                        }
-                                    }
-
-                                    //Invoke the method.
-                                    stcMethod.Invoke(variables);
-
-                                    #endregion
-                                };
-                                continue;
-                            }
-
-                            //Check for: [VARIABLE METHOD]
-                            if(TryGetVariable(wordStr.Split('.', 2)[0], CurrentScope, out variable)) {
-                                int stop;
-                                for(stop = 0; stop < wordStr.Length; stop++) if(wordStr[stop] == '(') break;
-                                string call = wordStr[variable.ObjectName.Length..(stop)];
-                                foreach(MethodGroup.GenericDictionary genericDictionary in MethodGroup.GenericDictionaries) {
-                                    if(genericDictionary.Type.IsAssignableFrom(variable.GetType())) {
-                                        foreach(KeyValuePair<string, Action<Variable, Variable[]>> pair in genericDictionary) {
-                                            if(pair.Key == call) {
-                                                var varMethod = pair.Value;
-                                                onFinish = () => {
-                                                    #region Call Non-Static Method
-
-                                                    //Check that 'arguments' are method arguments.
-                                                    if(arguments.Count != 1 && arguments[0].IsWord && arguments[0].BlockType != "(\\)")
-                                                        throw new SyntaxException("Expected arguments for a non-static method.");
-
-                                                    //Translate 'arguments' into a Variable array.
-                                                    int i = 0;
-                                                    var variables = new Variable[arguments[0].Wilds.Count];
-                                                    if(variables.Length > 0) {
-                                                        foreach(string name in ((string)arguments[0]).Split(',')) {
-                                                            if(!TryGetVariable(name.Trim(), CurrentScope, out variables[i++]))
-                                                                throw new SyntaxException("Expected an initialized variable as argument for non-static method.");
-                                                        }
-                                                    }
-
-                                                    //Invoke the method.
-                                                    varMethod.Invoke(variable, variables);
-
-                                                    #endregion
-                                                };
-                                                goto BreakAll;
-                                            }
-                                        }
-                                    }
-                                    continue;
-                                    BreakAll: break;
-                                }
-                                continue;
-                            }
-
-
-                            throw new SyntaxException($"Unexpected keyword '{(string)wild}'.");
-
-                        } else {
-
-                            throw new SyntaxException($"Unexpected block '{(string)wild}'.");
-
+                        //Look for TYPE NAME
+                        if(wild.IsWord && Variable.Compilers.TryGetValue(wild.Word, out var compiler)) {
+                            onFinish = () => {
+                                compiler.Invoke(Access.Private, Usage.Default, args[0], CurrentScope, args.ToArray()[1..]);
+                            };
+                            continue;
                         }
+
+                        //Look for VALUE
+                        if(TryParseValue(wild, CurrentScope, out Variable v1)) {
+                            onFinish = () => {
+                                v1.Operation(args[0].Word, args.ToArray()[1..]);
+                            };
+                            continue;
+                        }
+
+                        throw new SyntaxException($"Could not identify word '{wild}'.");
+
                     } else {
-
-                        arguments.Add(wild);
-
+                        args.Add(wild);
                     }
                 }
 
@@ -281,28 +211,20 @@ namespace MCSharp {
             }
 
             if(VariableScopes.TryGetValue(CurrentScope, out List<Variable> variables)) {
-                foreach(Variable variable in variables) variable.WriteInit(FunctionStack.Peek());
-                foreach(Variable variable in variables) variable.WriteDemo(FunctionStack.Peek());
+                for(int i = 0; i < variables.Count; i++) variables[i].WriteInit(FunctionStack.Peek());
+                for(int i = 0; i < variables.Count; i++) variables[i].WriteDemo(FunctionStack.Peek());
             }
 
             //
 
             FunctionStack.Pop().Close();
-            ScopeStack.Pop();
+            Scope outScope = ScopeStack.Pop();
 
             Program.ClearCurrentConsoleLine();
             Console.ForegroundColor = ConsoleColor.Green;
             Console.WriteLine($" · Wrote '{alias}'.");
 
-        }
-
-        public static bool WhatIsThis(ScriptWild wild, string name, out object result) {
-
-            result = null;
-
-            //todo
-
-            return false;
+            return outScope;
 
         }
 
@@ -318,6 +240,62 @@ namespace MCSharp {
             throw new ArgumentException($"The given argument is not a {nameof(TraceFormat)}.", nameof(format));
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        public static bool TryParseValue(ScriptWild wild, Scope scope, out Variable variable) {
+            variable = null;
+            if(wild.IsWord) {
+                return TryGetVariable(wild.Word, scope, out variable);
+            } else {
+                ScriptWild[] wilds = wild.Array;
+                bool @switch = true;
+                string op = null;
+                for(int i = 0; i < wilds.Length; i++) {
+                    ScriptWild current = wilds[i];
+                    if(@switch = !@switch) {
+                        if(current.IsWord) {
+                            //Check if it's a variable.
+                            if(TryGetVariable(current.Word, scope, out Variable x)) {
+                                // <<Is a Variable>>
+                                //Save the variable for the next operation.
+                                variable = x;
+                            } else if(i + 1 < wilds.Length) {
+                                // <<Not a Variable>>
+                                //Check for method arguments.
+                                ScriptWild args = wilds[++i];
+                                if(args.IsWilds && args.BlockType == "(\\)") {
+                                    // <<Method Arguments Exist>>
+                                    //Call the method.
+                                    if(variable != null) {
+                                        //...if they used the '.' operator.
+                                        if(op == ".") variable.Operation(op, new ScriptWild[] { current, args });
+                                        else throw new SyntaxException("Missing '.' operator.");
+                                    } else {
+                                        //TODO:  implicit '.this' call.
+                                        throw new NotImplementedException("TODO: add implicit '.this' call.");
+                                    }
+                                }
+                            }
+                        } else {
+                            //Make recurive calls to find the value of the block.
+                            if(!TryParseValue(current, scope, out Variable x)) {
+                                //TODO:  add details
+                                throw new Exception();
+                            }
+                        }
+                    } else {
+                        if(current.IsWord) op = current.Word;
+                        else throw new SyntaxException("Unexpected block when an operator was expected.");
+                    }
+                }
+            }
+            throw new Exception();
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
         public static bool TryGetVariable(string name, Scope scope, out Variable variable) {
             variable = null;
             if(VariableNames.TryGetValue(name, out Dictionary<Scope, Variable> dictionary)) {
@@ -378,14 +356,6 @@ namespace MCSharp {
                 }
             }
 
-            //Find the MethodGroup types from this assembly, and call their empty constructor.
-            foreach(TypeInfo info in assembly.DefinedTypes) {
-                if(info.IsSubclassOf(typeof(MethodGroup)) && !info.IsAbstract) {
-                    ConstructorInfo constructor = info.GetConstructor(new Type[] { });
-                    constructor.Invoke(new object[] { });
-                }
-            }
-
         }
 
         public class Scope {
@@ -441,13 +411,14 @@ namespace MCSharp {
             public static int GetNewID() {
                 var random = new Random();
                 int id = 0;
-                while(AllScopes.ContainsKey(id)) id = random.Next(1, int.MaxValue - 1);
+                while(AllScopes.ContainsKey(id))
+                    id = random.Next(0, int.MaxValue);
                 return id;
             }
 
             public override string ToString() => BaseConverter.Convert(ID, 62);
 
-            public override int GetHashCode() => ID;
+            public override int GetHashCode() => ID.GetHashCode();
 
         }
 

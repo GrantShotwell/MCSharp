@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using LargeBaseNumbers;
+using MCSharp.Methods;
+using System.Collections;
 
 namespace MCSharp.Variables {
 
@@ -16,7 +18,7 @@ namespace MCSharp.Variables {
                 = new Dictionary<string, Func<Access, Usage, string, Compiler.Scope, ScriptWild[], Variable>>();
 
         private static int hiddenID = 0;
-        public static string NextHiddenID => $"hidden_{BaseConverter.Convert(hiddenID++, 62)}";
+        public static string NextHiddenID => $"anon_{BaseConverter.Convert(hiddenID++, 62)}";
 
         public abstract int Order { get; }
         public abstract string TypeName { get; }
@@ -26,6 +28,8 @@ namespace MCSharp.Variables {
         public Usage UsageModifier { get; }
         public string ObjectName { get; }
         public Compiler.Scope Scope { get; }
+        protected MemberCollection Members { get; } = new MemberCollection();
+        protected Dictionary<string, Func<Variable[], Variable>> Methods { get; } = new Dictionary<string, Func<Variable[], Variable>>();
 
 
         public Variable() {
@@ -70,7 +74,28 @@ namespace MCSharp.Variables {
         /// </summary>
         protected abstract Variable Compile(Access accessModifier, Usage usageModifier, string objectName, Compiler.Scope scope, ScriptWild[] arguments);
 
-        public abstract void CompileOperation(ScriptWord operation, ScriptWild[] arguments);
+        /// <summary>
+        /// 
+        /// </summary>
+        public virtual Variable Operation(ScriptWord operation, ScriptWild[] args) {
+            if(operation == ".") {
+                if(args.Length == 1 && args[0].IsWord) {
+                    return Members[args[0].Word];
+                } else if(args.Length == 2) {
+                    Variable[] variables = new Variable[args[1].Wilds.Count];
+                    for(int i = 0; i < args[1].Wilds.Count; i++) {
+                        if(Compiler.TryParseValue(args[1].Wilds[i], Scope, out Variable variable)) {
+                            variables[i] = variable;
+                        } else throw new InvalidArgumentsException($"Could not parse '{args[1].Wilds[i]}' into a variable.");
+                    }
+                    return Methods[args[0].Word].Invoke(variables);
+                } else {
+                    throw new InvalidArgumentsException("Too many arguments for '.' operator.");
+                }
+            } else {
+                throw new InvalidOperationException($"Type '{TypeName}' has not defined the operation '{operation}'.");
+            }
+        }
 
         /// <summary>
         /// Writes the initialization commands to <see cref="Compiler.FunctionStack"/>.
@@ -93,21 +118,37 @@ namespace MCSharp.Variables {
         public virtual void WriteDemo(StreamWriter function) { }
 
         /// <summary>
-        /// 
+        /// Creates a new <see cref="Spy"/> that will copy the value of this to <paramref name="variable"/>.
         /// </summary>
-        public virtual bool TryCast<TVariable>([MaybeNullWhen(false)] out TVariable result) where TVariable : Variable 
-            => typeof(TVariable).IsAssignableFrom(typeof(VarString))
-                ? ((result = GetString() as TVariable) != null)
-                : ((result = this as TVariable) != null);
+        public virtual void WritePass(StreamWriter function, Variable variable)
+            => throw new Compiler.SyntaxException($"Cannot pass the value of type '{TypeName}' to other variables!");
 
         /// <summary>
-        /// Returns a value that can be inserted directly into commands.
+        /// Attempts to create a new <see cref="Variable"/> of the given type.
         /// </summary>
+        public virtual bool TryCast<TVariable>([MaybeNullWhen(false)] out TVariable result) where TVariable : Variable {
+            if(typeof(TVariable).IsAssignableFrom(typeof(VarString)))
+                return (result = GetString() as TVariable) != null;
+            if(typeof(TVariable).IsAssignableFrom(typeof(VarJSON)))
+                return (result = new VarJSON(Access.Private, Usage.Constant, NextHiddenID, Scope, GetJSON()) as TVariable) != null;
+            else return (result = this as TVariable) != null;
+        }
+
+        /// <summary>
+        /// Returns a value that can be inserted directly into commands on compile-time, if possible.
+        /// </summary>
+        /// <exception cref="NotImplementedException">Thrown when this method should have worked, but has not been overridden by this class.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when calling this method is not possible.</exception>
         public virtual string GetConstant() {
             if(AllowedUsageModifiers.Contains(Usage.Constant))
-                throw new NotImplementedException($"Calling '{nameof(GetConstant)}' on this object should have worked, but the writer of the class didn't not implement it.");
-            else throw new InvalidOperationException($"Cannot call '{nameof(GetConstant)}' on this object because it is does not allow the 'constant' usage modifier.");
+                throw new NotImplementedException($"Calling '{nameof(GetConstant)}' on this object should have worked, but the writer of the class did not implement it.");
+            else throw new InvalidOperationException($"Cannot call '{nameof(GetConstant)}' on this object because '{TypeName}' does not allow the 'constant' usage modifier.");
         }
+
+        /// <summary>
+        /// Returns the raw JSON text that will return something useful when used in-game.
+        /// </summary>
+        public virtual string GetJSON() => $"{{\"text\":\"{TypeName}\"}}";
 
         /// <summary>
         /// The equivalent of <see cref="object.ToString()"/>.
@@ -137,6 +178,33 @@ namespace MCSharp.Variables {
         }
 
         public override string ToString() => $"{TypeName} {ObjectName}";
+
+
+        public class MemberCollection : IDictionary<string, Variable> {
+
+            private readonly Dictionary<string, Variable> dictionary = new Dictionary<string, Variable>();
+            public void Add(Variable variable) => Add(variable.ObjectName, variable);
+
+            public Variable this[string key] { get => ((IDictionary<string, Variable>)dictionary)[key]; set => ((IDictionary<string, Variable>)dictionary)[key] = value; }
+            public ICollection<string> Keys => ((IDictionary<string, Variable>)dictionary).Keys;
+            public ICollection<Variable> Values => ((IDictionary<string, Variable>)dictionary).Values;
+            public int Count => ((IDictionary<string, Variable>)dictionary).Count;
+            public bool IsReadOnly => ((IDictionary<string, Variable>)dictionary).IsReadOnly;
+
+            public void Add(string key, Variable value) => ((IDictionary<string, Variable>)dictionary).Add(key, value);
+            public void Add(KeyValuePair<string, Variable> item) => ((IDictionary<string, Variable>)dictionary).Add(item);
+            public void Clear() => ((IDictionary<string, Variable>)dictionary).Clear();
+            public bool Contains(KeyValuePair<string, Variable> item) => ((IDictionary<string, Variable>)dictionary).Contains(item);
+            public bool ContainsKey(string key) => ((IDictionary<string, Variable>)dictionary).ContainsKey(key);
+            public void CopyTo(KeyValuePair<string, Variable>[] array, int arrayIndex) => ((IDictionary<string, Variable>)dictionary).CopyTo(array, arrayIndex);
+            public IEnumerator<KeyValuePair<string, Variable>> GetEnumerator() => ((IDictionary<string, Variable>)dictionary).GetEnumerator();
+            public bool Remove(string key) => ((IDictionary<string, Variable>)dictionary).Remove(key);
+            public bool Remove(KeyValuePair<string, Variable> item) => ((IDictionary<string, Variable>)dictionary).Remove(item);
+            public bool TryGetValue(string key, [MaybeNullWhen(false)] out Variable value) => ((IDictionary<string, Variable>)dictionary).TryGetValue(key, out value);
+            IEnumerator IEnumerable.GetEnumerator() => ((IDictionary<string, Variable>)dictionary).GetEnumerator();
+
+        }
+
 
     }
 

@@ -36,11 +36,26 @@ namespace MCSharp.Compilation {
         /// </summary>
         /// <exception cref="InvalidOperationException()">Thrown when <see cref="IsWilds"/> is false.</exception>
         public IReadOnlyList<ScriptWild> Wilds => IsWilds ? wilds : throw new InvalidOperationException();
+        public ScriptWild[] Array {
+            get {
+                var wilds = new ScriptWild[this.wilds.Length];
+                this.wilds.CopyTo(wilds, 0);
+                return wilds;
+            }
+        }
+
+        /// <summary>
+        /// Creates a new <see cref="ScriptWild"/> from the given <see cref="Range"/> applied to <see cref="Wilds"/>.
+        /// </summary>
+        /// <exception cref="InvalidOperationException()">Thrown when <see cref="IsWilds"/> is false.</exception>
+        public ScriptWild this[Range range] => new ScriptWild(wilds[range], BlockType, SeparationType.Value);
 
         /// <summary>
         /// Format: "[OPEN]\[CLOSE]"
         /// </summary>
         public string BlockType { get; }
+        public char? SeparationType { get; }
+        public string FullBlockType => $"{BlockType[0]}\\{SeparationType}\\{BlockType[2]}";
 
         public int Count {
             get {
@@ -56,35 +71,43 @@ namespace MCSharp.Compilation {
 
 
         /// <summary>
-        /// Creates a new <see cref="ScriptWild"/> that is just a <see cref="Compilation.ScriptWord"/>.
+        /// Creates a new <see cref="ScriptWild"/> that is just a <see cref="ScriptWord"/>.
         /// </summary>
         public ScriptWild(ScriptWord word) {
-
             this.word = word;
             wilds = null;
-
             BlockType = null;
-
+            SeparationType = null;
             str = word;
-
         }
 
         /// <summary>
         /// Creates a new <see cref="ScriptWild"/> that is just more <see cref="ScriptWild"/>s.
         /// </summary>
-        public ScriptWild(ScriptWild[] wilds, string blockType) {
+        public ScriptWild(ScriptWild[] wilds, string block, char separation) {
+            if(wilds.Length <= 1 && !wilds[0].IsWilds && block == " \\ " && separation == ' ') {
 
-            this.wilds = new ScriptWild[wilds.Length];
-            wilds.CopyTo(this.wilds, 0);
-            word = null;
+                word = wilds[0].Word;
+                this.wilds = null;
+                BlockType = null;
+                SeparationType = null;
+                str = word;
 
-            BlockType = blockType;
+            } else {
 
-            string str = "";
-            foreach(string wld in wilds)
-                str += " " + wld;
-            this.str = str.Length > 0 ? str[1..] : "";
+                this.wilds = new ScriptWild[wilds.Length];
+                wilds.CopyTo(this.wilds, 0);
+                word = null;
 
+                BlockType = block;
+                SeparationType = separation;
+
+                string str = "";
+                foreach(string wld in wilds)
+                    str += separation + wld;
+                this.str = str.Length > 0 ? $"{block[0]}{str[1..]}{block[2]}" : $"{block[0]}{block[2]}";
+
+            }
         }
 
         public IEnumerator<ScriptWord> GetEnumerator() {

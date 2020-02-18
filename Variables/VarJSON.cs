@@ -34,11 +34,24 @@ namespace MCSharp.Variables {
             return new VarJSON(access, usage, objectName, scope, json);
         }
 
-        public override void CompileOperation(ScriptWord operation, ScriptWild[] arguments) {
-            throw new NotImplementedException();
-        }
-
         public override string GetConstant() => Value;
+
+        public static string EscapeValue(string value, int escapes) {
+            var original = new LinkedList<char>(value);
+            var escaped = new LinkedList<char>();
+
+            foreach(char character in original) {
+                if(character == '"' || character == '\\') {
+                    for(int esc = escapes; esc >= 0; esc--)
+                        escaped.AddLast('\\');
+                }
+                escaped.AddLast(character);
+            }
+
+            char[] array = new char[escaped.Count];
+            original.CopyTo(array, 0);
+            return new string(array);
+        }
 
     }
 

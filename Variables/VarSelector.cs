@@ -29,14 +29,10 @@ namespace MCSharp.Variables {
             //                Selector sel = "@a[team=blue,gamemode=adventure]";
             if(arguments.Length < 2 || arguments[0].IsWilds || arguments[0].Word != "=")
                 throw new Compiler.SyntaxException("Expected format of '= \"...\"'.");
-            string value = ((string)new ScriptWild(arguments[1..], "")).Trim();
+            string value = ((string)new ScriptWild(arguments[1..], " \\ ", ' ')).Trim();
             if(value[0] != '\"' || value[^1] != '\"') throw new Compiler.SyntaxException("Expected a string for declaring a Selector.");
             value = value[1..^1];
             return new VarSelector(accessModifier, usageModifier, objectName, scope, value);
-        }
-
-        public override void CompileOperation(ScriptWord operation, ScriptWild[] arguments) {
-            throw new NotImplementedException();
         }
 
         public override string GetConstant() => String;

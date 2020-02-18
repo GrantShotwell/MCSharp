@@ -7,6 +7,7 @@ namespace MCSharp.Compilation {
     public struct ScriptLine : IReadOnlyList<ScriptWild> {
 
         public static string[] BlockTypes { get; } = new string[] { "{\\}", "[\\]", "(\\)" };
+        public static char[] SeparatorTypes { get; } = new char[] { '.', ',', ';', ' ' };
         public static IReadOnlyList<char> BlockTypesStart {
             get {
                 var starts = new char[BlockTypes.Length];
@@ -32,6 +33,7 @@ namespace MCSharp.Compilation {
 
         int IReadOnlyCollection<ScriptWild>.Count => Length;
 
+
         public ScriptLine(string line) : this(GetWilds(line)) { }
 
         public ScriptLine(ScriptWild[] wilds) {
@@ -51,76 +53,143 @@ namespace MCSharp.Compilation {
 
         private static ScriptWild[] GetWilds(string phrase) {
             if(phrase is null) return new ScriptWild[] { };
-            SpaceBlockChars(ref phrase);
-            List<ScriptWild> wilds;
 
-            var split = new List<string>(phrase.Split(new char[] { ' ', '\t', '\n' }, StringSplitOptions.RemoveEmptyEntries));
-            var stack1 = new Stack<List<ScriptWild>>();
-            var stack2 = new Stack<string>();
-            stack1.Push(wilds = new List<ScriptWild>());
+            SpaceOut(ref phrase); // makes the important bits separated by spaces
+            var split = new List<string>(phrase.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries));
+
+            var stack = new Stack<Tuple<char?, string, List<ScriptWild>>>();
+            stack.Push(new Tuple<char?, string, List<ScriptWild>>(null, " \\ ", new List<ScriptWild>()));
+
             for(int i = 0; i < split.Count; i++) {
                 string str = split[i];
 
-                //If there is a block character, separate it.
-                var strList = new List<char>(str);
-                for(int j = 0; j < strList.Count - 1; j++) {
-                    char chr = strList[j];
-                    if(IsBlockChar(chr, out _)) {
-                        strList.Insert(j++ + 1, ' ');
-                    }
-                }
-                if(strList.Count != str.Length) {
-                    string[] strListSplit = new string(strList.ToArray()).Split(' ');
-                    split[i] = strListSplit[0];
-                    for(int j = 1; j < strListSplit.Length; j++) {
-                        int J = j + i;
-                        split.Insert(J, strListSplit[j]);
-                    }
-                }
-
-                //That last spaghetti ensures that if it's a block character, it will be 'alone'.
-                str = split[i];
                 if(str.Length == 1) {
-                    char c = str[0];
-                    if(IsBlockCharStart(c, out string block)) { //start wilds
-                        stack1.Push(wilds = new List<ScriptWild>());
-                        stack2.Push(block);
+                    char chr = str[0];
+                    if(IsBlockCharStart(chr, out string blk)) {
+                        //Starting a new block tuple.
+                        var tuple = new Tuple<char?, string, List<ScriptWild>>(null, blk, new List<ScriptWild>());
+                        stack.Push(tuple);
                         continue;
-                    } else if(IsBlockCharEnd(c, out string blockType)) {
-                        var poped = stack1.Pop();
-                        if(stack2.Pop() != blockType) throw new Compiler.SyntaxException("");
-                        (wilds = stack1.Peek()).Add(new ScriptWild(poped.ToArray(), blockType));
+
+
+                    } else if(IsSeparatorChar(chr) && chr != '.') {
+                        var tuple = stack.Pop();
+                        if(!stack.TryPeek(out var last)) {
+                            last = new Tuple<char?, string, List<ScriptWild>>(null, " \\ ", new List<ScriptWild>());
+                            stack.Push(last);
+                        }
+                        //Check if a list is in progress.
+                        if(last.Item1 == chr) {
+                            //Continue that list.
+                            last.Item3.Add(new ScriptWild(tuple.Item3.ToArray(), " \\ ", ' '));
+                        } else if(last.Item1 == null || last.Item1 == ' ' || chr == '.') {
+                            if(chr == '.') {
+                                //Special case for dot: parse all right now.
+                                var item3 = tuple.Item3;
+                                var stolen = item3[^1];
+                                item3.RemoveAt(item3.Count - 1);
+                                var list = new List<ScriptWild>();
+                                list.Add(stolen);
+                                while(chr == '.') {
+                                    str = split[++i];
+                                    if(IsBlockChar(str[0], out _) || IsSeparatorChar(str[0]))
+                                        throw new Compiler.SyntaxException($"Unexpected '{str}' after '.' operator.");
+                                    list.Add(new ScriptWord(str));
+                                    chr = split[++i][0];
+                                }
+                                i--;
+                                var dotted = new ScriptWild(list.ToArray(), " \\ ", '.');
+                                tuple.Item3.Add(dotted);
+                                stack.Push(tuple);
+                            } else {
+                                //Make a new list.
+                                var next = new Tuple<char?, string, List<ScriptWild>>(chr, tuple.Item2, new List<ScriptWild>());
+                                next.Item3.Add(new ScriptWild(tuple.Item3.ToArray(), " \\ ", ' '));
+                                stack.Push(next);
+                            }
+                        } else {
+                            throw new Compiler.SyntaxException($"Expected '{last.Item1?.ToString() ?? "[nothing]"}' but got '{chr}'.");
+                        }
                         continue;
+
+
+                    } else if(IsBlockCharEnd(chr, out blk)) {
+                        //Ending the last block tuple.
+                        var tuple = stack.Pop();
+                        if(tuple.Item2[2] == ' ') {
+                            do {
+                                var next = stack.Pop();
+                                if(tuple.Item3.Count > 1) next.Item3.Add(new ScriptWild(tuple.Item3.ToArray(), tuple.Item2, tuple.Item1 ?? ' '));
+                                else next.Item3.Add(tuple.Item3[0]);
+                                tuple = next;
+                            } while(tuple.Item2[2] == ' ');
+                            stack.Push(tuple);
+                        } else {
+                            if(tuple.Item2 != blk) throw new Compiler.SyntaxException($"Expected '{tuple.Item2[2]}' but got '{chr}'.");
+                            stack.Peek().Item3.Add(new ScriptWild(tuple.Item3.ToArray(), tuple.Item2, tuple.Item1 ?? ' '));
+                        }
+                        continue;
+
+
                     }
                 }
 
-                //If we got to here, we know that it is not a block character, and is just a normal word.
-                wilds.Add(new ScriptWild(new ScriptWord(str)));
-
-            }
-
-            return wilds.ToArray();
-        }
-
-        private static void SpaceBlockChars(ref string str) {
-            //todo: fix slow - don't use string.Insert()
-            for(int i = 1; i < str.Length; i++) {
-                char current = str[i];
-                if(IsBlockChar(current, out _)) {
-                    char last = str[i - 1];
-                    char next = str.Length - 1 != i ? str[i + 1] : ' ';
-                    if(!char.IsWhiteSpace(next)) {
-                        str = str.Insert(i + 1, " ");
-                    }
-                    if(!char.IsWhiteSpace(last)) {
-                        str = str.Insert(i++, " ");
+                {
+                    //Getting here means this is not a keyword.
+                    //Just add it to whatever tuple we're on.
+                    var tuple = stack.Peek();
+                    if(tuple.Item1 == null) {
+                        var list = tuple.Item3;
+                        list.Add(new ScriptWord(str));
+                        if(list.Count > 1) {
+                            stack.Pop();
+                            stack.Push(new Tuple<char?, string, List<ScriptWild>>(' ', tuple.Item2, list));
+                        }
+                    } else if(tuple.Item1 != ';') {
+                        var list = tuple.Item3;
+                        list.Add(new ScriptWord(str));
+                    } else {
+                        var next = new Tuple<char?, string, List<ScriptWild>>(null, " \\ ", new List<ScriptWild>());
+                        var list = next.Item3;
+                        list.Add(new ScriptWord(str));
+                        stack.Push(next);
                     }
                 }
+
             }
+
+            while(stack.Count > 1 && stack.Peek().Item2[2] == ' ') {
+                var tuple = stack.Pop();
+                if(tuple.Item3.Count > 1) {
+                    if(stack.Peek().Item3.Count == 0 && stack.Peek().Item2 == tuple.Item2 && stack.Peek().Item1 == tuple.Item1) {
+                        stack.Pop();
+                        stack.Push(tuple);
+                    } else stack.Peek().Item3.Add(new ScriptWild(tuple.Item3.ToArray(), tuple.Item2, tuple.Item1 ?? ' '));
+                } else stack.Peek().Item3.Add(new ScriptWord(tuple.Item3[0]));
+            }
+            if(stack.Count > 1) throw new Compiler.SyntaxException($"Missing '{stack.Peek().Item2[2]}'.");
+            return stack.Peek().Item3.ToArray();
         }
 
-        public static bool IsBlockChar(char chr, out string blockType)
-            => IsBlockCharStart(chr, out blockType) ? true : IsBlockCharEnd(chr, out blockType);
+        private static void SpaceOut(ref string str) {
+            var original = new LinkedList<char>(str);
+            var spaced = new LinkedList<char>();
+            foreach(char character in original) {
+                if(IsBlockChar(character, out _) || IsSeparatorChar(character)) {
+                    spaced.AddLast(' ');
+                    spaced.AddLast(character);
+                    spaced.AddLast(' ');
+                } else {
+                    spaced.AddLast(character);
+                }
+            }
+            var array = new char[spaced.Count];
+            spaced.CopyTo(array, 0);
+            str = new string(array);
+        }
+
+        public static bool IsBlockChar(char chr, out string type)
+            => IsBlockCharStart(chr, out type) ? true : IsBlockCharEnd(chr, out type);
 
         public static bool IsBlockCharStart(char chr, out string block) {
             for(int i = 0; i < BlockTypesStart.Count; i++) {
@@ -133,14 +202,20 @@ namespace MCSharp.Compilation {
             return false;
         }
 
-        public static bool IsBlockCharEnd(char chr, out string blockType) {
+        public static bool IsBlockCharEnd(char chr, out string type) {
             for(int i = 0; i < BlockTypesEnd.Count; i++) {
                 if(chr == BlockTypesEnd[i]) {
-                    blockType = BlockTypes[i];
+                    type = BlockTypes[i];
                     return true;
                 }
             }
-            blockType = null;
+            type = null;
+            return false;
+        }
+
+        public static bool IsSeparatorChar(char chr) {
+            foreach(char type in SeparatorTypes)
+                if(chr == type) return true;
             return false;
         }
 

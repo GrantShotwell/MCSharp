@@ -1,4 +1,5 @@
 ﻿using MCSharp.Compilation;
+using MCSharp.Methods;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -27,11 +28,8 @@ namespace MCSharp.Variables {
 
 
         protected override Variable Compile(Access access, Usage usage, string objectName, Compiler.Scope scope, ScriptWild[] arguments) {
-            throw new NotImplementedException();
-        }
-
-        public override void CompileOperation(ScriptWord operation, ScriptWild[] arguments) {
-            throw new NotImplementedException();
+            return new VarEntities(access, usage, objectName, scope,
+                new VarSelector(access, usage, $"{objectName}.Selector", scope, arguments[1].Word));
         }
 
         public override void WriteInit(StreamWriter function) {

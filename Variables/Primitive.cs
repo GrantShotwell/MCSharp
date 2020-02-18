@@ -27,6 +27,8 @@ namespace MCSharp.Variables {
                          VarObjective fromObjective, VarSelector selector, VarObjective objective) : base(access, usage, objectName, scope) {
             Selector = selector;
             Objective = objective;
+            Members.Add(Selector);
+            Members.Add(Objective);
             FromSelector = fromSelector;
             FromObjective = fromObjective;
         }

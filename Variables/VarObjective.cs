@@ -46,10 +46,6 @@ namespace MCSharp.Variables {
 
         }
 
-        public override void CompileOperation(ScriptWord operation, ScriptWild[] arguments) {
-            throw new NotImplementedException();
-        }
-
         public override bool TryCast<TVariable>([MaybeNullWhen(false)] out TVariable result) {
             Type type = typeof(TVariable);
 

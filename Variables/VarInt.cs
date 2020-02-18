@@ -2,6 +2,7 @@
 using MCSharp.Methods;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Text;
 
@@ -29,8 +30,8 @@ namespace MCSharp.Variables {
 
         protected override Variable Compile(Access access, Usage usage, string objectName, Compiler.Scope scope, ScriptWild[] arguments) {
 
-            if(arguments.Length == 0) 
-                throw new NotSupportedException("Creating an int without a value is currently not supported.");
+            if(arguments.Length == 0)
+                arguments = new ScriptWild[] { new ScriptWord("="), new ScriptWord("0") };
             if(arguments.Length < 2) 
                 throw new Compiler.SyntaxException("Expected more arguments for declaring an int.");
             if(arguments.Length > 2 || arguments[1].IsWilds) 
@@ -55,23 +56,26 @@ namespace MCSharp.Variables {
 
         }
 
-        public override void CompileOperation(ScriptWord operation, ScriptWild[] arguments) {
-            if(arguments.Length > 1 || arguments[0].IsWilds)
-                throw new NotImplementedException("Multiple arguments for 'int' operations has not been implemented yet.");
-            Compiler.TryGetVariable(arguments[0].Word, Compiler.CurrentScope, out Variable argument);
-
-            if(!(argument is VarInt varInt) && !argument.TryCast(out varInt))
-                throw new InvalidArgumentsException("Expected operator on an 'int' to be/castable to an 'int'.");
-
-            switch(operation) {
-                case "+=": {
-                    string[] init = new string[] { $"scoreboard players operation var {Objective.ID} += var {varInt.Objective.ID}" };
-                    new Spy(Compiler.CurrentScope, null, init, null);
-                    break;
-                }
-            }
+        public override void WritePass(StreamWriter function, Variable variable) {
+            if(variable is VarInt varInt) {
+                function.WriteLine($"scoreboard players operation var {varInt.Objective.ID} = var {Objective.ID}");
+            } else throw new InvalidArgumentsException($"Unknown how to interpret '{variable}' as '{TypeName}'.");
         }
 
+        public override string GetJSON() => $"{{\"score\":{{\"name\":\"var\",\"objective\":\"{Objective.ID}\"}}}}";
+
+        public override Variable Operation(ScriptWord operation, ScriptWild[] args) {
+            switch((string)operation) {
+                case "+=": {
+                    if(Compiler.TryParseValue(new ScriptWild(args, " \\ ", ' '), Compiler.CurrentScope, out Variable var)
+                        && (var is VarInt varInt || var.TryCast(out varInt))) {
+                        new Spy(null, $"scoreboard players operation var {Objective.ID} += var {varInt.Objective.ID}", null);
+                        return this;
+                    } else throw new Exception();
+                    }
+                    default: return base.Operation(operation, args);
+            }
+        }
     }
 
 }
