@@ -1,5 +1,4 @@
 ﻿using MCSharp.Compilation;
-using MCSharp.Methods;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -72,10 +71,39 @@ namespace MCSharp.Variables {
                         new Spy(null, $"scoreboard players operation var {Objective.ID} += var {varInt.Objective.ID}", null);
                         return this;
                     } else throw new Exception();
-                    }
-                    default: return base.Operation(operation, args);
+                }
+                case "-=": {
+                    if(Compiler.TryParseValue(new ScriptWild(args, " \\ ", ' '), Compiler.CurrentScope, out Variable var)
+                        && (var is VarInt varInt || var.TryCast(out varInt))) {
+                        new Spy(null, $"scoreboard players operation var {Objective.ID} -= var {varInt.Objective.ID}", null);
+                        return this;
+                    } else throw new Exception();
+                }
+                case "*=": {
+                    if(Compiler.TryParseValue(new ScriptWild(args, " \\ ", ' '), Compiler.CurrentScope, out Variable var)
+                        && (var is VarInt varInt || var.TryCast(out varInt))) {
+                        new Spy(null, $"scoreboard players operation var {Objective.ID} *= var {varInt.Objective.ID}", null);
+                        return this;
+                    } else throw new Exception();
+                }
+                case "/=": {
+                    if(Compiler.TryParseValue(new ScriptWild(args, " \\ ", ' '), Compiler.CurrentScope, out Variable var)
+                        && (var is VarInt varInt || var.TryCast(out varInt))) {
+                        new Spy(null, $"scoreboard players operation var {Objective.ID} /= var {varInt.Objective.ID}", null);
+                        return this;
+                    } else throw new Exception();
+                }
+                case "%=": {
+                    if(Compiler.TryParseValue(new ScriptWild(args, " \\ ", ' '), Compiler.CurrentScope, out Variable var)
+                        && (var is VarInt varInt || var.TryCast(out varInt))) {
+                        new Spy(null, $"scoreboard players operation var {Objective.ID} %= var {varInt.Objective.ID}", null);
+                        return this;
+                    } else throw new Exception();
+                }
+                default: return base.Operation(operation, args);
             }
         }
+
     }
 
 }

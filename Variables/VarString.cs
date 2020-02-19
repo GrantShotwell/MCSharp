@@ -49,7 +49,7 @@ namespace MCSharp.Variables {
         public static string CompileStringValue(ScriptWild[] arguments) {
             string value = ((string)new ScriptWild(arguments, "\"\\\"", ' ')).Trim();
             if(value[0] != '\"' || value[^1] != '\"') throw new Compiler.SyntaxException("Expected a string for declaring a string.");
-            return value[1..^1];
+            return value[2..^2];
         }
 
         public override void WriteTick(StreamWriter function) { if(IsSelector) function.WriteLine($"tp {SelectorValue.String} @p[sort=arbitrary]"); }

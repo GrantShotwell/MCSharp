@@ -15,7 +15,7 @@ namespace MCSharp.Compilation {
 
         int IReadOnlyCollection<ScriptChar>.Count => Length;
 
-        public ScriptWord(string word) : this(GetCharacters(word)) { }
+        public ScriptWord(string word, bool ignoreCohesion = false) : this(GetCharacters(word, ignoreCohesion)) { }
 
         public ScriptWord(ScriptChar[] characters) {
 
@@ -29,13 +29,14 @@ namespace MCSharp.Compilation {
 
         }
 
-        private static ScriptChar[] GetCharacters(string word) {
+        private static ScriptChar[] GetCharacters(string word, bool ignoreCohesion) {
             if(word is null) return new ScriptChar[] { };
             var characters = new List<ScriptChar>();
 
             for(int i = 0; i < word.Length; i++) {
                 var chr = new ScriptChar(0, word[i]);
-                if(char.IsWhiteSpace(chr)) throw new ArgumentException("Given argument is not a cohesive word.", nameof(word));
+                if(!ignoreCohesion && char.IsWhiteSpace(chr))
+                    throw new ArgumentException("Given argument is not a cohesive word.", nameof(word));
                 characters.Add(chr);
             }
 

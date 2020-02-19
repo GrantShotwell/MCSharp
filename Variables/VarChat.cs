@@ -8,7 +8,7 @@ namespace MCSharp.Variables {
     public class VarChat : Variable {
 
         public override int Order => 100;
-        public override string TypeName => "_Chat";
+        public override string TypeName => "Chat";
         public override ICollection<Access> AllowedAccessModifiers => new Access[] { Access.Public };
         public override ICollection<Usage> AllowedUsageModifiers => new Usage[] { Usage.Static };
 
@@ -48,7 +48,7 @@ namespace MCSharp.Variables {
         };
 
         public VarChat() : base() {
-            new VarChat("Chat");
+            Compiler.StaticClassObjects.Add("Chat", new VarChat("Chat"));
         }
 
         public VarChat(string name) : base(Access.Public, Usage.Static, name, Compiler.RootScope) {

@@ -1,6 +1,5 @@
 ﻿using LargeBaseNumbers;
 using MCSharp.Compilation;
-using MCSharp.Methods;
 using MCSharp.Variables;
 using System;
 using System.Collections.Generic;
@@ -27,6 +26,7 @@ namespace MCSharp {
         public static Stack<StreamWriter> FunctionStack { get; } = new Stack<StreamWriter>();
         public static Dictionary<string, Dictionary<Scope, Variable>> VariableNames { get; } = new Dictionary<string, Dictionary<Scope, Variable>>();
         public static Dictionary<Scope, List<Variable>> VariableScopes { get; } = new Dictionary<Scope, List<Variable>>();
+        public static Dictionary<string, Variable> StaticClassObjects { get; } = new Dictionary<string, Variable>();
 
         public static IReadOnlyDictionary<int, Scope> AllScopes => allScopes;
         public static Scope CurrentScope { get; private set; }
@@ -183,6 +183,14 @@ namespace MCSharp {
                     var wild = wilds[j];
                     if(onFinish == null) {
 
+                        //Look for STATIC CLASS OBJECT
+                        if(wild.IsWord && StaticClassObjects.TryGetValue(wild.Word, out Variable v0)) {
+                            onFinish = () => {
+                                v0.Operation(args[0].Word, args.ToArray()[1..]);
+                            };
+                            continue;
+                        }
+
                         //Look for TYPE NAME
                         if(wild.IsWord && Variable.Compilers.TryGetValue(wild.Word, out var compiler)) {
                             onFinish = () => {
@@ -315,16 +323,14 @@ namespace MCSharp {
 
         private static void Reload() {
 
+            //Clear static class objects from last compile.
+            StaticClassObjects.Clear();
+
             //Clear files from last compile.
             ScriptFile.Files.Clear();
 
             //Clear compilers from last compile.
             Variable.Compilers.Clear();
-
-            //Clear method groups from last compile.
-            MethodGroup.Dictionary.Clear();
-            foreach(var dictionary in MethodGroup.GenericDictionaries)
-                dictionary.Clear();
 
             //Clear datatypes from last compile.
             Datatypes.Clear();

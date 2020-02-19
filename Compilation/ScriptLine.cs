@@ -54,13 +54,12 @@ namespace MCSharp.Compilation {
         private static ScriptWild[] GetWilds(string phrase) {
             if(phrase is null) return new ScriptWild[] { };
 
-            SpaceOut(ref phrase); // makes the important bits separated by spaces
-            var split = new List<string>(phrase.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries));
+            ScriptWord[] split = Separate(phrase);
 
             var stack = new Stack<Tuple<char?, string, List<ScriptWild>>>();
             stack.Push(new Tuple<char?, string, List<ScriptWild>>(null, " \\ ", new List<ScriptWild>()));
 
-            for(int i = 0; i < split.Count; i++) {
+            for(int i = 0; i < split.Length; i++) {
                 string str = split[i];
 
                 if(str.Length == 1) {
@@ -171,21 +170,52 @@ namespace MCSharp.Compilation {
             return stack.Peek().Item3.ToArray();
         }
 
-        private static void SpaceOut(ref string str) {
+        private static ScriptWord[] Separate(string str) {
+
             var original = new LinkedList<char>(str);
-            var spaced = new LinkedList<char>();
-            foreach(char character in original) {
-                if(IsBlockChar(character, out _) || IsSeparatorChar(character)) {
-                    spaced.AddLast(' ');
-                    spaced.AddLast(character);
-                    spaced.AddLast(' ');
+            var separated = new List<ScriptWord>(str.Length / 2); //guess
+            var current = new LinkedList<char>();
+            bool inStr = false, escaped = false;
+
+            foreach(char chr in original) {
+
+                if(!escaped) {
+                    if(chr == '\\') escaped = true;
+                    else if(chr == '"') inStr = !inStr;
+                } else escaped = false;
+
+                if(!inStr && (IsBlockChar(chr, out _) || IsSeparatorChar(chr) || char.IsWhiteSpace(chr))) {
+                    int count = current.Count;
+                    if(count == 0) {
+                        current = new LinkedList<char>();
+                        continue;
+                    } else {
+                        char[] array = new char[count];
+                        current.CopyTo(array, 0);
+                        current = new LinkedList<char>();
+                        string word = new string(array);
+                        separated.Add(new ScriptWord(word, ignoreCohesion: true));
+                        if(!char.IsWhiteSpace(chr)) {
+                            current.AddLast(chr);
+                            separated.Add(new ScriptWord(chr.ToString()));
+                            current = new LinkedList<char>();
+                        }
+                    }
                 } else {
-                    spaced.AddLast(character);
+                    current.AddLast(chr);
                 }
+
             }
-            var array = new char[spaced.Count];
-            spaced.CopyTo(array, 0);
-            str = new string(array);
+
+            if(current.Count > 0) {
+                char[] array = new char[current.Count];
+                current.CopyTo(array, 0);
+                string word = new string(array);
+                separated.Add(new ScriptWord(word, ignoreCohesion: true));
+            }
+
+            return separated.ToArray();
+
         }
 
         public static bool IsBlockChar(char chr, out string type)

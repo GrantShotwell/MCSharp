@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using LargeBaseNumbers;
-using MCSharp.Methods;
 using System.Collections;
 
 namespace MCSharp.Variables {
