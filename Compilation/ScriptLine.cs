@@ -180,8 +180,10 @@ namespace MCSharp.Compilation {
             foreach(char chr in original) {
 
                 if(!escaped) {
-                    if(chr == '\\') escaped = true;
-                    else if(chr == '"') inStr = !inStr;
+                    if(chr == '\\') {
+                        escaped = true;
+                        continue;
+                    } else if(chr == '"') inStr = !inStr;
                 } else escaped = false;
 
                 if(!inStr && (IsBlockChar(chr, out _) || IsSeparatorChar(chr) || char.IsWhiteSpace(chr))) {

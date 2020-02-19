@@ -63,7 +63,7 @@ namespace MCSharp.Compilation {
                     lines.Add(new ScriptLine(scriptFunction[start..end]));
                     start = end + 1;
                 } else {
-                    if(chr == '"') {
+                    if(chr == '"' && (end == 0 || scriptFunction[end-1] != '\\')) {
                         inString = !inString;
                         if(inString) {
                             stack.Push("\"\\\"");
