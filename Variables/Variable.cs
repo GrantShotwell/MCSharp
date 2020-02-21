@@ -19,7 +19,7 @@ namespace MCSharp.Variables {
         private static int hiddenID = 0;
         public static string NextHiddenID => $"anon_{BaseConverter.Convert(hiddenID++, 62)}";
 
-        public abstract int Order { get; }
+        public virtual int Order => 0;
         public abstract string TypeName { get; }
         public abstract ICollection<Access> AllowedAccessModifiers { get; }
         public Access AccessModifier { get; }
@@ -35,18 +35,18 @@ namespace MCSharp.Variables {
             if(GetType() != typeof(Spy)) Compilers.Add(TypeName, Compile);
         }
 
-        public Variable(Access accessModifier, Usage usageModifier, string objectName, Compiler.Scope scope) {
+        public Variable(Access access, Usage usage, string objectName, Compiler.Scope scope) {
 
             if(objectName == null) throw new ArgumentNullException(nameof(objectName));
             if(scope == null) throw new ArgumentNullException(nameof(scope));
             if(GetType() != typeof(Spy)) {
-                if(!AllowedAccessModifiers.Contains(accessModifier)) throw new InvalidModifierException(accessModifier.ToString(), TypeName);
-                if(!AllowedUsageModifiers.Contains(usageModifier)) throw new InvalidModifierException(usageModifier.ToString(), TypeName);
+                if(!AllowedAccessModifiers.Contains(access)) throw new InvalidModifierException(access.ToString(), TypeName);
+                if(!AllowedUsageModifiers.Contains(usage)) throw new InvalidModifierException(usage.ToString(), TypeName);
             }
 
             ObjectName = objectName;
-            AccessModifier = accessModifier;
-            UsageModifier = usageModifier;
+            AccessModifier = access;
+            UsageModifier = usage;
             Scope = scope;
             Scope.Variables.Add(this);
 

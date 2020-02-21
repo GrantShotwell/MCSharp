@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Text;
 
 namespace MCSharp.Variables {
 
-    public abstract class Primitive : Variable {
+    public abstract class PrimitiveType : Variable {
 
         public VarSelector Selector { get; }
         public VarObjective Objective { get; }
@@ -13,18 +14,21 @@ namespace MCSharp.Variables {
         public VarSelector FromSelector { get; } = null;
         public VarObjective FromObjective { get; } = null;
 
+        public override ICollection<Access> AllowedAccessModifiers => new Access[] { Access.Private, Access.Public };
+        public override ICollection<Usage> AllowedUsageModifiers => new Usage[] { Usage.Constant, Usage.Static, Usage.Default };
 
-        public Primitive() : base() { }
 
-        public Primitive(Access access, Usage usage, string objectName, Compiler.Scope scope, int initValue,
-                         VarSelector selector, VarObjective objective) : base(access, usage, objectName, scope) {
+        public PrimitiveType() : base() { }
+        public PrimitiveType(Access access, Usage usage, string objectName, Compiler.Scope scope, int initValue,
+        VarSelector selector, VarObjective objective) : base(access, usage, objectName, scope) {
             Selector = selector;
             Objective = objective;
+            Members.Add(Selector);
+            Members.Add(Objective);
             InitValue = initValue;
         }
-
-        public Primitive(Access access, Usage usage, string objectName, Compiler.Scope scope, VarSelector fromSelector,
-                         VarObjective fromObjective, VarSelector selector, VarObjective objective) : base(access, usage, objectName, scope) {
+        public PrimitiveType(Access access, Usage usage, string objectName, Compiler.Scope scope, VarSelector fromSelector,
+        VarObjective fromObjective, VarSelector selector, VarObjective objective) : base(access, usage, objectName, scope) {
             Selector = selector;
             Objective = objective;
             Members.Add(Selector);

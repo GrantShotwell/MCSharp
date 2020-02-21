@@ -51,7 +51,7 @@ namespace MCSharp.Compilation {
 
         }
 
-        private static ScriptWild[] GetWilds(string phrase) {
+        public static ScriptWild[] GetWilds(string phrase) {
             if(phrase is null) return new ScriptWild[] { };
 
             ScriptWord[] split = Separate(phrase);
@@ -83,12 +83,11 @@ namespace MCSharp.Compilation {
                             last.Item3.Add(new ScriptWild(tuple.Item3.ToArray(), " \\ ", ' '));
                         } else if(last.Item1 == null || last.Item1 == ' ' || chr == '.') {
                             if(chr == '.') {
-                                //Special case for dot: parse all right now.
+                                //Special case for dot: parse all right now and package it as a single ScriptWild.
                                 var item3 = tuple.Item3;
                                 var stolen = item3[^1];
                                 item3.RemoveAt(item3.Count - 1);
-                                var list = new List<ScriptWild>();
-                                list.Add(stolen);
+                                var list = new List<ScriptWild> { stolen };
                                 while(chr == '.') {
                                     str = split[++i];
                                     if(IsBlockChar(str[0], out _) || IsSeparatorChar(str[0]))
@@ -115,7 +114,7 @@ namespace MCSharp.Compilation {
                     } else if(IsBlockCharEnd(chr, out blk)) {
                         //Ending the last block tuple.
                         var tuple = stack.Pop();
-                        if(tuple.Item2[2] == ' ') {
+                        if(tuple.Item2 == " \\ ") {
                             do {
                                 var next = stack.Pop();
                                 if(tuple.Item3.Count > 1) next.Item3.Add(new ScriptWild(tuple.Item3.ToArray(), tuple.Item2, tuple.Item1 ?? ' '));
@@ -187,21 +186,14 @@ namespace MCSharp.Compilation {
                 } else escaped = false;
 
                 if(!inStr && (IsBlockChar(chr, out _) || IsSeparatorChar(chr) || char.IsWhiteSpace(chr))) {
-                    int count = current.Count;
-                    if(count == 0) {
+                    char[] array = new char[current.Count];
+                    current.CopyTo(array, 0);
+                    current = new LinkedList<char>();
+                    if(array.Length > 0) separated.Add(new ScriptWord(new string(array)));
+                    if(!char.IsWhiteSpace(chr)) {
+                        current.AddLast(chr);
+                        separated.Add(new ScriptWord(chr.ToString()));
                         current = new LinkedList<char>();
-                        continue;
-                    } else {
-                        char[] array = new char[count];
-                        current.CopyTo(array, 0);
-                        current = new LinkedList<char>();
-                        string word = new string(array);
-                        separated.Add(new ScriptWord(word, ignoreCohesion: true));
-                        if(!char.IsWhiteSpace(chr)) {
-                            current.AddLast(chr);
-                            separated.Add(new ScriptWord(chr.ToString()));
-                            current = new LinkedList<char>();
-                        }
                     }
                 } else {
                     current.AddLast(chr);

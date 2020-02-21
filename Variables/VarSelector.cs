@@ -9,7 +9,6 @@ namespace MCSharp.Variables {
     /// </summary>
     public class VarSelector : Variable {
 
-        public override int Order => 100;
         public override string TypeName => "Selector";
         public string String { get; }
 

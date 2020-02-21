@@ -8,7 +8,6 @@ namespace MCSharp.Variables {
 
     public class VarJSON : Variable {
 
-        public override int Order => 100;
         public override string TypeName => "JSON";
 
         public string Value { get; }

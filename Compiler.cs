@@ -1,5 +1,6 @@
 ﻿using LargeBaseNumbers;
 using MCSharp.Compilation;
+using MCSharp.Statements;
 using MCSharp.Variables;
 using System;
 using System.Collections.Generic;
@@ -11,8 +12,6 @@ namespace MCSharp {
     public static class Compiler {
 
         public enum TraceFormat { Sentence, Phrase, CapitalizedPhrase }
-        public enum OperatorType { Set, Primitive, SetPrimitive }
-        public enum SyntaxType { Modifier, Datatype, Operator, Name, IncreaseScope, DecreaseScope }
 
         private static int maxFunctionStackSize = 0;
 
@@ -171,50 +170,58 @@ namespace MCSharp {
 
             //
 
-            var phrases = (IReadOnlyList<ScriptLine>)function;
-            for(int i = 0; i < phrases.Count; i++) {
-                var phrase = phrases[i];
+            var lines = (IReadOnlyList<ScriptLine>)function;
+            for(int i = 0; i < lines.Count; i++) {
+                ScriptLine line = lines[i];
 
-                var args = new List<ScriptWild>();
-                Action onFinish = null;
+                if(line[0].IsWord && Statement.Dictionary.TryGetValue(line[0], out Tuple<Statement.Reader, Statement.Writer> tuple)) {
 
-                var wilds = (IReadOnlyList<ScriptWild>)phrase;
-                for(int j = 0; j < wilds.Count; j++) {
-                    var wild = wilds[j];
-                    if(onFinish == null) {
+                    tuple.Item2.Invoke(line);
 
-                        //Look for STATIC CLASS OBJECT
-                        if(wild.IsWord && StaticClassObjects.TryGetValue(wild.Word, out Variable v0)) {
-                            onFinish = () => {
-                                v0.Operation(args[0].Word, args.ToArray()[1..]);
-                            };
-                            continue;
+                } else {
+
+                    var args = new List<ScriptWild>();
+                    Action onFinish = null;
+                    var wilds = (IReadOnlyList<ScriptWild>)line;
+
+                    for(int j = 0; j < wilds.Count; j++) {
+                        var wild = wilds[j];
+                        if(onFinish == null) {
+
+                            //Look for STATIC CLASS OBJECT
+                            if(wild.IsWord && StaticClassObjects.TryGetValue(wild.Word, out Variable v0)) {
+                                onFinish = () => {
+                                    v0.Operation(args[0].Word, args.ToArray()[1..]);
+                                };
+                                continue;
+                            }
+
+                            //Look for TYPE NAME
+                            if(wild.IsWord && Variable.Compilers.TryGetValue(wild.Word, out var compiler)) {
+                                onFinish = () => {
+                                    compiler.Invoke(Access.Private, Usage.Default, args[0], CurrentScope, args.ToArray()[1..]);
+                                };
+                                continue;
+                            }
+
+                            //Look for VALUE
+                            if(TryParseValue(wild, CurrentScope, out Variable v1)) {
+                                onFinish = () => {
+                                    v1.Operation(args[0].Word, args.ToArray()[1..]);
+                                };
+                                continue;
+                            }
+
+                            throw new SyntaxException($"Could not identify word '{wild}'.");
+
+                        } else {
+                            args.Add(wild);
                         }
-
-                        //Look for TYPE NAME
-                        if(wild.IsWord && Variable.Compilers.TryGetValue(wild.Word, out var compiler)) {
-                            onFinish = () => {
-                                compiler.Invoke(Access.Private, Usage.Default, args[0], CurrentScope, args.ToArray()[1..]);
-                            };
-                            continue;
-                        }
-
-                        //Look for VALUE
-                        if(TryParseValue(wild, CurrentScope, out Variable v1)) {
-                            onFinish = () => {
-                                v1.Operation(args[0].Word, args.ToArray()[1..]);
-                            };
-                            continue;
-                        }
-
-                        throw new SyntaxException($"Could not identify word '{wild}'.");
-
-                    } else {
-                        args.Add(wild);
                     }
-                }
 
-                if(onFinish != null) onFinish.Invoke();
+                    if(onFinish != null) onFinish.Invoke();
+
+                }
 
             }
 
@@ -253,7 +260,8 @@ namespace MCSharp {
         /// </summary>
         public static bool TryParseValue(ScriptWild wild, Scope scope, out Variable variable) {
             variable = null;
-            if(wild.IsWord) {
+            if(wild.IsWord || wild.Count == 1) {
+                if(wild.IsWilds && wild.Count == 1) wild = wild.Wilds[0];
                 return TryGetVariable(wild.Word, scope, out variable);
             } else {
                 ScriptWild[] wilds = wild.Array;
@@ -298,7 +306,7 @@ namespace MCSharp {
                     }
                 }
             }
-            throw new Exception();
+            return false;
         }
 
         /// <summary>
@@ -350,6 +358,9 @@ namespace MCSharp {
             VariableNames.Clear();
             VariableScopes.Clear();
 
+            //Clear loaded statements from last compile.
+            Statement.Dictionary.Clear();
+
             //Get executing assembly.
             var assembly = Assembly.GetExecutingAssembly();
 
@@ -362,9 +373,19 @@ namespace MCSharp {
                 }
             }
 
+            //Find the Statement types from this assembly, and add them to 'Statement.Dictionary'.
+            foreach(TypeInfo info in assembly.DefinedTypes) {
+                if(info.IsSubclassOf(typeof(Statement)) && !info.IsAbstract) {
+                    ConstructorInfo constructor = info.GetConstructor(new Type[] { });
+                    _ = constructor.Invoke(new object[] { }) as Statement;
+                }
+            }
+
         }
 
         public class Scope {
+
+            private int nextInnerID = 0;
 
             private readonly List<Scope> children = new List<Scope>();
             private Scope parent;
@@ -421,6 +442,8 @@ namespace MCSharp {
                     id = random.Next(0, int.MaxValue);
                 return id;
             }
+
+            public string GetNextInnerID() => BaseConverter.Convert(nextInnerID++, 62);
 
             public override string ToString() => BaseConverter.Convert(ID, 62);
 

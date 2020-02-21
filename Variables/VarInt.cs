@@ -7,9 +7,8 @@ using System.Text;
 
 namespace MCSharp.Variables {
 
-    public class VarInt : Primitive {
+    public class VarInt : PrimitiveType {
 
-        public override int Order => 100;
         public override string TypeName => "int";
 
         public override ICollection<Access> AllowedAccessModifiers => new Access[] { Access.Private, Access.Public };
@@ -104,6 +103,13 @@ namespace MCSharp.Variables {
             }
         }
 
+        public override bool TryCast<TVariable>([MaybeNullWhen(false)] out TVariable result) {
+            if(typeof(TVariable).IsAssignableFrom(typeof(VarBool))) {
+                return (result = new VarBool(Access.Private, Usage.Default, NextHiddenID, Compiler.CurrentScope, Selector, Objective,
+                    new VarSelector(Access.Private, Usage.Default, NextHiddenID, Compiler.CurrentScope, "var"),
+                    new VarObjective(Access.Private, Usage.Default, NextHiddenID, Compiler.CurrentScope, "dummy")) as TVariable) != null;
+            } else return base.TryCast(out result);
+        }
     }
 
 }

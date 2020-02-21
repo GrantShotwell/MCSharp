@@ -38,9 +38,13 @@ namespace MCSharp.Compilation {
         public IReadOnlyList<ScriptWild> Wilds => IsWilds ? wilds : throw new InvalidOperationException();
         public ScriptWild[] Array {
             get {
-                var wilds = new ScriptWild[this.wilds.Length];
-                this.wilds.CopyTo(wilds, 0);
-                return wilds;
+                if(IsWilds) {
+                    var wilds = new ScriptWild[this.wilds.Length];
+                    this.wilds.CopyTo(wilds, 0);
+                    return wilds;
+                } else {
+                    return new ScriptWild[] { Word };
+                }
             }
         }
 
@@ -105,7 +109,8 @@ namespace MCSharp.Compilation {
                 string str = "";
                 foreach(string wld in wilds)
                     str += separation + wld;
-                this.str = str.Length > 0 ? $"{block[0]}{str[1..]}{block[2]}" : $"{block[0]}{block[2]}";
+                if(separation == ';') this.str = str.Length > 0 ? $"{block[0]}{str[1..]};{block[2]}" : $"{block[0]};{block[2]}";
+                else this.str = str.Length > 0 ? $"{block[0]}{str[1..]}{block[2]}" : $"{block[0]}{block[2]}";
 
             }
         }

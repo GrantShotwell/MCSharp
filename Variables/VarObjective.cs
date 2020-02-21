@@ -10,17 +10,14 @@ namespace MCSharp.Variables {
     /// <summary>
     /// Represents a Minecraft scoreboard objective.
     /// </summary>
-    public class VarObjective : Variable {
+    public class VarObjective : ReferenceType {
 
         public static int NextID { get; private set; }
 
-        public override int Order => 50;
+        public override int Order => base.Order - 10;
         public override string TypeName => "Objective";
         public string ID { get; }
         public string Type { get; }
-
-        public override ICollection<Access> AllowedAccessModifiers => new Access[] { Access.Private, Access.Public };
-        public override ICollection<Usage> AllowedUsageModifiers => new Usage[] { Usage.Default, Usage.Constant, Usage.Static };
 
 
         public VarObjective() : base() { }
@@ -65,6 +62,8 @@ namespace MCSharp.Variables {
         public override void WriteInit(StreamWriter function) => function.WriteLine($"scoreboard objectives add {ID} {Type}");
         public override void WritePrep(StreamWriter function) => function.WriteLine($"scoreboard objectives add {ID} {Type}");
         public override void WriteDemo(StreamWriter function) => function.WriteLine($"scoreboard objectives remove {ID}");
+
+        public override string GetConstant() => ID;
 
         public static void ResetID() => NextID = 0;
 

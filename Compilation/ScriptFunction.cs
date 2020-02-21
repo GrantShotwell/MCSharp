@@ -1,4 +1,6 @@
-﻿using System.Collections;
+﻿using MCSharp.Statements;
+using System;
+using System.Collections;
 using System.Collections.Generic;
 
 namespace MCSharp.Compilation {
@@ -12,6 +14,7 @@ namespace MCSharp.Compilation {
         public int Length => phrases.Length;
         public string FilePath { get; }
         public string FileName { get; }
+        public string GamePath { get; }
         public string Alias { get; }
         public string AliasDotted => Alias.Replace('\\', '.');
 
@@ -26,7 +29,8 @@ namespace MCSharp.Compilation {
 
             FileName = fixAlias ? Script.FixAlias($"{alias}.mcfunction") : alias;
             FilePath = $"{Program.FunctionsFolder}\\{FileName}";
-            Alias = fixAlias ? Script.FixAlias(alias) : alias;
+            Alias = fixAlias ? alias = Script.FixAlias(alias) : alias;
+            GamePath = $"{Program.Datapack.Name}:{alias.Replace('\\', '/')}";
             this.phrases = phrases;
 
             int length = phrases.Length;
@@ -47,23 +51,23 @@ namespace MCSharp.Compilation {
             } else throw new System.Exception();
         }
 
-        public static ScriptLine[] GetLines(string scriptFunction) {
-            if(scriptFunction is null) return new ScriptLine[] { };
+        public static ScriptLine[] GetLines(string function) {
+            if(function is null) return new ScriptLine[] { };
             var lines = new List<ScriptLine>();
 
             bool inString = false;
             int start = 0;
             var stack = new Stack<string>();
-            for(int end = 0; end < scriptFunction.Length; end++) {
-                bool final = end == scriptFunction.Length - 1;
+            for(int end = 0; end < function.Length; end++) {
                 bool inBlock = stack.Count > 0;
-                char chr = scriptFunction[end];
+                char chr = function[end];
 
-                if(chr == ';' && !inBlock) {
-                    lines.Add(new ScriptLine(scriptFunction[start..end]));
+                if(chr == ';' && !inBlock && !inString) {
+                    lines.Add(new ScriptLine(function[start..end]));
                     start = end + 1;
                 } else {
-                    if(chr == '"' && (end == 0 || scriptFunction[end-1] != '\\')) {
+                    //Check if starting/ending a string.
+                    if(chr == '"' && (end == 0 || function[end-1] != '\\')) {
                         inString = !inString;
                         if(inString) {
                             stack.Push("\"\\\"");
@@ -72,9 +76,18 @@ namespace MCSharp.Compilation {
                         }
                     } else {
                         if(ScriptLine.IsBlockCharStart(chr, out string block)) {
-                            //Start a block.
-                            stack.Push(block);
-                            continue;
+                            string s = new string(function[start..end]);
+                            if(Statement.Dictionary.TryGetValue(s.Trim(), out Tuple<Statement.Reader, Statement.Writer> statement)) {
+                                //Read a statement.
+                                statement.Item1.Invoke(ref lines, ref start, ref end, ref function);
+                                char _debug1 = function[start];
+                                char _debug2 = function[end];
+                                continue;
+                            } else {
+                                //Start a block.
+                                stack.Push(block);
+                                continue;
+                            }
                         }
                         if(ScriptLine.IsBlockCharEnd(chr, out block)) {
                             //Check for mistakes.
