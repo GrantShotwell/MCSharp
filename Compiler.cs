@@ -17,7 +17,7 @@ namespace MCSharp {
 
         private static readonly Dictionary<int, Scope> allScopes = new Dictionary<int, Scope>();
 
-        public static Scope RootScope { get; } = new Scope(0, null);
+        public static Scope RootScope { get; } = new Scope(null);
 
         public static StreamWriter PrepFunction { get; private set; }
         public static StreamWriter DemoFunction { get; private set; }
@@ -28,8 +28,8 @@ namespace MCSharp {
         public static Dictionary<string, Variable> StaticClassObjects { get; } = new Dictionary<string, Variable>();
 
         public static IReadOnlyDictionary<int, Scope> AllScopes => allScopes;
-        public static Scope CurrentScope { get; private set; }
         public static Stack<Scope> ScopeStack { get; } = new Stack<Scope>();
+        public static Scope CurrentScope => ScopeStack.Peek();
 
         public static string CurrentLine { get; private set; }
         public static int CurrentLineIndex { get; private set; }
@@ -58,8 +58,8 @@ namespace MCSharp {
             string[] scripts = Directory.GetFiles(scriptsPath);
 
             var funcDirectory = new DirectoryInfo(functionsPath);
-            foreach(FileInfo file in funcDirectory.GetFiles()) file.Delete();
-            foreach(DirectoryInfo d in funcDirectory.GetDirectories()) d.Delete(true);
+            //foreach(FileInfo file in funcDirectory.GetFiles()) file.Delete();
+            //foreach(DirectoryInfo d in funcDirectory.GetDirectories()) d.Delete(true);
 
             Directory.CreateDirectory(functionsPath + "\\mcscript");
             PrepFunction = File.CreateText(functionsPath + "\\mcscript\\prep.mcfunction");
@@ -142,15 +142,10 @@ namespace MCSharp {
 
         }
 
-        public static Scope WriteFunction(Scope scope, ScriptFunction function) {
-            CurrentScope = new Scope(scope);
-            return WriteFunction(CurrentScope, scope, function);
-        }
-
         /// <summary>
         /// Compiles a new function file with the given <paramref name="functionPath"/> from the given <paramref name="function"/>.
         /// </summary>
-        public static Scope WriteFunction(Scope parent, Scope scope, ScriptFunction function) {
+        public static Scope WriteFunction(Scope parent, ScriptFunction function) {
 
             string path = function.FilePath;
             string alias = function.FileName;
@@ -164,11 +159,10 @@ namespace MCSharp {
             foreach(string part in directorySplit) directory += '\\' + part;
             Directory.CreateDirectory(directory[1..]);
             StreamWriter writer = File.CreateText(path.Split("(", 2)[0]);
+
             FunctionStack.Push(writer);
+            ScopeStack.Push(new Scope(parent));
 
-            ScopeStack.Push(parent);
-
-            //
 
             var lines = (IReadOnlyList<ScriptLine>)function;
             for(int i = 0; i < lines.Count; i++) {
@@ -230,7 +224,6 @@ namespace MCSharp {
                 for(int i = 0; i < variables.Count; i++) variables[i].WriteDemo(FunctionStack.Peek());
             }
 
-            //
 
             FunctionStack.Pop().Close();
             Scope outScope = ScopeStack.Pop();
@@ -265,7 +258,7 @@ namespace MCSharp {
                 return TryGetVariable(wild.Word, scope, out variable);
             } else {
                 ScriptWild[] wilds = wild.Array;
-                bool @switch = true;
+                bool @switch = false;
                 string op = null;
                 for(int i = 0; i < wilds.Length; i++) {
                     ScriptWild current = wilds[i];
@@ -285,7 +278,10 @@ namespace MCSharp {
                                     //Call the method.
                                     if(variable != null) {
                                         //...if they used the '.' operator.
-                                        if(op == ".") variable.Operation(op, new ScriptWild[] { current, args });
+                                        if(op == ".") {
+                                            variable = variable.Operation(op, new ScriptWild[] { current, args });
+                                            return true;
+                                        }
                                         else throw new SyntaxException("Missing '.' operator.");
                                     } else {
                                         //TODO:  implicit '.this' call.
@@ -385,13 +381,14 @@ namespace MCSharp {
 
         public class Scope {
 
-            private int nextInnerID = 0;
+            private static int nextScopeID = 0;
 
+            private int nextInnerID = 0;
             private readonly List<Scope> children = new List<Scope>();
             private Scope parent;
 
             public int ID { get; }
-            public HashSet<Variable> Variables { get; } = new HashSet<Variable>(16);
+            public HashSet<Variable> Variables { get; } = new HashSet<Variable>();
             public IReadOnlyCollection<Scope> Children => children;
             public Scope Parent {
                 get => parent;
@@ -403,13 +400,12 @@ namespace MCSharp {
             }
 
 
-            public Scope(Scope parent) : this(GetNewID(), parent) { }
-
-            public Scope(int id, Scope parent) {
-                ID = id;
+            public Scope(Scope parent) {
+                ID = GetNextScopeID();
                 Parent = parent;
                 allScopes.Add(this);
             }
+
 
             public bool IsChildOf(Scope scope, out int delta) {
                 Scope parent = Parent;
@@ -435,18 +431,9 @@ namespace MCSharp {
                 return Recursion(this, scope, ref delta);
             }
 
-            public static int GetNewID() {
-                var random = new Random();
-                int id = 0;
-                while(AllScopes.ContainsKey(id))
-                    id = random.Next(0, int.MaxValue);
-                return id;
-            }
-
+            public static int GetNextScopeID() => nextScopeID++;
             public string GetNextInnerID() => BaseConverter.Convert(nextInnerID++, 62);
-
             public override string ToString() => BaseConverter.Convert(ID, 62);
-
             public override int GetHashCode() => ID.GetHashCode();
 
         }

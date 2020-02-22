@@ -119,7 +119,7 @@ namespace MCSharp.Variables {
         /// <summary>
         /// Creates a new <see cref="Spy"/> that will copy the value of this to <paramref name="variable"/>.
         /// </summary>
-        public virtual void WritePass(StreamWriter function, Variable variable)
+        public virtual void WriteCopyTo(StreamWriter function, Variable variable)
             => throw new Compiler.SyntaxException($"Cannot pass the value of type '{TypeName}' to other variables!");
 
         /// <summary>

@@ -163,7 +163,10 @@ namespace MCSharp.Compilation {
                         stack.Pop();
                         stack.Push(tuple);
                     } else stack.Peek().Item3.Add(new ScriptWild(tuple.Item3.ToArray(), tuple.Item2, tuple.Item1 ?? ' '));
-                } else stack.Peek().Item3.Add(new ScriptWord(tuple.Item3[0]));
+                } else {
+                    if(tuple.Item3[0].IsWord) stack.Peek().Item3.Add(new ScriptWord(tuple.Item3[0]));
+                    else stack.Peek().Item3.Add(new ScriptWild(tuple.Item3.ToArray(), tuple.Item2, tuple.Item1.Value));
+                }
             }
             if(stack.Count > 1) throw new Compiler.SyntaxException($"Missing '{stack.Peek().Item2[2]}'.");
             return stack.Peek().Item3.ToArray();

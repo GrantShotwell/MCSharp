@@ -32,29 +32,38 @@ namespace MCSharp.Variables {
                 arguments = new ScriptWild[] { new ScriptWord("="), new ScriptWord("0") };
             if(arguments.Length < 2) 
                 throw new Compiler.SyntaxException("Expected more arguments for declaring an int.");
-            if(arguments.Length > 2 || arguments[1].IsWilds) 
-                throw new NotImplementedException("Nested operations (ie. 'int x = 1 + 2;') is currently not implemented.");
             if(arguments[0].IsWilds || arguments[0].Word != "=") 
                 throw new Compiler.SyntaxException("Expected '=' for creating a new int.");
 
-            ScriptWord word = arguments[1].Word;
-            if(char.IsDigit(word[0])) {
-                int value = int.Parse(word);
-                return new VarInt(access, usage, objectName, scope, value,
-                                  new VarSelector(access, usage, $"{objectName}.Selector", scope, "var"),
-                                  new VarObjective(access, usage, $"{objectName}.Objective", scope, "dummy"));
-            } else if(Compiler.TryGetVariable(word, scope, out Variable variable)) {
-                if(variable is VarInt varInt || variable.TryCast(out varInt)) {
-                    return new VarInt(access, usage, objectName, scope,
-                                      varInt.Selector, varInt.Objective,
-                                      new VarSelector(access, usage, $"{objectName}.Selector", scope, varInt.Selector.String),
+            if(arguments.Length > 2 || arguments[1].IsWilds) {
+                if(Compiler.TryParseValue(new ScriptWild(arguments[1..], "(\\)", ' '), scope, out Variable parsed)) {
+                    if(parsed is VarInt varInt || parsed.TryCast(out varInt)) {
+                        return new VarInt(access, usage, objectName, scope,
+                                          varInt.Selector, varInt.Objective,
+                                          new VarSelector(access, usage, $"{objectName}.Selector", scope, varInt.Selector.GetConstant()),
+                                          new VarObjective(access, usage, $"{objectName}.Objective", scope, "dummy"));
+                    } else throw new Compiler.SyntaxException($"Unknown how to cast '{parsed}' into '{TypeName}'.");
+                } else throw new Compiler.SyntaxException($"Unknown how to interpret into '{TypeName}'.");
+            } else {
+                ScriptWord word = arguments[1].Word;
+                if(char.IsDigit(word[0])) {
+                    int value = int.Parse(word);
+                    return new VarInt(access, usage, objectName, scope, value,
+                                      new VarSelector(access, usage, $"{objectName}.Selector", scope, "var"),
                                       new VarObjective(access, usage, $"{objectName}.Objective", scope, "dummy"));
-                } else throw new Compiler.SyntaxException($"Unknown how to cast '{variable}' into '{TypeName}'.");
-            } else throw new Compiler.SyntaxException($"Unknown how to interpret '{word}' as an '{TypeName}'.");
-
+                } else if(Compiler.TryGetVariable(word, scope, out Variable variable)) {
+                    if(variable is VarInt varInt || variable.TryCast(out varInt)) {
+                        return new VarInt(access, usage, objectName, scope,
+                                          varInt.Selector, varInt.Objective,
+                                          new VarSelector(access, usage, $"{objectName}.Selector", scope, varInt.Selector.GetConstant()),
+                                          new VarObjective(access, usage, $"{objectName}.Objective", scope, "dummy"));
+                    } else throw new Compiler.SyntaxException($"Unknown how to cast '{variable}' into '{TypeName}'.");
+                } else throw new Compiler.SyntaxException($"Unknown how to interpret '{word}' as an '{TypeName}'.");
+            }
         }
 
-        public override void WritePass(StreamWriter function, Variable variable) {
+
+        public override void WriteCopyTo(StreamWriter function, Variable variable) {
             if(variable is VarInt varInt) {
                 function.WriteLine($"scoreboard players operation var {varInt.Objective.ID} = var {Objective.ID}");
             } else throw new InvalidArgumentsException($"Unknown how to interpret '{variable}' as '{TypeName}'.");
@@ -63,7 +72,7 @@ namespace MCSharp.Variables {
         public override string GetJSON() => $"{{\"score\":{{\"name\":\"var\",\"objective\":\"{Objective.ID}\"}}}}";
 
         public override Variable Operation(ScriptWord operation, ScriptWild[] args) {
-            switch((string)operation) {
+            switch(operation) {
                 case "+=": {
                     if(Compiler.TryParseValue(new ScriptWild(args, " \\ ", ' '), Compiler.CurrentScope, out Variable var)
                         && (var is VarInt varInt || var.TryCast(out varInt))) {

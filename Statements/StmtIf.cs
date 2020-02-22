@@ -90,10 +90,10 @@ namespace MCSharp.Statements {
                 if(conditionVariable is VarBool varBool || conditionVariable.TryCast(out varBool)) {
                     var statement = new ScriptFunction($"{Compiler.CurrentScope}\\{Compiler.CurrentScope.GetNextInnerID()}", statementWild);
                     Compiler.WriteFunction(Compiler.CurrentScope, statement);
-                    new Spy(null,  $"execute if score {varBool.Selector.GetConstant()} {varBool.Objective.GetConstant()} matches 1.. " +
+                    new Spy(null, $"execute if score {varBool.Selector.GetConstant()} {varBool.Objective.GetConstant()} matches 1.. " +
                         $"run function {statement.GamePath}", null);
-                }
-            }
+                } else throw new Variable.InvalidArgumentsException($"Could not cast '{conditionVariable}' as a 'bool'.");
+            } else throw new Exception();
         }
 
     }

@@ -52,8 +52,8 @@ namespace MCSharp.Variables {
             return value[2..^2];
         }
 
-        public override void WriteTick(StreamWriter function) { if(IsSelector) function.WriteLine($"tp {SelectorValue.String} @p[sort=arbitrary]"); }
-        public override void WriteDemo(StreamWriter function) { if(IsSelector) function.WriteLine($"kill {SelectorValue.String}"); }
+        public override void WriteTick(StreamWriter function) { if(IsSelector) function.WriteLine($"tp {SelectorValue.GetConstant()} @p[sort=arbitrary]"); }
+        public override void WriteDemo(StreamWriter function) { if(IsSelector) function.WriteLine($"kill {SelectorValue.GetConstant()}"); }
 
         public override string GetConstant() => ConstantValue;
         public override VarString GetString() => this;

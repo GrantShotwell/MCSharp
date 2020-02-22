@@ -12,7 +12,7 @@ namespace MCSharp.Variables {
 
         public override int Order => 100;
         public override string TypeName => "Entity";
-        public string Selector { get; }
+        public VarSelector Selector { get; }
 
         public override ICollection<Access> AllowedAccessModifiers => new Access[] { Access.Private, Access.Public };
         public override ICollection<Usage> AllowedUsageModifiers => new Usage[] { Usage.Default, Usage.Constant, Usage.Static };
@@ -22,7 +22,8 @@ namespace MCSharp.Variables {
 
         public VarEntities(Access access, Usage usage, string objectName, Compiler.Scope scope, VarSelector selector) :
         base(access, usage, objectName, scope) {
-            Selector = selector.String;
+            Selector = selector;
+            Members.Add("Selector", selector);
         }
 
 
@@ -32,13 +33,13 @@ namespace MCSharp.Variables {
         }
 
         public override void WriteInit(StreamWriter function) {
-            function.WriteLine($"tag {(Selector.StartsWith("@e") ? "@e" : "@a")} remove var_{TypeName}_{ObjectName}");
-            function.WriteLine($"tag {Selector} add var_{TypeName}_{ObjectName}");
+            function.WriteLine($"tag {(Selector.GetConstant().StartsWith("@e") ? "@e" : "@a")} remove var_{TypeName}_{ObjectName}");
+            function.WriteLine($"tag {Selector.GetConstant()} add var_{TypeName}_{ObjectName}");
         }
 
         public override void WritePrep(StreamWriter function) {
-            function.WriteLine($"tag {(Selector.StartsWith("@e") ? "@e" : "@a")} remove var_{TypeName}_{ObjectName}");
-            function.WriteLine($"tag {Selector} add var_{TypeName}_{ObjectName}");
+            function.WriteLine($"tag {(Selector.GetConstant().StartsWith("@e") ? "@e" : "@a")} remove var_{TypeName}_{ObjectName}");
+            function.WriteLine($"tag {Selector.GetConstant()} add var_{TypeName}_{ObjectName}");
         }
 
     }

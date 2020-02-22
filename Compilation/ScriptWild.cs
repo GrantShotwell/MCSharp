@@ -89,7 +89,15 @@ namespace MCSharp.Compilation {
         /// Creates a new <see cref="ScriptWild"/> that is just more <see cref="ScriptWild"/>s.
         /// </summary>
         public ScriptWild(ScriptWild[] wilds, string block, char separation) {
-            if(wilds.Length <= 1 && !wilds[0].IsWilds && block == " \\ " && separation == ' ') {
+            if(wilds.Length == 0) {
+
+                word = null;
+                this.wilds = wilds;
+                BlockType = block;
+                SeparationType = separation;
+                str = $"{block[0]}{block[2]}";
+
+            } else if(wilds.Length <= 1 && !wilds[0].IsWilds && block == " \\ " && separation == ' ') {
 
                 word = wilds[0].Word;
                 this.wilds = null;

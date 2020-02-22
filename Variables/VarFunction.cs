@@ -35,7 +35,7 @@ namespace MCSharp.Variables {
                 if(args.Length != Parameters.Count)
                     throw new InvalidArgumentsException($"Wrong number of arguments for '{this}'.Invoke(_).");
                 new Spy(null, (function) => {
-                    for(int i = 0; i < args.Length; i++) args[i].WritePass(Compiler.FunctionStack.Peek(), Parameters[i]);
+                    for(int i = 0; i < args.Length; i++) args[i].WriteCopyTo(Compiler.FunctionStack.Peek(), Parameters[i]);
                     function.WriteLine($"function {GamePath}");
                 }, null);
                 return null;

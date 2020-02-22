@@ -26,6 +26,19 @@ namespace MCSharp.Variables {
         base(access, usage, objectName, scope) {
             ID = $"mcs.{BaseConverter.Convert(NextID++, 62)}";
             Type = type;
+            Methods.Add("GetInt", (arguments) => {
+                if(arguments.Length > 1) throw new ArgumentException("Expected at most 1 (Selector) argument for 'Objective.GetInt(...)'.");
+                if(arguments.Length == 0) {
+                    return new VarInt(Access.Private, Usage.Default, NextHiddenID, scope, 
+                        new VarSelector(Access.Private, Usage.Default, NextHiddenID, scope, "@e"), this,
+                        new VarSelector(Access.Private, Usage.Default, NextHiddenID, scope, "var"),
+                        new VarObjective(Access.Private, Usage.Default, NextHiddenID, scope, "dummy"));
+                } else if(arguments[0] is VarSelector varSelector || arguments[0].TryCast(out varSelector)) {
+                    return new VarInt(Access.Private, Usage.Default, NextHiddenID, scope, varSelector, this,
+                        new VarSelector(Access.Private, Usage.Default, NextHiddenID, scope, "var"),
+                        new VarObjective(Access.Private, Usage.Default, NextHiddenID, scope, "dummy"));
+                } else throw new ArgumentException($"Could not interpret '{arguments[0]}' as 'Selector'.");
+            });
         }
 
 
