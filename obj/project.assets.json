@@ -1,30 +1,11 @@
 {
   "version": 3,
   "targets": {
-    ".NETCoreApp,Version=v3.1": {
-      "LargeBaseNumbers/1.0.0": {
-        "type": "project",
-        "framework": ".NETStandard,Version=v2.0",
-        "compile": {
-          "bin/placeholder/LargeBaseNumbers.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/LargeBaseNumbers.dll": {}
-        }
-      }
-    }
+    ".NETCoreApp,Version=v3.1": {}
   },
-  "libraries": {
-    "LargeBaseNumbers/1.0.0": {
-      "type": "project",
-      "path": "../LargeBaseNumbers/LargeBaseNumbers.csproj",
-      "msbuildProject": "../LargeBaseNumbers/LargeBaseNumbers.csproj"
-    }
-  },
+  "libraries": {},
   "projectFileDependencyGroups": {
-    ".NETCoreApp,Version=v3.1": [
-      "LargeBaseNumbers >= 1.0.0"
-    ]
+    ".NETCoreApp,Version=v3.1": []
   },
   "packageFolders": {
     "C:\\Users\\Lenovo Legion\\.nuget\\packages\\": {}
@@ -51,11 +32,7 @@
       },
       "frameworks": {
         "netcoreapp3.1": {
-          "projectReferences": {
-            "C:\\Projects\\MCSharp\\LargeBaseNumbers\\LargeBaseNumbers.csproj": {
-              "projectPath": "C:\\Projects\\MCSharp\\LargeBaseNumbers\\LargeBaseNumbers.csproj"
-            }
-          }
+          "projectReferences": {}
         }
       },
       "warningProperties": {

@@ -1,5 +1,4 @@
-﻿using LargeBaseNumbers;
-using MCSharp.Compilation;
+﻿using MCSharp.Compilation;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
