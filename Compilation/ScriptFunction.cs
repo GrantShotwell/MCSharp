@@ -80,8 +80,6 @@ namespace MCSharp.Compilation {
                             if(Statement.Dictionary.TryGetValue(s.Trim(), out Tuple<Statement.Reader, Statement.Writer> statement)) {
                                 //Read a statement.
                                 statement.Item1.Invoke(ref lines, ref start, ref end, ref function);
-                                char _debug1 = function[start];
-                                char _debug2 = function[end];
                                 continue;
                             } else {
                                 //Start a block.

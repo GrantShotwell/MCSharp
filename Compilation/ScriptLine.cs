@@ -8,6 +8,8 @@ namespace MCSharp.Compilation {
 
         public static string[] BlockTypes { get; } = new string[] { "{\\}", "[\\]", "(\\)" };
         public static char[] SeparatorTypes { get; } = new char[] { '.', ',', ';', ' ' };
+        public static string[] Operators { get; } = new string[] { "+", "-", "*", "/", "%", "!", "&&", "||" };
+        const int maxOperatorSize = 2;
         public static IReadOnlyList<char> BlockTypesStart {
             get {
                 var starts = new char[BlockTypes.Length];
@@ -175,7 +177,7 @@ namespace MCSharp.Compilation {
         private static ScriptWord[] Separate(string str) {
 
             var original = new LinkedList<char>(str);
-            var separated = new List<ScriptWord>(str.Length / 2); //guess
+            var separated = new List<ScriptWord>(str.Length); //worst-case
             var current = new LinkedList<char>();
             bool inStr = false, escaped = false;
 
@@ -188,6 +190,14 @@ namespace MCSharp.Compilation {
                     } else if(chr == '"') inStr = !inStr;
                 } else escaped = false;
 
+                char[] c;
+                if(current.Count < maxOperatorSize) {
+                    c = new char[current.Count + 1];
+                    c[^1] = chr;
+                    current.CopyTo(c, 0);
+                } else c = new char[0];
+                string s = new string(c);
+
                 if(!inStr && (IsBlockChar(chr, out _) || IsSeparatorChar(chr) || char.IsWhiteSpace(chr))) {
                     char[] array = new char[current.Count];
                     current.CopyTo(array, 0);
@@ -198,6 +208,9 @@ namespace MCSharp.Compilation {
                         separated.Add(new ScriptWord(chr.ToString()));
                         current = new LinkedList<char>();
                     }
+                } else if(IsOperator(s)) {
+                    separated.Add(new ScriptWord(s));
+                    current = new LinkedList<char>();
                 } else {
                     current.AddLast(chr);
                 }
@@ -246,12 +259,21 @@ namespace MCSharp.Compilation {
             return false;
         }
 
+        public static bool IsOperator(string str) {
+            if(str == "") return false;
+            foreach(string op in Operators)
+                if(str == op) return true;
+            return false;
+        }
+
         public IEnumerator<ScriptWild> GetEnumerator() => ((IReadOnlyList<ScriptWild>)wilds).GetEnumerator();
         IEnumerator IEnumerable.GetEnumerator() => ((IReadOnlyList<ScriptWild>)wilds).GetEnumerator();
 
-        public static implicit operator string(ScriptLine phrase) => phrase.str;
+        public static implicit operator string(ScriptLine line) => line.str;
+        public static implicit operator ScriptWild[](ScriptLine line) => line.wilds;
+        public static implicit operator ScriptWild(ScriptLine line) => new ScriptWild(line.wilds, " \\ ", ' ');
 
-        //public override string ToString() => $"Line {FileLine}:\n{str}";
+        public override string ToString() => $"Line (?):\n{str}";
 
     }
 

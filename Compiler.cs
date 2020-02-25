@@ -252,23 +252,55 @@ namespace MCSharp {
         /// 
         /// </summary>
         public static bool TryParseValue(ScriptWild wild, Scope scope, out Variable variable) {
-            variable = null;
             if(wild.IsWord || wild.Count == 1) {
-                if(wild.IsWilds && wild.Count == 1) wild = wild.Wilds[0];
-                return TryGetVariable(wild.Word, scope, out variable);
+
+                while(wild.IsWilds && wild.Count == 1) wild = wild.Wilds[0];
+                if(int.TryParse(wild.Word, out int _int)) {
+                    variable = new VarInt(Access.Private, Usage.Constant, Variable.NextHiddenID, CurrentScope, _int,
+                        new VarSelector(Access.Private, Usage.Constant, Variable.NextHiddenID, CurrentScope, "var"),
+                        new VarObjective(Access.Private, Usage.Constant, Variable.NextHiddenID, CurrentScope, "dummy"));
+                    return true;
+                } else if(bool.TryParse(wild.Word, out bool _bool)) {
+                    variable = new VarBool(Access.Private, Usage.Constant, Variable.NextHiddenID, CurrentScope, _bool ? 1 : 0,
+                        new VarSelector(Access.Private, Usage.Constant, Variable.NextHiddenID, CurrentScope, "var"),
+                        new VarObjective(Access.Private, Usage.Constant, Variable.NextHiddenID, CurrentScope, "dummy"));
+                    return true;
+                } else {
+                    return TryGetVariable(wild.Word, scope, out variable);
+                }
+
             } else {
+
+                variable = null;
                 ScriptWild[] wilds = wild.Array;
                 bool @switch = false;
-                string op = null;
+                ScriptWord op = null;
                 for(int i = 0; i < wilds.Length; i++) {
                     ScriptWild current = wilds[i];
                     if(@switch = !@switch) {
                         if(current.IsWord) {
+                            //Special case: "!" operator
+                            if(current.Word == "!") {
+                                if(TryParseValue(wilds[i + 1], scope, out Variable x)) {
+                                    variable = x.Operation("!", new ScriptWild[] { });
+                                    if(wilds.Length == i + 2) return true;
+                                } else return false;
+                            }
                             //Check if it's a variable.
-                            if(TryGetVariable(current.Word, scope, out Variable x)) {
+                            else if(TryGetVariable(current.Word, scope, out Variable x)) {
                                 // <<Is a Variable>>
-                                //Save the variable for the next operation.
-                                variable = x;
+                                //Check if we have a variable already.
+                                if(variable != null) {
+                                    // <<Yes Variable>>
+                                    //Compile an operation.
+                                    //TODO!  Possible problem if a variable has the same name as an accessor.
+                                    variable.Operation(op, wild.Array[i..]);
+                                    return true;
+                                } else {
+                                    // <<No Variable>>
+                                    //Save the variable for the next operation.
+                                    variable = x;
+                                }
                             } else if(i + 1 < wilds.Length) {
                                 // <<Not a Variable>>
                                 //Check for method arguments.
@@ -281,8 +313,7 @@ namespace MCSharp {
                                         if(op == ".") {
                                             variable = variable.Operation(op, new ScriptWild[] { current, args });
                                             return true;
-                                        }
-                                        else throw new SyntaxException("Missing '.' operator.");
+                                        } else throw new SyntaxException("Missing '.' operator.");
                                     } else {
                                         //TODO:  implicit '.this' call.
                                         throw new NotImplementedException("TODO: add implicit '.this' call.");
@@ -301,6 +332,7 @@ namespace MCSharp {
                         else throw new SyntaxException("Unexpected block when an operator was expected.");
                     }
                 }
+
             }
             return false;
         }
