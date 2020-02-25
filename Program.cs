@@ -7,8 +7,6 @@ namespace MCSharp {
 
     public static class Program {
 
-        public static bool Debug { get; private set; } = true;
-
         public static string MinecraftVersion => "1.15";
         public static string ProgramVersion => "0.0.0";
 
@@ -94,18 +92,19 @@ namespace MCSharp {
                 string cmdKey = cmdSplit[0];
 
                 if(commands.TryGetValue(cmdKey, out Action<string> cmdValue)) {
-                    if(Debug) {
+#if DEBUG
+                    //Debug: no error catching brings VS to the line in code.
+                    if(cmdSplit.Length >= 2) cmdValue.Invoke(cmdSplit[1]);
+                        else cmdValue.Invoke("");
+#else
+                    try {
                         if(cmdSplit.Length >= 2) cmdValue.Invoke(cmdSplit[1]);
                         else cmdValue.Invoke("");
-                    } else {
-                        try {
-                            if(cmdSplit.Length >= 2) cmdValue.Invoke(cmdSplit[1]);
-                            else cmdValue.Invoke("");
-                        } catch(Exception e) {
-                            Console.ForegroundColor = ConsoleColor.Red;
-                            Console.WriteLine($"{e.GetType()}: {e.Message}");
-                        }
+                    } catch(Exception e) {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine($"{e.GetType()}: {e.Message}");
                     }
+#endif
                 } else if(cmdKey == "") {
                     // Do nothing.
                 } else {
@@ -181,7 +180,7 @@ namespace MCSharp {
                 }
                 if(answr == "n") return;
 
-                #region Create
+#region Create
 
                 Console.ForegroundColor = ConsoleColor.Gray;
                 Console.Write("Creating datapack directories... ");
@@ -223,7 +222,7 @@ namespace MCSharp {
 
                 //Done!
 
-                #endregion
+#endregion
 
             } else {
                 Console.ForegroundColor = ConsoleColor.Red;
@@ -240,11 +239,11 @@ namespace MCSharp {
                 Console.WriteLine("compile\n\t=> Compiles the datapack.");
             } else if(arguments == "") { //no arguments
 
-                #region Compile
+#region Compile
 
                 Compiler.Compile(Datapack.Path + "\\data\\" + Datapack.Name);
 
-                #endregion
+#endregion
 
             } else { //any arguments
                 Console.ForegroundColor = ConsoleColor.Red;

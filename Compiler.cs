@@ -293,7 +293,7 @@ namespace MCSharp {
                                     // <<Yes Variable>>
                                     //Compile an operation.
                                     //TODO!  Possible problem if a variable has the same name as an accessor.
-                                    variable.Operation(op, wild.Array[i..]);
+                                    variable = variable.Operation(op, wild.Array[i..]);
                                     return true;
                                 } else {
                                     // <<No Variable>>
@@ -314,17 +314,17 @@ namespace MCSharp {
                                             return true;
                                         } else throw new SyntaxException("Missing '.' operator.");
                                     } else {
-                                        //TODO:  implicit '.this' call.
+                                        //TODO:  implicit 'this' call.
                                         throw new NotImplementedException("TODO: add implicit '.this' call.");
                                     }
                                 }
                             }
                         } else {
                             //Make recurive calls to find the value of the block.
-                            if(!TryParseValue(current, scope, out Variable x)) {
+                            if(!TryParseValue(current, scope, out variable)) {
                                 //TODO:  add details
                                 throw new Exception();
-                            }
+                            } else return true;
                         }
                     } else {
                         if(current.IsWord) op = current.Word;

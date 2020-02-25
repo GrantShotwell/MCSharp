@@ -44,24 +44,30 @@ namespace MCSharp.Variables {
                 case "!": {
                     if(args.Length != 0) throw new Exception();
                     string id = NextHiddenID;
+                    //Create temp variable.
                     var anon = new VarBool(Access.Private, Usage.Default, id, Compiler.CurrentScope, Selector, Objective,
                         new VarSelector(Access.Private, Usage.Default, $"{id}.Selector", Compiler.CurrentScope, "var"),
                         new VarObjective(Access.Private, Usage.Default, $"{id}.Objective", Compiler.CurrentScope, "dummy"));
+                    //Write function: 'set anon to the opposite of this'.
                     var function = new ScriptFunction($"{Compiler.CurrentScope}\\{Compiler.CurrentScope.GetNextInnerID()}",
                         $"if({anon.ObjectName}) {{ {anon.ObjectName} = false; }} else {{ {anon.ObjectName} = false; }}");
                     Compiler.WriteFunction(Compiler.CurrentScope, function);
+                    //Write command: 'run that function'.
+                    new Spy(null, $"function {function.GamePath}", null);
                     return anon;
                 }
                 case "&&": {
                     string id = NextHiddenID;
+                    //Create temp variable.
                     var anon = new VarBool(Access.Private, Usage.Default, id, Compiler.CurrentScope, Selector, Objective,
                         new VarSelector(Access.Private, Usage.Default, $"{id}.Selector", Compiler.CurrentScope, "var"),
                         new VarObjective(Access.Private, Usage.Default, $"{id}.Objective", Compiler.CurrentScope, "dummy"));
+                    //Write function: 'if anon is true, set anon to args'.
                     var function = new ScriptFunction($"{Compiler.CurrentScope}\\{Compiler.CurrentScope.GetNextInnerID()}",
-                        $"if(!{anon.ObjectName}) {{ {anon.ObjectName} = {new ScriptWild(args, "(\\)", ' ')}; }}");
-                    new Spy(null, $"execute if {anon.Selector.GetConstant()} {anon.Objective.GetConstant()} matches 1.. " +
-                        $"run function {function.GamePath}", null);
+                        $"if({anon.ObjectName}) {{ {anon.ObjectName} = {new ScriptWild(args, "(\\)", ' ')}; }}");
                     Compiler.WriteFunction(Compiler.CurrentScope, function);
+                    //Write command: 'run that function'.
+                    new Spy(null, $"function {function.GamePath}", null);
                     return anon;
                 }
                 default: return base.Operation(operation, args);
