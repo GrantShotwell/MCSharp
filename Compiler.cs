@@ -10,31 +10,24 @@ namespace MCSharp {
 
     public static class Compiler {
 
-        public enum TraceFormat { Sentence, Phrase, CapitalizedPhrase }
-
-        private static int maxFunctionStackSize = 0;
-
+        private static int highestFunctionStackSize = 0;
         private static readonly Dictionary<int, Scope> allScopes = new Dictionary<int, Scope>();
-
-        public static Scope RootScope { get; } = new Scope(null);
 
         public static StreamWriter PrepFunction { get; private set; }
         public static StreamWriter DemoFunction { get; private set; }
         public static StreamWriter TickFunction { get; private set; }
         public static Stack<StreamWriter> FunctionStack { get; } = new Stack<StreamWriter>();
+        public static ScriptTrace AnonScriptTrace { get; private set; }
+
         public static Dictionary<string, Dictionary<Scope, Variable>> VariableNames { get; } = new Dictionary<string, Dictionary<Scope, Variable>>();
         public static Dictionary<Scope, List<Variable>> VariableScopes { get; } = new Dictionary<Scope, List<Variable>>();
         public static Dictionary<string, Variable> StaticClassObjects { get; } = new Dictionary<string, Variable>();
 
+        public static ScriptTrace CurrentScriptTrace { get; private set; }
         public static IReadOnlyDictionary<int, Scope> AllScopes => allScopes;
+        public static Scope RootScope { get; } = new Scope(null);
         public static Stack<Scope> ScopeStack { get; } = new Stack<Scope>();
         public static Scope CurrentScope => ScopeStack.Peek();
-
-        public static string CurrentLine { get; private set; }
-        public static int CurrentLineIndex { get; private set; }
-        public static string CurrentWord { get; private set; }
-        public static int CurrentWordIndex { get; private set; }
-        public static string CurrentFile { get; private set; }
 
         public static Dictionary<string, Access> AccessModifiers { get; } = new Dictionary<string, Access>() {
             { "public", Access.Public },
@@ -76,18 +69,18 @@ namespace MCSharp {
                 Console.WriteLine($"Compiling '{scriptName}'... ");
 
                 using(StreamReader reader = File.OpenText(scriptPath)) {
-                    var scriptFile = new ScriptFile(scriptPath, reader.ReadToEnd().Replace('\n', ' ').Replace('\t', ' ').Replace('\r', ' '));
+                    var scriptFile = new ScriptFile(new ScriptString(reader.ReadToEnd(), scriptPath));
                     foreach(ScriptClass scriptClass in scriptFile) foreach(ScriptFunction scriptFunction in scriptClass)
                             WriteFunction(RootScope, scriptFunction);
                 }
 
-                Console.CursorTop -= maxFunctionStackSize + 1;
+                Console.CursorTop -= highestFunctionStackSize + 1;
                 Program.ClearCurrentConsoleLine();
                 Console.ForegroundColor = ConsoleColor.Green;
                 Console.WriteLine($"Compiled '{scriptPath.Split('\\')[^1]}'.");
-                Console.CursorTop += maxFunctionStackSize;
+                Console.CursorTop += highestFunctionStackSize;
 
-                maxFunctionStackSize = 0;
+                highestFunctionStackSize = 0;
 
             }
 
@@ -148,10 +141,11 @@ namespace MCSharp {
 
             string path = function.FilePath;
             string alias = function.FileName;
+            CurrentScriptTrace = function.ScriptTrace;
 
             Console.ForegroundColor = ConsoleColor.Gray;
             Console.Write($" · Writing '{alias}'... ");
-            maxFunctionStackSize++;
+            highestFunctionStackSize++;
 
             string[] directorySplit = path.Split('\\')[..^1];
             string directory = "";
@@ -179,10 +173,11 @@ namespace MCSharp {
 
                     for(int j = 0; j < wilds.Count; j++) {
                         var wild = wilds[j];
+                        if(wild == "") continue;
                         if(onFinish == null) {
 
                             //Look for STATIC CLASS OBJECT
-                            if(wild.IsWord && StaticClassObjects.TryGetValue(wild.Word, out Variable v0)) {
+                            if(wild.IsWord && StaticClassObjects.TryGetValue((string)wild.Word, out Variable v0)) {
                                 onFinish = () => {
                                     v0.Operation(args[0].Word, args.ToArray()[1..]);
                                 };
@@ -190,7 +185,7 @@ namespace MCSharp {
                             }
 
                             //Look for TYPE NAME
-                            if(wild.IsWord && Variable.Compilers.TryGetValue(wild.Word, out var compiler)) {
+                            if(wild.IsWord && Variable.Compilers.TryGetValue((string)wild.Word, out var compiler)) {
                                 onFinish = () => {
                                     compiler.Invoke(Access.Private, Usage.Default, args[0], CurrentScope, args.ToArray()[1..]);
                                 };
@@ -200,12 +195,13 @@ namespace MCSharp {
                             //Look for VALUE
                             if(TryParseValue(wild, CurrentScope, out Variable v1)) {
                                 onFinish = () => {
-                                    v1.Operation(args[0].Word, args.ToArray()[1..]);
+                                    if(args.Count > 0) v1.Operation(args[0].Word, args.ToArray()[1..]);
+                                    else throw new Exception("115002272020");
                                 };
                                 continue;
                             }
 
-                            throw new SyntaxException($"Could not identify word '{wild}'.");
+                            throw new SyntaxException($"Could not identify word '{(string)wild}'.", CurrentScriptTrace);
 
                         } else {
                             args.Add(wild);
@@ -213,6 +209,7 @@ namespace MCSharp {
                     }
 
                     if(onFinish != null) onFinish.Invoke();
+                    CurrentScriptTrace = function.ScriptTrace;
 
                 }
 
@@ -235,18 +232,6 @@ namespace MCSharp {
 
         }
 
-        public static string GetCurrentLocationTrace(TraceFormat format) {
-            switch(format) {
-                case TraceFormat.Sentence:
-                    break;
-                case TraceFormat.Phrase:
-                    break;
-                case TraceFormat.CapitalizedPhrase:
-                    return $"Line {CurrentLineIndex} in '{CurrentFile}'.";
-            }
-            throw new ArgumentException($"The given argument is not a {nameof(TraceFormat)}.", nameof(format));
-        }
-
         /// <summary>
         /// 
         /// </summary>
@@ -254,18 +239,18 @@ namespace MCSharp {
             if(wild.IsWord || wild.Count == 1) {
 
                 while(wild.IsWilds && wild.Count == 1) wild = wild.Wilds[0];
-                if(int.TryParse(wild.Word, out int _int)) {
+                if(int.TryParse((string)wild.Word, out int _int)) {
                     variable = new VarInt(Access.Private, Usage.Constant, Variable.NextHiddenID, CurrentScope, _int,
                         new VarSelector(Access.Private, Usage.Constant, Variable.NextHiddenID, CurrentScope, "var"),
                         new VarObjective(Access.Private, Usage.Constant, Variable.NextHiddenID, CurrentScope, "dummy"));
                     return true;
-                } else if(bool.TryParse(wild.Word, out bool _bool)) {
+                } else if(bool.TryParse((string)wild.Word, out bool _bool)) {
                     variable = new VarBool(Access.Private, Usage.Constant, Variable.NextHiddenID, CurrentScope, _bool ? 1 : 0,
                         new VarSelector(Access.Private, Usage.Constant, Variable.NextHiddenID, CurrentScope, "var"),
                         new VarObjective(Access.Private, Usage.Constant, Variable.NextHiddenID, CurrentScope, "dummy"));
                     return true;
                 } else {
-                    return TryGetVariable(wild.Word, scope, out variable);
+                    return TryGetVariable((string)wild.Word, scope, out variable);
                 }
 
             } else {
@@ -273,7 +258,7 @@ namespace MCSharp {
                 variable = null;
                 ScriptWild[] wilds = wild.Array;
                 bool @switch = false;
-                ScriptWord op = null;
+                ScriptWord? op = null;
                 for(int i = 0; i < wilds.Length; i++) {
                     ScriptWild current = wilds[i];
                     if(@switch = !@switch) {
@@ -281,19 +266,19 @@ namespace MCSharp {
                             //Special case: "!" operator
                             if(current.Word == "!") {
                                 if(TryParseValue(wilds[i + 1], scope, out Variable x)) {
-                                    variable = x.Operation("!", new ScriptWild[] { });
+                                    variable = x.Operation(new ScriptString("!", "anon"), new ScriptWild[] { });
                                     if(wilds.Length == i + 2) return true;
                                 } else return false;
                             }
                             //Check if it's a variable.
-                            else if(TryGetVariable(current.Word, scope, out Variable x)) {
+                            else if(TryGetVariable((string)current.Word, scope, out Variable x)) {
                                 // <<Is a Variable>>
                                 //Check if we have a variable already.
                                 if(variable != null) {
                                     // <<Yes Variable>>
                                     //Compile an operation.
                                     //TODO!  Possible problem if a variable has the same name as an accessor.
-                                    variable = variable.Operation(op, wild.Array[i..]);
+                                    variable = variable.Operation(op.Value, wild.Array[i..]);
                                     return true;
                                 } else {
                                     // <<No Variable>>
@@ -306,17 +291,16 @@ namespace MCSharp {
                                 ScriptWild args = wilds[++i];
                                 if(args.IsWilds && args.BlockType == "(\\)") {
                                     // <<Method Arguments Exist>>
-                                    //Call the method.
-                                    if(variable != null) {
-                                        //...if they used the '.' operator.
-                                        if(op == ".") {
-                                            variable = variable.Operation(op, new ScriptWild[] { current, args });
+                                    //Call the method if they used the '.' operator.
+                                    if(op.HasValue && op.Value == ".") {
+                                        if(variable != null) {
+                                            variable = variable.Operation(op.Value, new ScriptWild[] { current, args });
                                             return true;
-                                        } else throw new SyntaxException("Missing '.' operator.");
-                                    } else {
-                                        //TODO:  implicit 'this' call.
-                                        throw new NotImplementedException("TODO: add implicit '.this' call.");
-                                    }
+                                        } else {
+                                            //TODO:  implicit 'this' call.
+                                            throw new NotImplementedException("TODO: add implicit '.this' call.");
+                                        }
+                                    } else throw new SyntaxException("Expected '.' operator.", CurrentScriptTrace);
                                 }
                             }
                         } else {
@@ -328,7 +312,7 @@ namespace MCSharp {
                         }
                     } else {
                         if(current.IsWord) op = current.Word;
-                        else throw new SyntaxException("Unexpected block when an operator was expected.");
+                        else throw new SyntaxException("Unexpected block when an operator was expected.", CurrentScriptTrace);
                     }
                 }
 
@@ -357,6 +341,9 @@ namespace MCSharp {
         }
 
         private static void Reload() {
+
+            //Reset anon script trace.
+            AnonScriptTrace = new ScriptTrace(Program.ScriptsFolder + "anon.this_file_does_not_exist", 0);
 
             //Clear static class objects from last compile.
             StaticClassObjects.Clear();
@@ -472,7 +459,7 @@ namespace MCSharp {
         public static void Add(this Dictionary<int, Scope> dictionary, Scope scope) => dictionary.Add(scope.ID, scope);
 
         public class SyntaxException : Exception {
-            public SyntaxException(string message) : base(message) { }
+            public SyntaxException(string message, ScriptTrace at) : base($"{at}: {message}") { }
         }
 
     }

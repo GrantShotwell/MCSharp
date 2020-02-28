@@ -32,11 +32,25 @@ namespace MCSharp.Compilation {
 
         public ScriptWild this[int index] => wilds[index];
         public int Length => wilds.Length;
-
         int IReadOnlyCollection<ScriptWild>.Count => Length;
+        public ScriptTrace ScriptTrace => wilds[0].ScriptTrace;
 
 
-        public ScriptLine(string line) : this(GetWilds(line)) { }
+        public ScriptLine(ScriptString line) : this(GetWilds(line)) { }
+
+        public ScriptLine(ScriptWild wild) {
+
+            wilds = wild.Array;
+
+            int length = wilds.Length;
+            string[] array = new string[length];
+            for(int i = 0; i < length; i++) array[i] = wilds[i];
+            string str = "";
+            foreach(string s in array)
+                str += " " + s;
+            this.str = str.Length > 0 ? str[1..] : "";
+
+        }
 
         public ScriptLine(ScriptWild[] wilds) {
 
@@ -53,19 +67,19 @@ namespace MCSharp.Compilation {
 
         }
 
-        public static ScriptWild[] GetWilds(string phrase) {
-            if(phrase is null) return new ScriptWild[] { };
 
-            ScriptWord[] split = Separate(phrase);
+        public static ScriptWild[] GetWilds(ScriptString phrase) {
+
+            ScriptString[] split = Separate(phrase);
 
             var stack = new Stack<Tuple<char?, string, List<ScriptWild>>>();
             stack.Push(new Tuple<char?, string, List<ScriptWild>>(null, " \\ ", new List<ScriptWild>()));
 
             for(int i = 0; i < split.Length; i++) {
-                string str = split[i];
+                ScriptString str = split[i];
 
                 if(str.Length == 1) {
-                    char chr = str[0];
+                    char chr = (char)str[0];
                     if(IsBlockCharStart(chr, out string blk)) {
                         //Starting a new block tuple.
                         var tuple = new Tuple<char?, string, List<ScriptWild>>(null, blk, new List<ScriptWild>());
@@ -92,10 +106,10 @@ namespace MCSharp.Compilation {
                                 var list = new List<ScriptWild> { stolen };
                                 while(chr == '.') {
                                     str = split[++i];
-                                    if(IsBlockChar(str[0], out _) || IsSeparatorChar(str[0]))
-                                        throw new Compiler.SyntaxException($"Unexpected '{str}' after '.' operator.");
+                                    if(IsBlockChar((char)str[0], out _) || IsSeparatorChar((char)str[0]))
+                                        throw new Compiler.SyntaxException($"Unexpected '{str}' after '.' operator.", phrase.ScriptTrace);
                                     list.Add(new ScriptWord(str));
-                                    chr = split[++i][0];
+                                    chr = ((string)split[++i])[0];
                                 }
                                 i--;
                                 var dotted = new ScriptWild(list.ToArray(), " \\ ", '.');
@@ -108,7 +122,7 @@ namespace MCSharp.Compilation {
                                 stack.Push(next);
                             }
                         } else {
-                            throw new Compiler.SyntaxException($"Expected '{last.Item1?.ToString() ?? "[nothing]"}' but got '{chr}'.");
+                            throw new Compiler.SyntaxException($"Expected '{last.Item1?.ToString() ?? "[nothing]"}' but got '{chr}'.", phrase.ScriptTrace);
                         }
                         continue;
 
@@ -125,7 +139,7 @@ namespace MCSharp.Compilation {
                             } while(tuple.Item2[2] == ' ');
                             stack.Push(tuple);
                         } else {
-                            if(tuple.Item2 != blk) throw new Compiler.SyntaxException($"Expected '{tuple.Item2[2]}' but got '{chr}'.");
+                            if(tuple.Item2 != blk) throw new Compiler.SyntaxException($"Expected '{tuple.Item2[2]}' but got '{chr}'.", phrase.ScriptTrace);
                             stack.Peek().Item3.Add(new ScriptWild(tuple.Item3.ToArray(), tuple.Item2, tuple.Item1 ?? ' '));
                         }
                         continue;
@@ -147,7 +161,7 @@ namespace MCSharp.Compilation {
                         }
                     } else if(tuple.Item1 != ';') {
                         var list = tuple.Item3;
-                        list.Add(new ScriptWord(str));
+                        list.Add(new ScriptWord(str, ignoreCohesion: true));
                     } else {
                         var next = new Tuple<char?, string, List<ScriptWild>>(null, " \\ ", new List<ScriptWild>());
                         var list = next.Item3;
@@ -166,63 +180,58 @@ namespace MCSharp.Compilation {
                         stack.Push(tuple);
                     } else stack.Peek().Item3.Add(new ScriptWild(tuple.Item3.ToArray(), tuple.Item2, tuple.Item1 ?? ' '));
                 } else {
-                    if(tuple.Item3[0].IsWord) stack.Peek().Item3.Add(new ScriptWord(tuple.Item3[0]));
+                    if(tuple.Item3[0].IsWord) stack.Peek().Item3.Add(tuple.Item3[0].Word);
                     else stack.Peek().Item3.Add(new ScriptWild(tuple.Item3.ToArray(), tuple.Item2, tuple.Item1.Value));
                 }
             }
-            if(stack.Count > 1) throw new Compiler.SyntaxException($"Missing '{stack.Peek().Item2[2]}'.");
+            if(stack.Count > 1) throw new Compiler.SyntaxException($"Missing '{stack.Peek().Item2[2]}'.", phrase.ScriptTrace);
             return stack.Peek().Item3.ToArray();
         }
 
-        private static ScriptWord[] Separate(string str) {
+        private static ScriptString[] Separate(ScriptString str) {
 
-            var original = new LinkedList<char>(str);
-            var separated = new List<ScriptWord>(str.Length); //worst-case
-            var current = new LinkedList<char>();
-            bool inStr = false, escaped = false;
+            var separated = new List<ScriptString>(str.Length);
+            var characters = new LinkedList<ScriptChar>();
+            bool inString = false, escaped = false;
 
-            foreach(char chr in original) {
+            foreach(ScriptChar current in str) {
 
                 if(!escaped) {
-                    if(chr == '\\') {
+                    if((char)current == '\\') {
                         escaped = true;
                         continue;
-                    } else if(chr == '"') inStr = !inStr;
+                    } else if((char)current == '"') inString = !inString;
                 } else escaped = false;
 
-                char[] c;
-                if(current.Count < maxOperatorSize) {
-                    c = new char[current.Count + 1];
-                    c[^1] = chr;
-                    current.CopyTo(c, 0);
-                } else c = new char[0];
-                string s = new string(c);
+                ScriptChar[] c;
+                if(characters.Count < maxOperatorSize) {
+                    c = new ScriptChar[characters.Count + 1];
+                    c[^1] = current;
+                    characters.CopyTo(c, 0);
+                } else c = new ScriptChar[0];
+                var s = new ScriptString(c);
 
-                if(!inStr && (IsBlockChar(chr, out _) || IsSeparatorChar(chr) || char.IsWhiteSpace(chr))) {
-                    char[] array = new char[current.Count];
-                    current.CopyTo(array, 0);
-                    current = new LinkedList<char>();
-                    if(array.Length > 0) separated.Add(new ScriptWord(new string(array)));
-                    if(!char.IsWhiteSpace(chr)) {
-                        current.AddLast(chr);
-                        separated.Add(new ScriptWord(chr.ToString()));
-                        current = new LinkedList<char>();
+                if(!inString && (IsBlockChar((char)current, out _) || IsSeparatorChar((char)current) || char.IsWhiteSpace((char)current))) {
+                    ScriptChar[] array = new ScriptChar[characters.Count];
+                    characters.CopyTo(array, 0);
+                    characters = new LinkedList<ScriptChar>();
+                    if(array.Length > 0)
+                        separated.Add(new ScriptString(array));
+                    if(!char.IsWhiteSpace((char)current)) {
+                        characters.AddLast(current);
+                        separated.Add(new ScriptString(characters));
+                        characters = new LinkedList<ScriptChar>();
                     }
-                } else if(IsOperator(s)) {
+                } else if(IsOperator((string)s)) {
                     separated.Add(new ScriptWord(s));
-                    current = new LinkedList<char>();
+                    characters = new LinkedList<ScriptChar>();
                 } else {
-                    current.AddLast(chr);
+                    characters.AddLast(current);
                 }
 
             }
 
-            if(current.Count > 0) {
-                char[] array = new char[current.Count];
-                current.CopyTo(array, 0);
-                string word = new string(array);
-                separated.Add(new ScriptWord(word, ignoreCohesion: true));
-            }
+            if(characters.Count > 0) separated.Add(new ScriptString(characters));
 
             return separated.ToArray();
 

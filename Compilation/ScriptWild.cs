@@ -73,6 +73,8 @@ namespace MCSharp.Compilation {
             }
         }
 
+        public ScriptTrace ScriptTrace => (IsWord ? word.Value.ScriptTrace : wilds[0].ScriptTrace) ?? throw new Exception("123502252020");
+
 
         /// <summary>
         /// Creates a new <see cref="ScriptWild"/> that is just a <see cref="ScriptWord"/>.
@@ -82,7 +84,7 @@ namespace MCSharp.Compilation {
             wilds = null;
             BlockType = null;
             SeparationType = null;
-            str = word;
+            str = (string)word;
         }
 
         /// <summary>
@@ -103,7 +105,7 @@ namespace MCSharp.Compilation {
                 this.wilds = null;
                 BlockType = null;
                 SeparationType = null;
-                str = word;
+                str = (string)word;
 
             } else {
 
@@ -137,7 +139,7 @@ namespace MCSharp.Compilation {
         }
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-        public override string ToString() => str;
+        public override string ToString() => $"{ScriptTrace}: {str}";
 
         public static implicit operator string(ScriptWild wild) => wild.str;
         public static implicit operator ScriptWild(ScriptWord word) => new ScriptWild(word);

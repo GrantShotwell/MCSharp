@@ -7,31 +7,30 @@ namespace MCSharp.Compilation {
 
     public struct ScriptFunction : IReadOnlyList<ScriptLine> {
 
-        private readonly ScriptLine[] phrases;
         private readonly string str;
 
-        public ScriptLine this[int index] => phrases[index];
-        public int Length => phrases.Length;
+        private ScriptLine[] ScriptLines { get; }
+        public ScriptLine this[int index] => ScriptLines[index];
+        public int Length => ScriptLines.Length;
         public string FilePath { get; }
         public string FileName { get; }
         public string GamePath { get; }
         public string Alias { get; }
         public string AliasDotted => Alias.Replace('\\', '.');
+        public ScriptTrace ScriptTrace => ScriptLines[0].ScriptTrace;
 
-        int IReadOnlyCollection<ScriptLine>.Count => ((IReadOnlyList<ScriptLine>)phrases).Count;
+        int IReadOnlyCollection<ScriptLine>.Count => ((IReadOnlyList<ScriptLine>)ScriptLines).Count;
 
 
-        public ScriptFunction(string alias, string script, bool fixAlias = true) : this(alias, GetLines(script), fixAlias) { }
-
+        public ScriptFunction(string alias, ScriptString script, bool fixAlias = true) : this(alias, GetLines(script), fixAlias) { }
         public ScriptFunction(string alias, ScriptWild wild, bool fixAlias = true) : this(alias, GetLines(wild), fixAlias) { }
-
         public ScriptFunction(string alias, ScriptLine[] phrases, bool fixAlias = true) {
 
             FileName = fixAlias ? Script.FixAlias($"{alias}.mcfunction") : alias;
             FilePath = $"{Program.FunctionsFolder}\\{FileName}";
             Alias = fixAlias ? alias = Script.FixAlias(alias) : alias;
             GamePath = $"{Program.Datapack.Name}:{alias.Replace('\\', '/')}";
-            this.phrases = phrases;
+            this.ScriptLines = phrases;
 
             int length = phrases.Length;
             string[] array = new string[length];
@@ -45,14 +44,12 @@ namespace MCSharp.Compilation {
         public static ScriptLine[] GetLines(ScriptWild wild) {
             if(wild.FullBlockType == "{\\;\\}") {
                 ScriptLine[] array = new ScriptLine[wild.Wilds.Count];
-                for(int i = 0; i < wild.Wilds.Count; i++)
-                    array[i] = new ScriptLine(wild.Wilds[i]);
+                for(int i = 0; i < wild.Wilds.Count; i++) array[i] = new ScriptLine(wild.Wilds[i]);
                 return array;
-            } else throw new System.Exception();
+            } else throw new Exception();
         }
 
-        public static ScriptLine[] GetLines(string function) {
-            if(function is null) return new ScriptLine[] { };
+        public static ScriptLine[] GetLines(ScriptString function) {
             var lines = new List<ScriptLine>();
 
             bool inString = false;
@@ -60,14 +57,14 @@ namespace MCSharp.Compilation {
             var stack = new Stack<string>();
             for(int end = 0; end < function.Length; end++) {
                 bool inBlock = stack.Count > 0;
-                char chr = function[end];
+                char chr = (char)function[end];
 
                 if(chr == ';' && !inBlock && !inString) {
                     lines.Add(new ScriptLine(function[start..end]));
                     start = end + 1;
                 } else {
                     //Check if starting/ending a string.
-                    if(chr == '"' && (end == 0 || function[end-1] != '\\')) {
+                    if(chr == '"' && (end == 0 || (char)function[end-1] != '\\')) {
                         inString = !inString;
                         if(inString) {
                             stack.Push("\"\\\"");
@@ -76,7 +73,7 @@ namespace MCSharp.Compilation {
                         }
                     } else {
                         if(ScriptLine.IsBlockCharStart(chr, out string block)) {
-                            string s = new string(function[start..end]);
+                            string s = (string)function[start..end];
                             if(Statement.Dictionary.TryGetValue(s.Trim(), out Tuple<Statement.Reader, Statement.Writer> statement)) {
                                 //Read a statement.
                                 statement.Item1.Invoke(ref lines, ref start, ref end, ref function);
@@ -89,8 +86,8 @@ namespace MCSharp.Compilation {
                         }
                         if(ScriptLine.IsBlockCharEnd(chr, out block)) {
                             //Check for mistakes.
-                            if(!inBlock) throw new Compiler.SyntaxException("Got too many end-of-block characters without enough start-of-block characters to match!");
-                            if(stack.Peek() != block) throw new Compiler.SyntaxException("Expected a different end-of-block character.");
+                            if(!inBlock) throw new Compiler.SyntaxException("Got too many end-of-block characters without enough start-of-block characters to match!", function.ScriptTrace);
+                            if(stack.Peek() != block) throw new Compiler.SyntaxException("Expected a different end-of-block character.", function.ScriptTrace);
                             //If not a mistake, then end the block.
                             stack.Pop();
                             continue;
@@ -100,13 +97,15 @@ namespace MCSharp.Compilation {
 
             }
 
-            return lines.ToArray();
+            return lines.Count > 0 ? lines.ToArray()
+                : (new ScriptLine[] { new ScriptLine(new ScriptWild[] { new ScriptWild(new ScriptWord(new ScriptString(
+                    "", function.ScriptTrace.FilePath, function.ScriptTrace.FileLine))) }) });
         }
 
-        public IEnumerator<ScriptLine> GetEnumerator() => ((IReadOnlyList<ScriptLine>)phrases).GetEnumerator();
-        IEnumerator IEnumerable.GetEnumerator() => ((IReadOnlyList<ScriptLine>)phrases).GetEnumerator();
+        public IEnumerator<ScriptLine> GetEnumerator() => ((IReadOnlyList<ScriptLine>)ScriptLines).GetEnumerator();
+        IEnumerator IEnumerable.GetEnumerator() => ((IReadOnlyList<ScriptLine>)ScriptLines).GetEnumerator();
 
-        public override string ToString() => $"{str}";
+        public override string ToString() => $"{ScriptTrace}: {str}";
 
     }
 

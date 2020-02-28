@@ -33,7 +33,7 @@ namespace MCSharp.Variables {
             ScriptFunction = function;
             Methods.Add("Invoke", (args) => {
                 if(args.Length != Parameters.Count)
-                    throw new InvalidArgumentsException($"Wrong number of arguments for '{this}'.Invoke(_).");
+                    throw new InvalidArgumentsException($"Wrong number of arguments for '{this}'.Invoke(_).", Compiler.CurrentScriptTrace);
                 new Spy(null, (function) => {
                     for(int i = 0; i < args.Length; i++) args[i].WriteCopyTo(Compiler.FunctionStack.Peek(), Parameters[i]);
                     function.WriteLine($"function {GamePath}");
@@ -45,14 +45,14 @@ namespace MCSharp.Variables {
 
         protected override Variable Compile(Access access, Usage usage, string objectName, Compiler.Scope scope, ScriptWild[] arguments) {
             if(arguments.Length != 4 || arguments[0].IsWilds || arguments[1].IsWord || arguments[2].IsWilds || arguments[3].IsWord)
-                throw new Compiler.SyntaxException($"Expected format of '= (...) => {{...}};' for creating '{TypeName}'.");
+                throw new Compiler.SyntaxException($"Expected format of '= (...) => {{...}};' for creating '{TypeName}'.", arguments[0].ScriptTrace);
             string str = arguments[1];
             string[] split = str[1..^1].Split(',');
             Variable[] parameters = new Variable[split.Length];
             for(int i = 0; i < split.Length; i++) {
                 string arg = split[i];
                 string[] argargs = arg.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                if(argargs.Length != 2) throw new Compiler.SyntaxException("Expected '[type] [name]'.");
+                if(argargs.Length != 2) throw new Compiler.SyntaxException("Expected '[type] [name]'.", arguments[0].ScriptTrace);
                 parameters[i] = new Parameter(argargs[0], argargs[1]).GetVariable(scope);
             }
             return new VarFunction(access, usage, objectName, scope, new ScriptFunction($"{scope}\\{objectName}\\Invoke", arguments[3]), parameters);
@@ -69,7 +69,7 @@ namespace MCSharp.Variables {
             public Variable GetVariable(Compiler.Scope scope) {
                 if(Compilers.TryGetValue(type, out var compiler)) {
                     return compiler.Invoke(Access.Private, Usage.Default, name, scope, new ScriptWild[] { });
-                } else throw new Compiler.SyntaxException($"Unknown type '{type}'.");
+                } else throw new Compiler.SyntaxException($"Unknown type '{type}'.", Compiler.CurrentScriptTrace);
             }
         }
 

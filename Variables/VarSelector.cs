@@ -24,14 +24,20 @@ namespace MCSharp.Variables {
         }
 
 
-        protected override Variable Compile(Access accessModifier, Usage usageModifier, string objectName, Compiler.Scope scope, ScriptWild[] arguments) {
-            //expected format Selector sel = "...";
-            if(arguments.Length < 2 || arguments[0].IsWilds || arguments[0].Word != "=")
-                throw new Compiler.SyntaxException("Expected format of '= \"...\"'.");
-            string value = ((string)new ScriptWild(arguments[1..], " \\ ", ' ')).Trim();
-            if(value[0] != '\"' || value[^1] != '\"') throw new Compiler.SyntaxException("Expected a string for declaring a Selector.");
-            value = value[1..^1];
-            return new VarSelector(accessModifier, usageModifier, objectName, scope, value);
+        protected override Variable Compile(Access access, Usage usage, string objectName, Compiler.Scope scope, ScriptWild[] arguments) {
+            switch(usage) {
+                case Usage.Constant:
+                case Usage.Default:
+                case Usage.Static:
+                    //expected format Selector sel = "...";
+                    if(arguments.Length < 2 || arguments[0].IsWilds || (string)arguments[0].Word != "=")
+                        throw new Compiler.SyntaxException("Expected format of '= \"...\"'.", arguments[0].ScriptTrace);
+                    string value = ((string)new ScriptWild(arguments[1..], " \\ ", ' ')).Trim();
+                    if(value[0] != '\"' || value[^1] != '\"') throw new Compiler.SyntaxException("Expected a string for declaring a Selector.", arguments[0].ScriptTrace);
+                    value = value[1..^1];
+                    return new VarSelector(access, usage, objectName, scope, value);
+                default: throw new ArgumentException($"The given value is not a '{nameof(Usage)}' value.", nameof(usage));
+            }
         }
 
         public override string GetConstant() => str;

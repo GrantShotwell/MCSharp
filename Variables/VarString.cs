@@ -30,8 +30,8 @@ namespace MCSharp.Variables {
         }
         
         protected override Variable Compile(Access access, Usage usage, string objectName, Compiler.Scope scope, ScriptWild[] arguments) {
-            if(arguments.Length < 2 || arguments[0].IsWilds || arguments[0].Word != "=")
-                throw new Compiler.SyntaxException("Unexpected format for declaring a 'string'.");
+            if(arguments.Length < 2 || arguments[0].IsWilds || (string)arguments[0].Word != "=")
+                throw new Compiler.SyntaxException("Unexpected format for declaring a 'string'.", arguments[0].ScriptTrace);
             string value = CompileStringValue(arguments[1..]);
             return usage == Usage.Constant
                 ? new VarString(access, objectName, scope, value)
@@ -48,7 +48,7 @@ namespace MCSharp.Variables {
         
         public static string CompileStringValue(ScriptWild[] arguments) {
             string value = ((string)new ScriptWild(arguments, "\"\\\"", ' ')).Trim();
-            if(value[0] != '\"' || value[^1] != '\"') throw new Compiler.SyntaxException("Expected a string for declaring a string.");
+            if(value[0] != '\"' || value[^1] != '\"') throw new Compiler.SyntaxException("Expected a string for declaring a string.", arguments[0].ScriptTrace);
             return value[2..^2];
         }
 

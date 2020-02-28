@@ -24,15 +24,15 @@ namespace MCSharp.Variables {
         }
 
         protected override Variable Compile(Access access, Usage usage, string objectName, Compiler.Scope scope, ScriptWild[] arguments) {
-            throw new Compiler.SyntaxException("Cannot create an instance of a static class!");
+            throw new Compiler.SyntaxException("Cannot create an instance of a static class!", arguments[0].ScriptTrace);
         }
 
         private Variable Show(string type, Variable[] args) {
-            if(args.Length != 2) throw new InvalidArgumentsException($"Invalid number of arguments for '{TypeName}' method.");
+            if(args.Length != 2) throw new InvalidArgumentsException($"Invalid number of arguments for '{TypeName}' method.", Compiler.CurrentScriptTrace);
             if(!(args[0] is VarSelector selector) && !args[0].TryCast(out selector))
-                throw new InvalidCastException(args[0], "Selector");
+                throw new InvalidCastException(args[0], "Selector", Compiler.CurrentScriptTrace);
             if(!(args[1] is VarJSON json) && !args[1].TryCast(out json))
-                throw new InvalidCastException(args[1], "JSON");
+                throw new InvalidCastException(args[1], "JSON", Compiler.CurrentScriptTrace);
             new Spy(null, new string[] { $"title {selector.GetConstant()} {type} {json.GetConstant()}" }, null);
             return null;
         }

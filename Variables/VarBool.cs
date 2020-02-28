@@ -21,19 +21,19 @@ namespace MCSharp.Variables {
 
 
         protected override Variable Compile(Access access, Usage usage, string objectName, Compiler.Scope scope, ScriptWild[] arguments) {
-            if(arguments[0] != "=") throw new Compiler.SyntaxException("Expected '='.");
+            if(arguments[0] != "=") throw new Compiler.SyntaxException("Expected '='.", arguments[0].ScriptTrace);
             var args = arguments[1..];
             if(Compiler.TryParseValue(args.Length > 1 ? new ScriptWild(args, " \\ ", ' ') : args[0], Compiler.CurrentScope, out Variable variable)) {
                 if(variable is VarBool varBool || variable.TryCast(out varBool)) {
                     return new VarBool(access, usage, objectName, scope, varBool.Selector, varBool.Objective,
                         new VarSelector(access, usage, NextHiddenID, scope, "var"),
                         new VarObjective(access, usage, NextHiddenID, scope, "dummy"));
-                } else throw new Compiler.SyntaxException($"Could not cast '{variable}' as 'bool'.");
-            } else throw new Compiler.SyntaxException("Could not interpret as 'bool'.");
+                } else throw new Compiler.SyntaxException($"Could not cast '{variable}' as 'bool'.", arguments[0].ScriptTrace);
+            } else throw new Compiler.SyntaxException("Could not interpret as 'bool'.", arguments[0].ScriptTrace);
         }
 
         public override Variable Operation(ScriptWord operation, ScriptWild[] args) {
-            switch(operation) {
+            switch((string)operation) {
                 case "=": {
                     if(Compiler.TryParseValue(new ScriptWild(args, " \\ ", ' '), Compiler.CurrentScope, out Variable var)
                     && (var is VarBool varInt || var.TryCast(out varInt))) {
@@ -50,7 +50,7 @@ namespace MCSharp.Variables {
                         new VarObjective(Access.Private, Usage.Default, $"{id}.Objective", Compiler.CurrentScope, "dummy"));
                     //Write function: 'set anon to the opposite of this'.
                     var function = new ScriptFunction($"{Compiler.CurrentScope}\\{Compiler.CurrentScope.GetNextInnerID()}",
-                        $"if({anon.ObjectName}) {{ {anon.ObjectName} = false; }} else {{ {anon.ObjectName} = false; }}");
+                        new ScriptString($"if({anon.ObjectName}) {{ {anon.ObjectName} = false; }} else {{ {anon.ObjectName} = false; }}"));
                     Compiler.WriteFunction(Compiler.CurrentScope, function);
                     //Write command: 'run that function'.
                     new Spy(null, $"function {function.GamePath}", null);
@@ -64,7 +64,7 @@ namespace MCSharp.Variables {
                         new VarObjective(Access.Private, Usage.Default, $"{id}.Objective", Compiler.CurrentScope, "dummy"));
                     //Write function: 'if anon is true, set anon to args'.
                     var function = new ScriptFunction($"{Compiler.CurrentScope}\\{Compiler.CurrentScope.GetNextInnerID()}",
-                        $"if({anon.ObjectName}) {{ {anon.ObjectName} = {new ScriptWild(args, "(\\)", ' ')}; }}");
+                        new ScriptString($"if({anon.ObjectName}) {{ {anon.ObjectName} = {(string)new ScriptWild(args, "(\\)", ' ')}; }}"));
                     Compiler.WriteFunction(Compiler.CurrentScope, function);
                     //Write command: 'run that function'.
                     new Spy(null, $"function {function.GamePath}", null);

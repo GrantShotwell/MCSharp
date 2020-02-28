@@ -9,7 +9,7 @@ namespace MCSharp.Variables {
     /// <summary>
     /// Represents a Minecraft scoreboard objective.
     /// </summary>
-    public class VarObjective : ReferenceType {
+    public class VarObjective : Variable {
 
         public static int NextID { get; private set; }
 
@@ -17,6 +17,9 @@ namespace MCSharp.Variables {
         public override string TypeName => "Objective";
         public string ID { get; }
         public string Type { get; }
+
+        public override ICollection<Access> AllowedAccessModifiers => new Access[] { Access.Private, Access.Public };
+        public override ICollection<Usage> AllowedUsageModifiers => new Usage[] { Usage.Default, Usage.Constant, Usage.Static };
 
 
         public VarObjective() : base() { }
@@ -44,13 +47,13 @@ namespace MCSharp.Variables {
         protected override Variable Compile(Access access, Usage usage, string objectName, Compiler.Scope scope, ScriptWild[] arguments) {
             //always expecting format: new Objective(string);
             if(arguments.Length != 4
-                || arguments[0].IsWilds || arguments[0].Word != "="
-                || arguments[1].IsWilds || arguments[1].Word != "new"
-                || arguments[2].IsWilds || arguments[2].Word != "Objective"
+                || arguments[0].IsWilds || (string)arguments[0].Word != "="
+                || arguments[1].IsWilds || (string)arguments[1].Word != "new"
+                || arguments[2].IsWilds || (string)arguments[2].Word != "Objective"
                 || arguments[3].IsWord || arguments[3].BlockType != "(\\)" || arguments[3].Wilds[0].IsWilds) {
-                throw new Compiler.SyntaxException("Expected ' = new Objective([type]);'.");
+                throw new Compiler.SyntaxException("Expected ' = new Objective([type]);'.", arguments[0].ScriptTrace);
             } else {
-                return new VarObjective(access, usage, objectName, scope, arguments[3].Wilds[0].Word);
+                return new VarObjective(access, usage, objectName, scope, (string)arguments[3].Wilds[0].Word);
             }
 
         }

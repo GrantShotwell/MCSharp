@@ -6,18 +6,23 @@ namespace MCSharp.Compilation {
 
     public struct ScriptChar {
 
-        private readonly char chr;
+        private char Character { get; }
+        public ScriptTrace ScriptTrace { get; }
 
-        public int FileLine { get; }
-
-        public ScriptChar(int line, char character) {
-            FileLine = line;
-            chr = character;
+        public ScriptChar(char character, string path, int line) {
+            Character = character;
+            ScriptTrace = new ScriptTrace(path, line);
         }
 
-        public static implicit operator char(ScriptChar character) => character.chr;
 
-        public override string ToString() => $"Line {FileLine}: '{chr.ToString()}'";
+        public static explicit operator char(ScriptChar character) => character.Character;
+
+        public static bool operator ==(ScriptChar left, char right) => (char)left == right;
+        public static bool operator ==(char left, ScriptChar right) => left == (char)right;
+        public static bool operator !=(ScriptChar left, char right) => (char)left != right;
+        public static bool operator !=(char left, ScriptChar right) => left != (char)right;
+
+        public override string ToString() => $"Line {ScriptTrace.FileLine}: '{Character.ToString()}'";
 
     }
 

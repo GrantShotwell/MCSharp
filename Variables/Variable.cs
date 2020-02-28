@@ -39,8 +39,8 @@ namespace MCSharp.Variables {
             if(objectName == null) throw new ArgumentNullException(nameof(objectName));
             if(scope == null) throw new ArgumentNullException(nameof(scope));
             if(GetType() != typeof(Spy)) {
-                if(!AllowedAccessModifiers.Contains(access)) throw new InvalidModifierException(access.ToString(), TypeName);
-                if(!AllowedUsageModifiers.Contains(usage)) throw new InvalidModifierException(usage.ToString(), TypeName);
+                if(!AllowedAccessModifiers.Contains(access)) throw new InvalidModifierException(access.ToString(), TypeName, Compiler.CurrentScriptTrace);
+                if(!AllowedUsageModifiers.Contains(usage)) throw new InvalidModifierException(usage.ToString(), TypeName, Compiler.CurrentScriptTrace);
             }
 
             ObjectName = objectName;
@@ -76,22 +76,22 @@ namespace MCSharp.Variables {
         /// 
         /// </summary>
         public virtual Variable Operation(ScriptWord operation, ScriptWild[] args) {
-            if(operation == ".") {
+            if((string)operation == ".") {
                 if(args.Length == 1 && args[0].IsWord) {
-                    return Members[args[0].Word];
+                    return Members[(string)args[0].Word];
                 } else if(args.Length == 2) {
                     Variable[] variables = new Variable[args[1].Wilds.Count];
                     for(int i = 0; i < args[1].Wilds.Count; i++) {
-                        if(Compiler.TryParseValue(args[1].Wilds[i], Scope, out Variable variable)) {
+                        if(Compiler.TryParseValue(args[1].Wilds[i], Compiler.CurrentScope, out Variable variable)) {
                             variables[i] = variable;
-                        } else throw new InvalidArgumentsException($"Could not parse '{args[1].Wilds[i]}' into a variable.");
+                        } else throw new InvalidArgumentsException($"Could not parse '{(string)args[1].Wilds[i]}' into a variable.", args[1].Wilds[i].ScriptTrace);
                     }
-                    return Methods[args[0].Word].Invoke(variables);
+                    return Methods[(string)args[0].Word].Invoke(variables);
                 } else {
-                    throw new InvalidArgumentsException("Too many arguments for '.' operator.");
+                    throw new InvalidArgumentsException("Too many arguments for '.' operator.", Compiler.CurrentScriptTrace);
                 }
             } else {
-                throw new InvalidOperationException($"Type '{TypeName}' has not defined the operation '{operation}'.");
+                throw new InvalidArgumentsException($"Type '{TypeName}' has not defined the operation '{(string)operation}'.", operation.ScriptTrace);
             }
         }
 
@@ -119,7 +119,7 @@ namespace MCSharp.Variables {
         /// Creates a new <see cref="Spy"/> that will copy the value of this to <paramref name="variable"/>.
         /// </summary>
         public virtual void WriteCopyTo(StreamWriter function, Variable variable)
-            => throw new Compiler.SyntaxException($"Cannot pass the value of type '{TypeName}' to other variables!");
+            => throw new Compiler.SyntaxException($"Cannot pass the value of type '{TypeName}' to other variables!", Compiler.CurrentScriptTrace);
 
         /// <summary>
         /// Attempts to create a new <see cref="Variable"/> of the given type.
@@ -154,25 +154,25 @@ namespace MCSharp.Variables {
         public virtual VarString GetString() => new VarString(Access.Private, NextHiddenID, Scope, ToString());
 
         public class InvalidModifierException : Exception {
-            public InvalidModifierException(string modifier, string type)
-                : base($"{Compiler.GetCurrentLocationTrace(Compiler.TraceFormat.CapitalizedPhrase)}: The modifier '{modifier}' is not valid for the type '{type}'.") { }
+            public InvalidModifierException(string modifier, string type, ScriptTrace at)
+                : base($"[{at}] The modifier '{modifier}' is not valid for the type '{type}'.") { }
         }
 
         public class InvalidNameException : Exception {
-            public InvalidNameException(string name, string reason, string type)
-                : base($"{Compiler.GetCurrentLocationTrace(Compiler.TraceFormat.CapitalizedPhrase)}: The name '{name}' is {reason} for the type '{type}'.") { }
+            public InvalidNameException(string name, string reason, string type, ScriptTrace at)
+                : base($"[{at}] The name '{name}' is {reason} for the type '{type}'.") { }
         }
 
         public class InvalidArgumentsException : Exception {
-            public InvalidArgumentsException(string message)
-                : base($"{Compiler.GetCurrentLocationTrace(Compiler.TraceFormat.CapitalizedPhrase)}: {message}") { }
-            public InvalidArgumentsException(string message, Exception inner)
-                : base($"{Compiler.GetCurrentLocationTrace(Compiler.TraceFormat.CapitalizedPhrase)}: {message}", inner) { }
+            public InvalidArgumentsException(string message, ScriptTrace at)
+                : base($"[{at}] {message}") { }
+            public InvalidArgumentsException(string message, ScriptTrace at, Exception inner)
+                : base($"[{at}] {message}", inner) { }
         }
 
         public class InvalidCastException : Exception {
-            public InvalidCastException(Variable variable, string type)
-                : base($"Cannot cast '{variable}' to type '{type}'.") { }
+            public InvalidCastException(Variable variable, string type, ScriptTrace at)
+                : base($"[{at}] Cannot cast '{variable}' to type '{type}'.") { }
         }
 
         public override string ToString() => $"{TypeName} {ObjectName}";

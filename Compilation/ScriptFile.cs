@@ -7,27 +7,25 @@ namespace MCSharp.Compilation {
 
     public struct ScriptFile : IReadOnlyCollection<ScriptClass> {
 
-        private readonly ScriptClass[] classes;
 
         public static Dictionary<string, ScriptFile> Files { get; } = new Dictionary<string, ScriptFile>();
 
-        public int Count => ((IReadOnlyCollection<ScriptClass>)classes).Count;
-        public string FilePath { get; }
-        public string FileName { get; }
+        private ScriptClass[] ScriptClasses { get; }
+        public ScriptClass this[int index] => ScriptClasses[index];
+        public int Length => ScriptClasses.Length;
+        int IReadOnlyCollection<ScriptClass>.Count => Length;
+        public ScriptTrace ScriptTrace => ScriptClasses[0].ScriptTrace;
 
 
-        public ScriptFile(string file, string scriptFile) : this(file, GetClasses(file, scriptFile)) { }
+        public ScriptFile(ScriptString scriptFile) : this(GetClasses(scriptFile)) { }
 
-        public ScriptFile(string file, ScriptClass[] classes) {
-            FilePath = file;
-            FileName = file.Split('\\')[^1];
-            this.classes = classes;
-            Files.Add(FilePath, this);
+        public ScriptFile(ScriptClass[] classes) {
+            ScriptClasses = classes;
+            Files.Add(ScriptTrace.FilePath, this);
         }
 
 
-        public static ScriptClass[] GetClasses(string file, string scriptFile) {
-            if(scriptFile is null) return new ScriptClass[] { };
+        public static ScriptClass[] GetClasses(ScriptString file) {
             var functions = new List<ScriptClass>();
 
             int start = 0, blocks = 0;
@@ -40,10 +38,10 @@ namespace MCSharp.Compilation {
             }
 
             bool inString = false;
-            for(int end = 0; end < scriptFile.Length; end++) {
-                char current = scriptFile[end];
+            for(int end = 0; end < file.Length; end++) {
+                char current = (char)file[end];
 
-                if(current == '"' && scriptFile[end - 1] != '\\') {
+                if(current == '"' && (char)file[end - 1] != '\\') {
                     inString = !inString;
                     continue;
                 }
@@ -60,7 +58,7 @@ namespace MCSharp.Compilation {
                 } else if(current == '}') {
                     blocks--;
                     if(blocks == 0) {
-                        functions.Add(new ScriptClass(file, alias, scriptFile[start..end]));
+                        functions.Add(new ScriptClass(alias, file[start..end]));
                     }
                     Rotate();
                 } else if(blocks == 0) {
@@ -69,13 +67,13 @@ namespace MCSharp.Compilation {
 
             }
 
-            if(inString) throw new Compiler.SyntaxException("Unclosed string!");
+            if(inString) throw new Compiler.SyntaxException("Unclosed string!", file.ScriptTrace);
 
             return functions.ToArray();
         }
 
-        public IEnumerator<ScriptClass> GetEnumerator() => ((IReadOnlyCollection<ScriptClass>)classes).GetEnumerator();
-        IEnumerator IEnumerable.GetEnumerator() => ((IReadOnlyCollection<ScriptClass>)classes).GetEnumerator();
+        public IEnumerator<ScriptClass> GetEnumerator() => ((IReadOnlyCollection<ScriptClass>)ScriptClasses).GetEnumerator();
+        IEnumerator IEnumerable.GetEnumerator() => ((IReadOnlyCollection<ScriptClass>)ScriptClasses).GetEnumerator();
 
     }
 

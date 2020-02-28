@@ -4,28 +4,28 @@ using System.Collections.Generic;
 using System.Text;
 
 namespace MCSharp.Compilation {
+
     public struct ScriptClass : IReadOnlyCollection<ScriptFunction> {
 
-        private readonly ScriptFunction[] functions;
 
-        public int Count => ((IReadOnlyCollection<ScriptFunction>)functions).Count;
-        public string FilePath { get; }
-        public string FileName { get; }
+        private ScriptFunction[] ScriptFunctions { get; }
+        public ScriptFunction this[int index] => ScriptFunctions[index];
+        public int Length => ScriptFunctions.Length;
+        int IReadOnlyCollection<ScriptFunction>.Count => Length;
         public string Alias { get; }
+        public ScriptTrace ScriptTrace => ScriptFunctions[0].ScriptTrace;
 
 
-        public ScriptClass(string file, string alias, string scriptClass) : this(file, alias, GetFunctions(alias, scriptClass)) { }
-
-        public ScriptClass(string file, string alias, ScriptFunction[] functions) {
-            FilePath = file;
-            FileName = file[Program.ScriptsFolder.Length..];
+        public ScriptClass(string alias, ScriptString scriptClass) : this(alias, GetFunctions(alias, scriptClass)) { }
+        public ScriptClass(string alias, ScriptFunction[] functions) {
+            //FilePath = file;
+            //FileName = file[Program.ScriptsFolder.Length..];
             Alias = alias;
-            this.functions = functions;
+            ScriptFunctions = functions;
         }
 
 
-        public static ScriptFunction[] GetFunctions(string root, string scriptClass) {
-            if(scriptClass is null) return new ScriptFunction[] { };
+        public static ScriptFunction[] GetFunctions(string root, ScriptString scriptClass) {
             var functions = new List<ScriptFunction>();
 
             int start = 0, blocks = 0;
@@ -39,7 +39,7 @@ namespace MCSharp.Compilation {
 
             for(int end = 0; end < scriptClass.Length; end++) {
 
-                char current = scriptClass[end];
+                char current = (char)scriptClass[end];
                 if(char.IsWhiteSpace(current)) {
                     if(word != "" && blocks == 0) Rotate();
                 } else if(current == '{') {
@@ -64,8 +64,8 @@ namespace MCSharp.Compilation {
             return functions.ToArray();
         }
 
-        public IEnumerator<ScriptFunction> GetEnumerator() => ((IReadOnlyCollection<ScriptFunction>)functions).GetEnumerator();
-        IEnumerator IEnumerable.GetEnumerator() => ((IReadOnlyCollection<ScriptFunction>)functions).GetEnumerator();
+        public IEnumerator<ScriptFunction> GetEnumerator() => ((IReadOnlyCollection<ScriptFunction>)ScriptFunctions).GetEnumerator();
+        IEnumerator IEnumerable.GetEnumerator() => ((IReadOnlyCollection<ScriptFunction>)ScriptFunctions).GetEnumerator();
 
     }
 }

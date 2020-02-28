@@ -25,8 +25,8 @@ namespace MCSharp.Variables {
 
 
         protected override Variable Compile(Access access, Usage usage, string objectName, Compiler.Scope scope, ScriptWild[] arguments) {
-            if(arguments.Length < 2 || arguments[0].IsWilds || arguments[0].Word != "=")
-                throw new Compiler.SyntaxException("Expected format of '= \"...\"'.");
+            if(arguments.Length < 2 || arguments[0].IsWilds || (string)arguments[0].Word != "=")
+                throw new Compiler.SyntaxException("Expected format of '= \"...\"'.", arguments[0].ScriptTrace);
             StreamReader reader = File.OpenText(Program.ScriptsFolder + "\\" + VarString.CompileStringValue(arguments[1..]));
             string json = reader.ReadToEnd().Replace('\n', ' ').Replace('\t', ' ').Replace('\r', ' ');
             reader.Close();

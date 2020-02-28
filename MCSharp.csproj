@@ -4,7 +4,7 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <StartupObject>MCSharp.Program</StartupObject>
-    <ApplicationIcon>MCSharp.ico</ApplicationIcon>
+    <ApplicationIcon>MC-crafting-center_with_CS-logo-placed.ico</ApplicationIcon>
     <Win32Resource />
   </PropertyGroup>
 

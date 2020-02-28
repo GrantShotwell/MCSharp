@@ -1,0 +1,4 @@
+﻿// ex. C:\Users\___\AppData\Roaming\.minecraft\saves\___\datapacks
+default_datapacks_folder = C:\Users\Lenovo Legion\AppData\Roaming\.minecraft\saves\Datapack Testing\datapacks
+// ex. example-datapack
+default_datapack_name = mcs

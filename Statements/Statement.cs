@@ -12,8 +12,8 @@ namespace MCSharp.Statements {
 
         public Statement() => Dictionary.Add(Call, new Tuple<Reader, Writer>(Read, Write));
 
-        public delegate void Reader(ref List<ScriptLine> lines, ref int start, ref int end, ref string script);
-        public abstract void Read(ref List<ScriptLine> lines, ref int start, ref int end, ref string script);
+        public delegate void Reader(ref List<ScriptLine> lines, ref int start, ref int end, ref ScriptString function);
+        public abstract void Read(ref List<ScriptLine> lines, ref int start, ref int end, ref ScriptString function);
 
         public delegate void Writer(ScriptLine line);
         public abstract void Write(ScriptLine line);
