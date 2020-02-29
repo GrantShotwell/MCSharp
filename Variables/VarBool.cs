@@ -35,14 +35,17 @@ namespace MCSharp.Variables {
         public override Variable Operation(ScriptWord operation, ScriptWild[] args) {
             switch((string)operation) {
                 case "=": {
-                    if(Compiler.TryParseValue(new ScriptWild(args, " \\ ", ' '), Compiler.CurrentScope, out Variable var)
-                    && (var is VarBool varInt || var.TryCast(out varInt))) {
-                        new Spy(null, $"scoreboard players operation var {Objective.GetConstant()} = var {varInt.Objective.GetConstant()}", null);
+                    if(Compiler.TryParseValue(new ScriptWild(args, " \\ ", ' '), Compiler.CurrentScope, out Variable variable)
+                    && (variable is PrimitiveType primitive || variable.TryCast(out primitive))) {
+                        new Spy(null, $"scoreboard players operation var {Objective.GetConstant()} = var {primitive.Objective.GetConstant()}", null);
                         return this;
-                    } else throw new Exception();
+                    } else {
+                        if(variable == null) throw new InvalidArgumentsException($"Unknown how to determine value as '{TypeName}'.", operation.ScriptTrace);
+                        else throw new InvalidCastException(variable, TypeName, operation.ScriptTrace);
+                    }
                 }
                 case "!": {
-                    if(args.Length != 0) throw new Exception();
+                    if(args.Length != 0) throw new InvalidArgumentsException("022502282020", operation.ScriptTrace);
                     string id = NextHiddenID;
                     //Create temp variable.
                     var anon = new VarBool(Access.Private, Usage.Default, id, Compiler.CurrentScope, Selector, Objective,

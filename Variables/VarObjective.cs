@@ -58,14 +58,33 @@ namespace MCSharp.Variables {
 
         }
 
-        public override bool TryCast<TVariable>([MaybeNullWhen(false)] out TVariable result) {
+        public override bool TryCast<TVariable>([NotNullWhen(false)] out TVariable result) {
             Type type = typeof(TVariable);
 
+            if(type.IsAssignableFrom(typeof(PrimitiveType))) {
+                result = new PrimitiveType(
+                    Access.Private, Usage.Default, NextHiddenID, Compiler.CurrentScope,
+                    new VarSelector(Access.Private, Usage.Default, NextHiddenID, Compiler.CurrentScope, "@e"), this,
+                    new VarSelector(Access.Private, Usage.Default, NextHiddenID, Compiler.CurrentScope, "var"),
+                    new VarObjective(Access.Private, Usage.Default, NextHiddenID, Compiler.CurrentScope, "dummy")) as TVariable;
+                return true;
+            }
+            
             if(type.IsAssignableFrom(typeof(VarInt))) {
-                string[] ids = new string[2];
-                result = new VarInt(Access.Private, Usage.Default, NextHiddenID, Compiler.CurrentScope, 0,
-                                    new VarSelector(Access.Private, Usage.Default, NextHiddenID, Compiler.CurrentScope, "var"),
-                                    this) as TVariable;
+                result = new VarInt(
+                    Access.Private, Usage.Default, NextHiddenID, Compiler.CurrentScope,
+                    new VarSelector(Access.Private, Usage.Default, NextHiddenID, Compiler.CurrentScope, "@e"), this,
+                    new VarSelector(Access.Private, Usage.Default, NextHiddenID, Compiler.CurrentScope, "var"),
+                    new VarObjective(Access.Private, Usage.Default, NextHiddenID, Compiler.CurrentScope, "dummy")) as TVariable;
+                return true;
+            }
+            
+            if(type.IsAssignableFrom(typeof(VarBool))) {
+                result = new VarBool(
+                    Access.Private, Usage.Default, NextHiddenID, Compiler.CurrentScope,
+                    new VarSelector(Access.Private, Usage.Default, NextHiddenID, Compiler.CurrentScope, "@e"), this,
+                    new VarSelector(Access.Private, Usage.Default, NextHiddenID, Compiler.CurrentScope, "var"),
+                    new VarObjective(Access.Private, Usage.Default, NextHiddenID, Compiler.CurrentScope, "dummy")) as TVariable;
                 return true;
             }
 

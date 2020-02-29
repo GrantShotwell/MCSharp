@@ -13,6 +13,9 @@ namespace MCSharp {
         private static int highestFunctionStackSize = 0;
         private static readonly Dictionary<int, Scope> allScopes = new Dictionary<int, Scope>();
 
+        public static ICollection<string> BinaryOperators { get; } = new string[] { "+", "-", "*", "/", "%" };
+        public static ICollection<string> BooleanOperators { get; } = new string[] { "&&", "||" };
+
         public static StreamWriter PrepFunction { get; private set; }
         public static StreamWriter DemoFunction { get; private set; }
         public static StreamWriter TickFunction { get; private set; }
@@ -278,7 +281,13 @@ namespace MCSharp {
                                     // <<Yes Variable>>
                                     //Compile an operation.
                                     //TODO!  Possible problem if a variable has the same name as an accessor.
-                                    variable = variable.Operation(op.Value, wild.Array[i..]);
+                                    ScriptWord operation = op.Value;
+                                    if(BooleanOperators.Contains((string)operation)) {
+                                        if(variable is VarBool varBool || variable.TryCast(out varBool))
+                                            varBool.Operation(operation, wild.Array[i..]);
+                                        else throw new SyntaxException(
+                                            $"Cannot cast '{variable}' into 'bool' for use in boolean operator '{(string)operation}'.", operation.ScriptTrace);
+                                    } else variable = variable.Operation(operation, wild.Array[i..]);
                                     return true;
                                 } else {
                                     // <<No Variable>>

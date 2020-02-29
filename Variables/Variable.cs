@@ -70,7 +70,7 @@ namespace MCSharp.Variables {
         /// <summary>
         /// Calls the constructor to create a new <see cref="Variable"/>.
         /// </summary>
-        protected abstract Variable Compile(Access accessModifier, Usage usageModifier, string objectName, Compiler.Scope scope, ScriptWild[] arguments);
+        protected abstract Variable Compile(Access access, Usage usage, string objectName, Compiler.Scope scope, ScriptWild[] arguments);
 
         /// <summary>
         /// 
@@ -124,7 +124,7 @@ namespace MCSharp.Variables {
         /// <summary>
         /// Attempts to create a new <see cref="Variable"/> of the given type.
         /// </summary>
-        public virtual bool TryCast<TVariable>([MaybeNullWhen(false)] out TVariable result) where TVariable : Variable {
+        public virtual bool TryCast<TVariable>([NotNullWhen(false)] out TVariable result) where TVariable : Variable {
             if(typeof(TVariable).IsAssignableFrom(typeof(VarString)))
                 return (result = GetString() as TVariable) != null;
             if(typeof(TVariable).IsAssignableFrom(typeof(VarJSON)))
