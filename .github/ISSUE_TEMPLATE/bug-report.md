@@ -1,6 +1,6 @@
 ---
 name: Bug Report
-about: Create a report to help fix errors.
+about: Show a behavior that is unintended.
 title: A one-sentence description of the bug.
 labels: bug
 assignees: SonicBlue22
