@@ -73,8 +73,8 @@ namespace MCSharp {
 
                 using(StreamReader reader = File.OpenText(scriptPath)) {
                     var scriptFile = new ScriptFile(new ScriptString(reader.ReadToEnd(), scriptPath));
-                    foreach(ScriptClass scriptClass in scriptFile) foreach(ScriptFunction scriptFunction in scriptClass)
-                            WriteFunction(RootScope, scriptFunction);
+                    foreach(ScriptClass scriptClass in scriptFile) foreach(ScriptMember scriptMember in scriptClass.Values)
+                            if(scriptMember is ScriptFunction scriptFunction) WriteFunction(RootScope, scriptFunction);
                 }
 
                 Console.CursorTop -= highestFunctionStackSize + 1;
@@ -147,7 +147,7 @@ namespace MCSharp {
             CurrentScriptTrace = function.ScriptTrace;
 
             Console.ForegroundColor = ConsoleColor.Gray;
-            Console.Write($" · Writing '{alias}'... ");
+            Console.Write($"\n · Writing '{alias}'... ");
             highestFunctionStackSize++;
 
             string[] directorySplit = path.Split('\\')[..^1];
@@ -243,14 +243,14 @@ namespace MCSharp {
 
                 while(wild.IsWilds && wild.Count == 1) wild = wild.Wilds[0];
                 if(int.TryParse((string)wild.Word, out int _int)) {
-                    variable = new VarInt(Access.Private, Usage.Constant, Variable.NextHiddenID, CurrentScope, _int,
-                        new VarSelector(Access.Private, Usage.Constant, Variable.NextHiddenID, CurrentScope, "var"),
-                        new VarObjective(Access.Private, Usage.Constant, Variable.NextHiddenID, CurrentScope, "dummy"));
+                    variable = new VarInt(Access.Private, Usage.Constant, Variable.GetNextHiddenID(), CurrentScope, _int,
+                        new VarSelector(Access.Private, Usage.Constant, Variable.GetNextHiddenID(), CurrentScope, "var"),
+                        new VarObjective(Access.Private, Usage.Constant, Variable.GetNextHiddenID(), CurrentScope, "dummy"));
                     return true;
                 } else if(bool.TryParse((string)wild.Word, out bool _bool)) {
-                    variable = new VarBool(Access.Private, Usage.Constant, Variable.NextHiddenID, CurrentScope, _bool ? 1 : 0,
-                        new VarSelector(Access.Private, Usage.Constant, Variable.NextHiddenID, CurrentScope, "var"),
-                        new VarObjective(Access.Private, Usage.Constant, Variable.NextHiddenID, CurrentScope, "dummy"));
+                    variable = new VarBool(Access.Private, Usage.Constant, Variable.GetNextHiddenID(), CurrentScope, _bool ? 1 : 0,
+                        new VarSelector(Access.Private, Usage.Constant, Variable.GetNextHiddenID(), CurrentScope, "var"),
+                        new VarObjective(Access.Private, Usage.Constant, Variable.GetNextHiddenID(), CurrentScope, "dummy"));
                     return true;
                 } else {
                     return TryGetVariable((string)wild.Word, scope, out variable);
@@ -284,7 +284,7 @@ namespace MCSharp {
                                     ScriptWord operation = op.Value;
                                     if(BooleanOperators.Contains((string)operation)) {
                                         if(variable is VarBool varBool || variable.TryCast(out varBool))
-                                            varBool.Operation(operation, wild.Array[i..]);
+                                            variable = varBool.Operation(operation, wild.Array[i..]);
                                         else throw new SyntaxException(
                                             $"Cannot cast '{variable}' into 'bool' for use in boolean operator '{(string)operation}'.", operation.ScriptTrace);
                                     } else variable = variable.Operation(operation, wild.Array[i..]);
@@ -392,7 +392,7 @@ namespace MCSharp {
                 if(info.IsSubclassOf(typeof(Variable)) && !info.IsAbstract) {
                     ConstructorInfo constructor = info.GetConstructor(new Type[] { });
                     var variable = constructor.Invoke(new object[] { }) as Variable;
-                    if(!(variable is Spy)) Datatypes.Add(variable.TypeName, info.AsType());
+                    if((!(variable is Spy)) && (!(variable is UserClass))) Datatypes.Add(variable.TypeName, info.AsType());
                 }
             }
 

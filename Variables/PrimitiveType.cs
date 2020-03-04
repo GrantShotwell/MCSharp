@@ -23,14 +23,14 @@ namespace MCSharp.Variables {
         public PrimitiveType() : base() { }
         public PrimitiveType(Access access, Usage usage, string objectName, Compiler.Scope scope, int initValue,
         VarSelector selector, VarObjective objective) : base(access, usage, objectName, scope) {
-            Members.Add(Selector = selector);
-            Members.Add(Objective = objective);
+            Fields.Add("selector", Selector = selector);
+            Fields.Add("objective", Objective = objective);
             InitValue = initValue;
         }
         public PrimitiveType(Access access, Usage usage, string objectName, Compiler.Scope scope, VarSelector fromSelector,
         VarObjective fromObjective, VarSelector selector, VarObjective objective) : base(access, usage, objectName, scope) {
-            Members.Add(Selector = selector);
-            Members.Add(Objective = objective);
+            Fields.Add("selector", Selector = selector);
+            Fields.Add("objective", Objective = objective);
             FromSelector = fromSelector;
             FromObjective = fromObjective;
         }

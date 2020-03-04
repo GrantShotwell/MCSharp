@@ -26,8 +26,8 @@ namespace MCSharp.Variables {
             if(Compiler.TryParseValue(args.Length > 1 ? new ScriptWild(args, " \\ ", ' ') : args[0], Compiler.CurrentScope, out Variable variable)) {
                 if(variable is VarBool varBool || variable.TryCast(out varBool)) {
                     return new VarBool(access, usage, objectName, scope, varBool.Selector, varBool.Objective,
-                        new VarSelector(access, usage, NextHiddenID, scope, "var"),
-                        new VarObjective(access, usage, NextHiddenID, scope, "dummy"));
+                        new VarSelector(access, usage, GetNextHiddenID(), scope, "var"),
+                        new VarObjective(access, usage, GetNextHiddenID(), scope, "dummy"));
                 } else throw new Compiler.SyntaxException($"Could not cast '{variable}' as 'bool'.", arguments[0].ScriptTrace);
             } else throw new Compiler.SyntaxException("Could not interpret as 'bool'.", arguments[0].ScriptTrace);
         }
@@ -46,11 +46,11 @@ namespace MCSharp.Variables {
                 }
                 case "!": {
                     if(args.Length != 0) throw new InvalidArgumentsException("022502282020", operation.ScriptTrace);
-                    string id = NextHiddenID;
-                    //Create temp variable.
+                    string id = GetNextHiddenID();
+                    //Create temp variable from this.
                     var anon = new VarBool(Access.Private, Usage.Default, id, Compiler.CurrentScope, Selector, Objective,
-                        new VarSelector(Access.Private, Usage.Default, $"{id}.Selector", Compiler.CurrentScope, "var"),
-                        new VarObjective(Access.Private, Usage.Default, $"{id}.Objective", Compiler.CurrentScope, "dummy"));
+                        new VarSelector(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope, "var"),
+                        new VarObjective(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope, "dummy"));
                     //Write function: 'set anon to the opposite of this'.
                     var function = new ScriptFunction($"{Compiler.CurrentScope}\\{Compiler.CurrentScope.GetNextInnerID()}",
                         new ScriptString($"if({anon.ObjectName}) {{ {anon.ObjectName} = false; }} else {{ {anon.ObjectName} = false; }}"));
@@ -60,11 +60,10 @@ namespace MCSharp.Variables {
                     return anon;
                 }
                 case "&&": {
-                    string id = NextHiddenID;
-                    //Create temp variable.
-                    var anon = new VarBool(Access.Private, Usage.Default, id, Compiler.CurrentScope, Selector, Objective,
-                        new VarSelector(Access.Private, Usage.Default, $"{id}.Selector", Compiler.CurrentScope, "var"),
-                        new VarObjective(Access.Private, Usage.Default, $"{id}.Objective", Compiler.CurrentScope, "dummy"));
+                    //Create temp variable from this.
+                    var anon = new VarBool(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope, Selector, Objective,
+                        new VarSelector(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope, "var"),
+                        new VarObjective(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope, "dummy"));
                     //Write function: 'if anon is true, set anon to args'.
                     var function = new ScriptFunction($"{Compiler.CurrentScope}\\{Compiler.CurrentScope.GetNextInnerID()}",
                         new ScriptString($"if({anon.ObjectName}) {{ {anon.ObjectName} = {(string)new ScriptWild(args, "(\\)", ' ')}; }}"));

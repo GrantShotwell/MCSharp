@@ -1,11 +1,12 @@
 ﻿using MCSharp.Statements;
+using MCSharp.Variables;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 
 namespace MCSharp.Compilation {
 
-    public struct ScriptFunction : IReadOnlyList<ScriptLine> {
+    public class ScriptFunction : ScriptMember, IReadOnlyList<ScriptLine> {
 
         private readonly string str;
 
@@ -15,22 +16,21 @@ namespace MCSharp.Compilation {
         public string FilePath { get; }
         public string FileName { get; }
         public string GamePath { get; }
-        public string Alias { get; }
-        public string AliasDotted => Alias.Replace('\\', '.');
-        public ScriptTrace ScriptTrace => ScriptLines[0].ScriptTrace;
 
         int IReadOnlyCollection<ScriptLine>.Count => ((IReadOnlyList<ScriptLine>)ScriptLines).Count;
 
 
-        public ScriptFunction(string alias, ScriptString script, bool fixAlias = true) : this(alias, GetLines(script), fixAlias) { }
-        public ScriptFunction(string alias, ScriptWild wild, bool fixAlias = true) : this(alias, GetLines(wild), fixAlias) { }
-        public ScriptFunction(string alias, ScriptLine[] phrases, bool fixAlias = true) {
+        public ScriptFunction(string alias, ScriptString script, Access access = Access.Private, Usage usage = Usage.Default, bool fixAlias = true) :
+            this(alias, GetLines(script), access, usage, script.ScriptTrace, fixAlias) { }
+        public ScriptFunction(string alias, ScriptWild wild, Access access = Access.Private, Usage usage = Usage.Default, bool fixAlias = true) :
+            this(alias, GetLines(wild), access, usage, wild.ScriptTrace, fixAlias) { }
+        public ScriptFunction(string alias, ScriptLine[] phrases, Access access, Usage usage, ScriptTrace scriptTrace, bool fixAlias = true) :
+            base(fixAlias ? Script.FixAlias(alias) : alias, access, usage, null, scriptTrace) {
 
             FileName = fixAlias ? Script.FixAlias($"{alias}.mcfunction") : alias;
             FilePath = $"{Program.FunctionsFolder}\\{FileName}";
-            Alias = fixAlias ? alias = Script.FixAlias(alias) : alias;
-            GamePath = $"{Program.Datapack.Name}:{alias.Replace('\\', '/')}";
-            this.ScriptLines = phrases;
+            GamePath = $"{Program.Datapack.Name}:{(fixAlias ? Script.FixAlias(alias) : alias).Replace('\\', '/')}";
+            ScriptLines = phrases;
 
             int length = phrases.Length;
             string[] array = new string[length];
@@ -40,6 +40,7 @@ namespace MCSharp.Compilation {
             this.str = str.Length > 0 ? str[1..] : "";
 
         }
+
 
         public static ScriptLine[] GetLines(ScriptWild wild) {
             if(wild.FullBlockType == "{\\;\\}") {

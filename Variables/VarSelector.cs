@@ -36,7 +36,7 @@ namespace MCSharp.Variables {
                     if(value[0] != '\"' || value[^1] != '\"') throw new Compiler.SyntaxException("Expected a string for declaring a Selector.", arguments[0].ScriptTrace);
                     value = value[1..^1];
                     return new VarSelector(access, usage, objectName, scope, value);
-                default: throw new ArgumentException($"The given value is not a '{nameof(Usage)}' value.", nameof(usage));
+                default: throw new ArgumentException($"The given value is not a '{nameof(Variables.Usage)}' value.", nameof(usage));
             }
         }
 

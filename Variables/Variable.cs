@@ -16,22 +16,27 @@ namespace MCSharp.Variables {
                 = new Dictionary<string, Func<Access, Usage, string, Compiler.Scope, ScriptWild[], Variable>>();
 
         private static int hiddenID = 0;
-        public static string NextHiddenID => $"anon_{BaseConverter.Convert(hiddenID++, 62)}";
+        public static string GetNextHiddenID() => $"anon_{BaseConverter.Convert(hiddenID++, 62)}";
 
         public virtual int Order => 0;
         public abstract string TypeName { get; }
         public abstract ICollection<Access> AllowedAccessModifiers { get; }
-        public Access AccessModifier { get; }
+        public Access Access { get; }
         public abstract ICollection<Usage> AllowedUsageModifiers { get; }
-        public Usage UsageModifier { get; }
+        public Usage Usage { get; }
         public string ObjectName { get; }
         public Compiler.Scope Scope { get; }
-        protected MemberCollection Members { get; } = new MemberCollection();
+        protected Dictionary<string, Variable> Fields { get; } = new Dictionary<string, Variable>();
+        protected Dictionary<string, Tuple<GetProperty, SetProperty>> Properties { get; } = new Dictionary<string, Tuple<GetProperty, SetProperty>>();
         protected Dictionary<string, Func<Variable[], Variable>> Methods { get; } = new Dictionary<string, Func<Variable[], Variable>>();
+
+        public delegate Variable GetProperty();
+        public delegate void SetProperty(Variable variable);
 
 
         public Variable() {
-            if(GetType() != typeof(Spy)) Compilers.Add(TypeName, Compile);
+            Type type = GetType();
+            if(!typeof(Spy).IsAssignableFrom(type) && !typeof(UserClass).IsAssignableFrom(type)) Compilers.Add(TypeName, Compile);
         }
 
         public Variable(Access access, Usage usage, string objectName, Compiler.Scope scope) {
@@ -44,8 +49,8 @@ namespace MCSharp.Variables {
             }
 
             ObjectName = objectName;
-            AccessModifier = access;
-            UsageModifier = usage;
+            Access = access;
+            Usage = usage;
             Scope = scope;
             Scope.Variables.Add(this);
 
@@ -67,6 +72,7 @@ namespace MCSharp.Variables {
 
         }
 
+
         /// <summary>
         /// Calls the constructor to create a new <see cref="Variable"/>.
         /// </summary>
@@ -78,7 +84,7 @@ namespace MCSharp.Variables {
         public virtual Variable Operation(ScriptWord operation, ScriptWild[] args) {
             if((string)operation == ".") {
                 if(args.Length == 1 && args[0].IsWord) {
-                    return Members[(string)args[0].Word];
+                    return Fields[(string)args[0].Word];
                 } else if(args.Length == 2) {
                     Variable[] variables = new Variable[args[1].Wilds.Count];
                     for(int i = 0; i < args[1].Wilds.Count; i++) {
@@ -128,7 +134,7 @@ namespace MCSharp.Variables {
             if(typeof(TVariable).IsAssignableFrom(typeof(VarString)))
                 return (result = GetString() as TVariable) != null;
             if(typeof(TVariable).IsAssignableFrom(typeof(VarJSON)))
-                return (result = new VarJSON(Access.Private, Usage.Constant, NextHiddenID, Scope, GetJSON()) as TVariable) != null;
+                return (result = new VarJSON(Access.Private, Usage.Constant, GetNextHiddenID(), Scope, GetJSON()) as TVariable) != null;
             else return (result = this as TVariable) != null;
         }
 
@@ -151,7 +157,7 @@ namespace MCSharp.Variables {
         /// <summary>
         /// The equivalent of <see cref="object.ToString()"/>.
         /// </summary>
-        public virtual VarString GetString() => new VarString(Access.Private, NextHiddenID, Scope, ToString());
+        public virtual VarString GetString() => new VarString(Access.Private, GetNextHiddenID(), Scope, ToString());
 
         public class InvalidModifierException : Exception {
             public InvalidModifierException(string modifier, string type, ScriptTrace at)
@@ -176,32 +182,6 @@ namespace MCSharp.Variables {
         }
 
         public override string ToString() => $"{TypeName} {ObjectName}";
-
-
-        public class MemberCollection : IDictionary<string, Variable> {
-
-            private readonly Dictionary<string, Variable> dictionary = new Dictionary<string, Variable>();
-            public void Add(Variable variable) => Add(variable.ObjectName, variable);
-
-            public Variable this[string key] { get => ((IDictionary<string, Variable>)dictionary)[key]; set => ((IDictionary<string, Variable>)dictionary)[key] = value; }
-            public ICollection<string> Keys => ((IDictionary<string, Variable>)dictionary).Keys;
-            public ICollection<Variable> Values => ((IDictionary<string, Variable>)dictionary).Values;
-            public int Count => ((IDictionary<string, Variable>)dictionary).Count;
-            public bool IsReadOnly => ((IDictionary<string, Variable>)dictionary).IsReadOnly;
-
-            public void Add(string key, Variable value) => ((IDictionary<string, Variable>)dictionary).Add(key, value);
-            public void Add(KeyValuePair<string, Variable> item) => ((IDictionary<string, Variable>)dictionary).Add(item);
-            public void Clear() => ((IDictionary<string, Variable>)dictionary).Clear();
-            public bool Contains(KeyValuePair<string, Variable> item) => ((IDictionary<string, Variable>)dictionary).Contains(item);
-            public bool ContainsKey(string key) => ((IDictionary<string, Variable>)dictionary).ContainsKey(key);
-            public void CopyTo(KeyValuePair<string, Variable>[] array, int arrayIndex) => ((IDictionary<string, Variable>)dictionary).CopyTo(array, arrayIndex);
-            public IEnumerator<KeyValuePair<string, Variable>> GetEnumerator() => ((IDictionary<string, Variable>)dictionary).GetEnumerator();
-            public bool Remove(string key) => ((IDictionary<string, Variable>)dictionary).Remove(key);
-            public bool Remove(KeyValuePair<string, Variable> item) => ((IDictionary<string, Variable>)dictionary).Remove(item);
-            public bool TryGetValue(string key, [MaybeNullWhen(false)] out Variable value) => ((IDictionary<string, Variable>)dictionary).TryGetValue(key, out value);
-            IEnumerator IEnumerable.GetEnumerator() => ((IDictionary<string, Variable>)dictionary).GetEnumerator();
-
-        }
 
 
     }

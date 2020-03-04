@@ -5,7 +5,7 @@ using System.Text;
 
 namespace MCSharp.Compilation {
 
-    public struct ScriptFile : IReadOnlyCollection<ScriptClass> {
+    public class ScriptFile : IReadOnlyCollection<ScriptClass> {
 
 
         public static Dictionary<string, ScriptFile> Files { get; } = new Dictionary<string, ScriptFile>();

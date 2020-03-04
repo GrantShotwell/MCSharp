@@ -20,21 +20,21 @@ namespace MCSharp.Variables {
         public Spy() { }
 
         public Spy(string prep, string init, string demo) :
-        base(Access.Private, Usage.Default, NextHiddenID, Compiler.CurrentScope) {
+        base(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope) {
             Init = (function) => function.WriteLine(init);
             Prep = (function) => function.WriteLine(prep);
             Demo = (function) => function.WriteLine(demo);
         }
 
         public Spy(string[] prep, string[] init, string[] demo) :
-        base(Access.Private, Usage.Default, NextHiddenID, Compiler.CurrentScope) {
+        base(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope) {
             Prep = (function) => { if(prep != null) foreach(string command in prep) function.WriteLine(command); };
             Init = (function) => { if(init != null) foreach(string command in init) function.WriteLine(command); };
             Demo = (function) => { if(demo != null) foreach(string command in demo) function.WriteLine(command); };
         }
 
         public Spy(Action<StreamWriter> prep, Action<StreamWriter> init, Action<StreamWriter> demo) :
-        base(Access.Private, Usage.Default, NextHiddenID, Compiler.CurrentScope) {
+        base(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope) {
             Prep = prep;
             Init = init;
             Demo = demo;

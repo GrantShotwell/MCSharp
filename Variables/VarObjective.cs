@@ -31,14 +31,14 @@ namespace MCSharp.Variables {
             Methods.Add("GetInt", (arguments) => {
                 if(arguments.Length > 1) throw new ArgumentException("Expected at most 1 (Selector) argument for 'Objective.GetInt(...)'.");
                 if(arguments.Length == 0) {
-                    return new VarInt(Access.Private, Usage.Default, NextHiddenID, scope, 
-                        new VarSelector(Access.Private, Usage.Default, NextHiddenID, scope, "@e"), this,
-                        new VarSelector(Access.Private, Usage.Default, NextHiddenID, scope, "var"),
-                        new VarObjective(Access.Private, Usage.Default, NextHiddenID, scope, "dummy"));
+                    return new VarInt(Access.Private, Usage.Default, GetNextHiddenID(), scope, 
+                        new VarSelector(Access.Private, Usage.Default, GetNextHiddenID(), scope, "@e"), this,
+                        new VarSelector(Access.Private, Usage.Default, GetNextHiddenID(), scope, "var"),
+                        new VarObjective(Access.Private, Usage.Default, GetNextHiddenID(), scope, "dummy"));
                 } else if(arguments[0] is VarSelector varSelector || arguments[0].TryCast(out varSelector)) {
-                    return new VarInt(Access.Private, Usage.Default, NextHiddenID, scope, varSelector, this,
-                        new VarSelector(Access.Private, Usage.Default, NextHiddenID, scope, "var"),
-                        new VarObjective(Access.Private, Usage.Default, NextHiddenID, scope, "dummy"));
+                    return new VarInt(Access.Private, Usage.Default, GetNextHiddenID(), scope, varSelector, this,
+                        new VarSelector(Access.Private, Usage.Default, GetNextHiddenID(), scope, "var"),
+                        new VarObjective(Access.Private, Usage.Default, GetNextHiddenID(), scope, "dummy"));
                 } else throw new ArgumentException($"Could not interpret '{arguments[0]}' as 'Selector'.");
             });
         }
@@ -63,28 +63,28 @@ namespace MCSharp.Variables {
 
             if(type.IsAssignableFrom(typeof(PrimitiveType))) {
                 result = new PrimitiveType(
-                    Access.Private, Usage.Default, NextHiddenID, Compiler.CurrentScope,
-                    new VarSelector(Access.Private, Usage.Default, NextHiddenID, Compiler.CurrentScope, "@e"), this,
-                    new VarSelector(Access.Private, Usage.Default, NextHiddenID, Compiler.CurrentScope, "var"),
-                    new VarObjective(Access.Private, Usage.Default, NextHiddenID, Compiler.CurrentScope, "dummy")) as TVariable;
+                    Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope,
+                    new VarSelector(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope, "@e"), this,
+                    new VarSelector(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope, "var"),
+                    new VarObjective(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope, "dummy")) as TVariable;
                 return true;
             }
             
             if(type.IsAssignableFrom(typeof(VarInt))) {
                 result = new VarInt(
-                    Access.Private, Usage.Default, NextHiddenID, Compiler.CurrentScope,
-                    new VarSelector(Access.Private, Usage.Default, NextHiddenID, Compiler.CurrentScope, "@e"), this,
-                    new VarSelector(Access.Private, Usage.Default, NextHiddenID, Compiler.CurrentScope, "var"),
-                    new VarObjective(Access.Private, Usage.Default, NextHiddenID, Compiler.CurrentScope, "dummy")) as TVariable;
+                    Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope,
+                    new VarSelector(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope, "@e"), this,
+                    new VarSelector(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope, "var"),
+                    new VarObjective(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope, "dummy")) as TVariable;
                 return true;
             }
             
             if(type.IsAssignableFrom(typeof(VarBool))) {
                 result = new VarBool(
-                    Access.Private, Usage.Default, NextHiddenID, Compiler.CurrentScope,
-                    new VarSelector(Access.Private, Usage.Default, NextHiddenID, Compiler.CurrentScope, "@e"), this,
-                    new VarSelector(Access.Private, Usage.Default, NextHiddenID, Compiler.CurrentScope, "var"),
-                    new VarObjective(Access.Private, Usage.Default, NextHiddenID, Compiler.CurrentScope, "dummy")) as TVariable;
+                    Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope,
+                    new VarSelector(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope, "@e"), this,
+                    new VarSelector(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope, "var"),
+                    new VarObjective(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope, "dummy")) as TVariable;
                 return true;
             }
 
