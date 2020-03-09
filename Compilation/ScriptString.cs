@@ -91,6 +91,11 @@ namespace MCSharp.Compilation {
         public void Clear() => ((IList<ScriptChar>)Characters).Clear();
 
         public bool Contains(ScriptChar item) => ((IList<ScriptChar>)Characters).Contains(item);
+        public bool ContainsWhitespace() {
+            foreach(ScriptChar item in this)
+                if(char.IsWhiteSpace((char)item)) return true;
+            return false;
+        }
 
         public void CopyTo(ScriptChar[] array, int arrayIndex) => ((IList<ScriptChar>)Characters).CopyTo(array, arrayIndex);
 
@@ -125,6 +130,7 @@ namespace MCSharp.Compilation {
         }
 
         public static implicit operator ScriptString(ScriptChar[] array) => new ScriptString((ICollection<ScriptChar>)array);
+        public static implicit operator ScriptString(ScriptChar character) => new ScriptString(new ScriptChar[] { character });
 
         #endregion
 

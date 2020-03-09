@@ -26,7 +26,7 @@ namespace MCSharp.Compilation {
 
 
         public static ScriptClass[] GetClasses(ScriptString file) {
-            var functions = new List<ScriptClass>();
+            var classes = new List<ScriptClass>();
 
             int start = 0, blocks = 0;
             string word = "", lastWord = "";
@@ -58,7 +58,7 @@ namespace MCSharp.Compilation {
                 } else if(current == '}') {
                     blocks--;
                     if(blocks == 0) {
-                        functions.Add(new ScriptClass(alias, file[start..end]));
+                        classes.Add(new ScriptClass(alias, file[start..end]));
                     }
                     Rotate();
                 } else if(blocks == 0) {
@@ -69,7 +69,7 @@ namespace MCSharp.Compilation {
 
             if(inString) throw new Compiler.SyntaxException("Unclosed string!", file.ScriptTrace);
 
-            return functions.ToArray();
+            return classes.ToArray();
         }
 
         public IEnumerator<ScriptClass> GetEnumerator() => ((IReadOnlyCollection<ScriptClass>)ScriptClasses).GetEnumerator();

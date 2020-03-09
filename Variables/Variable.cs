@@ -36,7 +36,7 @@ namespace MCSharp.Variables {
 
         public Variable() {
             Type type = GetType();
-            if(!typeof(Spy).IsAssignableFrom(type) && !typeof(UserClass).IsAssignableFrom(type)) Compilers.Add(TypeName, Compile);
+            if(!typeof(Spy).IsAssignableFrom(type) && !typeof(VarGeneric).IsAssignableFrom(type)) Compilers.Add(TypeName, Compile);
         }
 
         public Variable(Access access, Usage usage, string objectName, Compiler.Scope scope) {
@@ -127,15 +127,20 @@ namespace MCSharp.Variables {
         public virtual void WriteCopyTo(StreamWriter function, Variable variable)
             => throw new Compiler.SyntaxException($"Cannot pass the value of type '{TypeName}' to other variables!", Compiler.CurrentScriptTrace);
 
+        public bool TryCast<TVariable>([NotNullWhen(true)] out TVariable result) where TVariable : Variable {
+            bool success = TryCast(typeof(TVariable), out Variable variable);
+            result = variable as TVariable;
+            if(result is null) throw new Exception("123903042020");
+            return success;
+        }
+
         /// <summary>
         /// Attempts to create a new <see cref="Variable"/> of the given type.
         /// </summary>
-        public virtual bool TryCast<TVariable>([NotNullWhen(false)] out TVariable result) where TVariable : Variable {
-            if(typeof(TVariable).IsAssignableFrom(typeof(VarString)))
-                return (result = GetString() as TVariable) != null;
-            if(typeof(TVariable).IsAssignableFrom(typeof(VarJSON)))
-                return (result = new VarJSON(Access.Private, Usage.Constant, GetNextHiddenID(), Scope, GetJSON()) as TVariable) != null;
-            else return (result = this as TVariable) != null;
+        public virtual bool TryCast(Type type, [NotNullWhen(true)] out Variable result) {
+            return type.IsAssignableFrom(typeof(VarString)) ? (result = GetString()) != null
+                 : type.IsAssignableFrom(typeof(VarJSON)) ? (result = new VarJSON(Access.Private, Usage.Constant, GetNextHiddenID(), Scope, GetJSON())) != null
+                 : (result = this) != null;
         }
 
         /// <summary>

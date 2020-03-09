@@ -15,9 +15,8 @@ namespace MCSharp.Variables {
         public string FolderPath { get; }
         public string GamePath { get; }
         public List<string> Commands { get; } = new List<string>();
-        public IReadOnlyList<Variable> Parameters { get; private set; }
-        public ScriptFunction ScriptFunction { get; }
-        public Compiler.Scope FunctionScope { get; private set; }
+        public IReadOnlyList<Variable> Parameters => ScriptMethod.Parameters;
+        public ScriptMethod ScriptMethod { get; }
 
         public override ICollection<Access> AllowedAccessModifiers => new Access[] { Access.Private, Access.Public };
         public override ICollection<Usage> AllowedUsageModifiers => new Usage[] { Usage.Default, Usage.Constant, Usage.Static };
@@ -25,12 +24,11 @@ namespace MCSharp.Variables {
 
         public VarFunction() : base() { }
 
-        public VarFunction(Access access, Usage usage, string objectName, Compiler.Scope scope, ScriptFunction function, params Variable[] parameters) :
+        public VarFunction(Access access, Usage usage, string objectName, Compiler.Scope scope, ScriptMethod function) :
         base(access, usage, objectName, scope) {
             GamePath = $"{Program.Datapack.Name}:{function.Alias.Replace('\\', '/')}";
-            FolderPath = $"{Program.Datapack.Name}:{function.AliasDotted}.mcfunction";
-            Parameters = parameters;
-            ScriptFunction = function;
+            FolderPath = $"{Program.Datapack.Name}:{function.FullAlias}.mcfunction";
+            ScriptMethod = function;
             Methods.Add("Invoke", (args) => {
                 if(args.Length != Parameters.Count)
                     throw new InvalidArgumentsException($"Wrong number of arguments for '{this}'.Invoke(_).", Compiler.CurrentScriptTrace);
@@ -55,10 +53,11 @@ namespace MCSharp.Variables {
                 if(argargs.Length != 2) throw new Compiler.SyntaxException("Expected '[type] [name]'.", arguments[0].ScriptTrace);
                 parameters[i] = new Parameter(argargs[0], argargs[1]).GetVariable(scope);
             }
-            return new VarFunction(access, usage, objectName, scope, new ScriptFunction($"{scope}\\{objectName}\\Invoke", arguments[3]), parameters);
+            return new VarFunction(access, usage, objectName, scope, new ScriptMethod($"{scope}\\{objectName}\\Invoke",
+                "void", parameters, Compiler.CurrentScope.DeclaringType, arguments[3]));
         }
 
-        public override void WriteInit(StreamWriter function) => Compiler.WriteFunction(Scope, ScriptFunction);
+        public override void WriteInit(StreamWriter function) => Compiler.WriteFunction<VarVoid>(Scope, ScriptMethod);
 
         public struct Parameter {
             readonly string type, name;

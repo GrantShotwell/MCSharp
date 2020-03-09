@@ -52,11 +52,12 @@ namespace MCSharp.Variables {
                         new VarSelector(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope, "var"),
                         new VarObjective(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope, "dummy"));
                     //Write function: 'set anon to the opposite of this'.
-                    var function = new ScriptFunction($"{Compiler.CurrentScope}\\{Compiler.CurrentScope.GetNextInnerID()}",
-                        new ScriptString($"if({anon.ObjectName}) {{ {anon.ObjectName} = false; }} else {{ {anon.ObjectName} = false; }}"));
-                    Compiler.WriteFunction(Compiler.CurrentScope, function);
+                    var function = new ScriptMethod($"{Compiler.CurrentScope}\\{Compiler.CurrentScope.GetNextInnerID()}",
+                        "void", new Variable[] { }, Compiler.CurrentScope.DeclaringType,
+                        new ScriptString($"if({anon.ObjectName}) {{ {anon.ObjectName} = false; }} else {{ {anon.ObjectName} = true; }}"));
+                    Compiler.WriteFunction<VarVoid>(Compiler.CurrentScope, function);
                     //Write command: 'run that function'.
-                    new Spy(null, $"function {function.GamePath}", null);
+                    new Spy(null, $"function {function.GameName}", null);
                     return anon;
                 }
                 case "&&": {
@@ -65,11 +66,12 @@ namespace MCSharp.Variables {
                         new VarSelector(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope, "var"),
                         new VarObjective(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope, "dummy"));
                     //Write function: 'if anon is true, set anon to args'.
-                    var function = new ScriptFunction($"{Compiler.CurrentScope}\\{Compiler.CurrentScope.GetNextInnerID()}",
+                    var function = new ScriptMethod($"{Compiler.CurrentScope}\\{Compiler.CurrentScope.GetNextInnerID()}",
+                        "void", new Variable[] { }, Compiler.CurrentScope.DeclaringType,
                         new ScriptString($"if({anon.ObjectName}) {{ {anon.ObjectName} = {(string)new ScriptWild(args, "(\\)", ' ')}; }}"));
-                    Compiler.WriteFunction(Compiler.CurrentScope, function);
+                    Compiler.WriteFunction<VarVoid>(Compiler.CurrentScope, function);
                     //Write command: 'run that function'.
-                    new Spy(null, $"function {function.GamePath}", null);
+                    new Spy(null, $"function {function.GameName}", null);
                     return anon;
                 }
                 default: return base.Operation(operation, args);

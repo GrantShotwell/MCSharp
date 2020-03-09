@@ -178,17 +178,19 @@ namespace MCSharp.Statements {
             if(Compiler.TryParseValue(conditionWild, Compiler.CurrentScope, out Variable conditionVariable)) {
                 if(conditionVariable is VarBool varBool || conditionVariable.TryCast(out varBool)) {
                     condition = varBool;
-                    var statement = new ScriptFunction($"{Compiler.CurrentScope}\\{Compiler.CurrentScope.GetNextInnerID()}", statementWild);
-                    Compiler.WriteFunction(Compiler.CurrentScope, statement);
+                    var statement = new ScriptMethod($"{Compiler.CurrentScope}\\{Compiler.CurrentScope.GetNextInnerID()}",
+                        "void", new Variable[] { }, null, statementWild);
+                    Compiler.WriteFunction<VarVoid>(Compiler.CurrentScope, statement);
                     new Spy(null, $"execute if score {condition.Selector.GetConstant()} {condition.Objective.GetConstant()} matches 1.. " +
-                        $"run function {statement.GamePath}", null);
+                        $"run function {statement.GameName}", null);
                 } else throw new Variable.InvalidArgumentsException($"Could not cast '{conditionVariable}' as a 'bool'.", line.ScriptTrace);
             } else throw new Exception(); //TODO:  add details
             if(elseWild.HasValue) {
-                var statement = new ScriptFunction($"{Compiler.CurrentScope}\\{Compiler.CurrentScope.GetNextInnerID()}", elseWild.Value.Wilds[1]);
-                Compiler.WriteFunction(Compiler.CurrentScope, statement);
+                var statement = new ScriptMethod($"{Compiler.CurrentScope}\\{Compiler.CurrentScope.GetNextInnerID()}",
+                    "void", new Variable[] { }, Compiler.CurrentScope.DeclaringType, elseWild.Value.Wilds[1]);
+                Compiler.WriteFunction<VarVoid>(Compiler.CurrentScope, statement);
                 new Spy(null, $"execute if score {condition.Selector.GetConstant()} {condition.Objective.GetConstant()} matches ..0 " +
-                    $"run function {statement.GamePath}", null);
+                    $"run function {statement.GameName}", null);
             }
         }
 

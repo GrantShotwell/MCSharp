@@ -150,19 +150,42 @@ namespace MCSharp.Compilation {
 
                 {
                     //Getting here means this is not a keyword.
-                    //Just add it to whatever tuple we're on.
+                    //Add the word to whatever tuple we're on.
                     var tuple = stack.Peek();
+
                     if(tuple.Item1 == null) {
+
                         var list = tuple.Item3;
                         list.Add(new ScriptWord(str));
                         if(list.Count > 1) {
                             stack.Pop();
                             stack.Push(new Tuple<char?, string, List<ScriptWild>>(' ', tuple.Item2, list));
                         }
-                    } else if(tuple.Item1 != ';') {
+
+                    } else if(tuple.Item1 == ';') {
+
+                        var next = new Tuple<char?, string, List<ScriptWild>>(null, " \\ ", new List<ScriptWild>());
+                        var list = next.Item3;
+                        list.Add(new ScriptWord(str));
+                        stack.Push(next);
+
+                    } else if(tuple.Item1 != ' ') {
+
                         var list = tuple.Item3;
-                        list.Add(new ScriptWord(str, ignoreCohesion: true));
+                        var sub = new LinkedList<ScriptWild>();
+                        sub.AddFirst(new ScriptWord(str));
+                        int index = list.Count - 1;
+                        while((index > 0) && (list[index].IsWilds ? list[index].FullBlockType == $" \\{tuple.Item1}\\ " : true)) {
+                            var item = list[index];
+                            list.RemoveAt(index--);
+                            sub.AddFirst(item);
+                        }
+                        var array = new ScriptWild[sub.Count];
+                        sub.CopyTo(array, 0);
+                        list.Add(array.Length > 1 ? new ScriptWild(array, " \\ ", ' ') : new ScriptWord(str));
+
                     } else {
+
                         var next = new Tuple<char?, string, List<ScriptWild>>(null, " \\ ", new List<ScriptWild>());
                         var list = next.Item3;
                         list.Add(new ScriptWord(str));
@@ -175,10 +198,15 @@ namespace MCSharp.Compilation {
             while(stack.Count > 1 && stack.Peek().Item2[2] == ' ') {
                 var tuple = stack.Pop();
                 if(tuple.Item3.Count > 1) {
-                    if(stack.Peek().Item3.Count == 0 && stack.Peek().Item2 == tuple.Item2 && stack.Peek().Item1 == tuple.Item1) {
+                    var peek = stack.Peek();
+                    bool equalItems = (peek.Item1 ?? ' ') == (tuple.Item1 ?? ' ') && peek.Item2 == tuple.Item2;
+                    bool combinable = peek.Item2 == " \\ " && equalItems;
+                    if(peek.Item3.Count == 0 && equalItems) {
                         stack.Pop();
                         stack.Push(tuple);
-                    } else stack.Peek().Item3.Add(new ScriptWild(tuple.Item3.ToArray(), tuple.Item2, tuple.Item1 ?? ' '));
+                    } else if(peek.Item3.Count > 0 && combinable) {
+                        foreach(var wild in tuple.Item3) peek.Item3.Add(wild);
+                    } else peek.Item3.Add(new ScriptWild(tuple.Item3.ToArray(), tuple.Item2, tuple.Item1 ?? ' '));
                 } else {
                     if(tuple.Item3[0].IsWord) stack.Peek().Item3.Add(tuple.Item3[0].Word);
                     else stack.Peek().Item3.Add(new ScriptWild(tuple.Item3.ToArray(), tuple.Item2, tuple.Item1.Value));

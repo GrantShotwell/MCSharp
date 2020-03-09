@@ -29,7 +29,10 @@ namespace MCSharp.Variables {
         protected override Variable Compile(Access access, Usage usage, string objectName, Compiler.Scope scope, ScriptWild[] arguments) {
 
             if(arguments.Length == 0)
-                arguments = new ScriptWild[] { new ScriptWord(new ScriptString("=", "06012262020a")), new ScriptWord(new ScriptString("0", "06012262020b")) };
+                arguments = new ScriptWild[] {
+                    new ScriptWord(new ScriptString("=", Program.ScriptsFolder + "06012262020a")),
+                    new ScriptWord(new ScriptString("0", Program.ScriptsFolder + "06012262020b"))
+                };
             if(arguments.Length < 2) 
                 throw new Compiler.SyntaxException("Expected more arguments for declaring an int.", arguments[0].ScriptTrace);
             if(arguments[0].IsWilds || (string)arguments[0].Word != "=") 
@@ -112,12 +115,12 @@ namespace MCSharp.Variables {
             }
         }
 
-        public override bool TryCast<TVariable>([NotNullWhen(false)] out TVariable result) {
-            if(typeof(TVariable).IsAssignableFrom(typeof(VarBool))) {
+        public override bool TryCast(Type type, [NotNullWhen(false)] out Variable result) {
+            if(type.IsAssignableFrom(typeof(VarBool))) {
                 return (result = new VarBool(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope, Selector, Objective,
                     new VarSelector(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope, "var"),
-                    new VarObjective(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope, "dummy")) as TVariable) != null;
-            } else return base.TryCast(out result);
+                    new VarObjective(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope, "dummy"))) != null;
+            } else return base.TryCast(type, out result);
         }
 
     }

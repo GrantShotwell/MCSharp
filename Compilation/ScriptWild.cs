@@ -73,7 +73,7 @@ namespace MCSharp.Compilation {
             }
         }
 
-        public ScriptTrace ScriptTrace => (IsWord ? word.Value.ScriptTrace : wilds[0].ScriptTrace) ?? throw new Exception("123502252020");
+        public ScriptTrace ScriptTrace => IsWord ? word.Value.ScriptTrace : (wilds.Length > 0 ? wilds[0].ScriptTrace : throw new Exception("123502252020"));
 
 
         /// <summary>
@@ -91,6 +91,12 @@ namespace MCSharp.Compilation {
         /// Creates a new <see cref="ScriptWild"/> that is just more <see cref="ScriptWild"/>s.
         /// </summary>
         public ScriptWild(ScriptWild[] wilds, string block, char separation) {
+
+            if(wilds is null)
+                throw new ArgumentNullException(nameof(wilds));
+            if(string.IsNullOrEmpty(block))
+                throw new ArgumentException("Argument cannot be null or empty.", nameof(block));
+
             if(wilds.Length == 0) {
 
                 word = null;

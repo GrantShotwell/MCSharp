@@ -28,7 +28,7 @@ namespace MCSharp {
 
         public static ScriptTrace CurrentScriptTrace { get; private set; }
         public static IReadOnlyDictionary<int, Scope> AllScopes => allScopes;
-        public static Scope RootScope { get; } = new Scope(null);
+        public static Scope RootScope { get; private set; }
         public static Stack<Scope> ScopeStack { get; } = new Stack<Scope>();
         public static Scope CurrentScope => ScopeStack.Peek();
 
@@ -72,9 +72,7 @@ namespace MCSharp {
                 Console.WriteLine($"Compiling '{scriptName}'... ");
 
                 using(StreamReader reader = File.OpenText(scriptPath)) {
-                    var scriptFile = new ScriptFile(new ScriptString(reader.ReadToEnd(), scriptPath));
-                    foreach(ScriptClass scriptClass in scriptFile) foreach(ScriptMember scriptMember in scriptClass.Values)
-                            if(scriptMember is ScriptFunction scriptFunction) WriteFunction(RootScope, scriptFunction);
+                    new ScriptFile(new ScriptString(reader.ReadToEnd(), scriptPath));
                 }
 
                 Console.CursorTop -= highestFunctionStackSize + 1;
@@ -140,14 +138,14 @@ namespace MCSharp {
         /// <summary>
         /// Compiles a new function file with the given <paramref name="functionPath"/> from the given <paramref name="function"/>.
         /// </summary>
-        public static Scope WriteFunction(Scope parent, ScriptFunction function) {
+        public static Scope WriteFunction<TReturn>(Scope parent, ScriptMethod function) where TReturn : Variable {
 
             string path = function.FilePath;
             string alias = function.FileName;
             CurrentScriptTrace = function.ScriptTrace;
 
             Console.ForegroundColor = ConsoleColor.Gray;
-            Console.Write($"\n · Writing '{alias}'... ");
+            Console.Write($" · Writing '{alias}'... ");
             highestFunctionStackSize++;
 
             string[] directorySplit = path.Split('\\')[..^1];
@@ -157,7 +155,7 @@ namespace MCSharp {
             StreamWriter writer = File.CreateText(path.Split("(", 2)[0]);
 
             FunctionStack.Push(writer);
-            ScopeStack.Push(new Scope(parent));
+            ScopeStack.Push(new Scope(parent, function.DeclaringType));
 
 
             var lines = (IReadOnlyList<ScriptLine>)function;
@@ -196,9 +194,9 @@ namespace MCSharp {
                             }
 
                             //Look for VALUE
-                            if(TryParseValue(wild, CurrentScope, out Variable v1)) {
+                            if(TryParseValue(wild, CurrentScope, out Variable variable)) {
                                 onFinish = () => {
-                                    if(args.Count > 0) v1.Operation(args[0].Word, args.ToArray()[1..]);
+                                    if(args.Count > 0) variable.Operation(args[0].Word, args.ToArray()[1..]);
                                     else throw new Exception("115002272020");
                                 };
                                 continue;
@@ -370,9 +368,10 @@ namespace MCSharp {
             VarObjective.ResetID();
 
             //Clear scopes from last compile.
+            nextScopeID = 0;
             allScopes.Clear();
-            allScopes.Add(RootScope);
             ScopeStack.Clear();
+            ScopeStack.Push(RootScope = new Scope(null));
 
             //Clear stack from last compile.
             FunctionStack.Clear();
@@ -392,7 +391,7 @@ namespace MCSharp {
                 if(info.IsSubclassOf(typeof(Variable)) && !info.IsAbstract) {
                     ConstructorInfo constructor = info.GetConstructor(new Type[] { });
                     var variable = constructor.Invoke(new object[] { }) as Variable;
-                    if((!(variable is Spy)) && (!(variable is UserClass))) Datatypes.Add(variable.TypeName, info.AsType());
+                    if((!(variable is Spy)) && (!(variable is VarGeneric))) Datatypes.Add(variable.TypeName, info.AsType());
                 }
             }
 
@@ -406,15 +405,16 @@ namespace MCSharp {
 
         }
 
+        private static int nextScopeID = 0;
         public class Scope {
-
-            private static int nextScopeID = 0;
 
             private int nextInnerID = 0;
             private readonly List<Scope> children = new List<Scope>();
             private Scope parent;
+            private readonly ScriptClass declaringType;
 
             public int ID { get; }
+            public ScriptClass DeclaringType => declaringType ?? Parent?.DeclaringType ?? null;
             public HashSet<Variable> Variables { get; } = new HashSet<Variable>();
             public IReadOnlyCollection<Scope> Children => children;
             public Scope Parent {
@@ -427,7 +427,8 @@ namespace MCSharp {
             }
 
 
-            public Scope(Scope parent) {
+            public Scope(Scope parent, ScriptClass declaringType = null) {
+                this.declaringType = declaringType;
                 ID = GetNextScopeID();
                 Parent = parent;
                 allScopes.Add(this);
