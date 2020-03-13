@@ -6,100 +6,77 @@ using System.IO;
 
 namespace MCSharp.Variables {
 
-    /// <summary>
-    /// Represents a Minecraft scoreboard objective.
-    /// </summary>
-    public class VarObjective : Variable {
+	/// <summary>
+	/// Represents a Minecraft scoreboard objective.
+	/// </summary>
+	public class VarObjective : Variable {
 
-        public static int NextID { get; private set; }
+		public static int NextID { get; private set; }
 
-        public override int Order => base.Order - 10;
-        public override string TypeName => "Objective";
-        public string ID { get; }
-        public string Type { get; }
+		public override int Order => base.Order - 10;
+		public override string TypeName => "Objective";
+		public string ID { get; }
+		public string Type { get; }
 
-        public override ICollection<Access> AllowedAccessModifiers => new Access[] { Access.Private, Access.Public };
-        public override ICollection<Usage> AllowedUsageModifiers => new Usage[] { Usage.Default, Usage.Constant, Usage.Static };
-
-
-        public VarObjective() : base() { }
-
-        public VarObjective(Access access, Usage usage, string objectName, Compiler.Scope scope, string type) :
-        base(access, usage, objectName, scope) {
-            ID = $"mcs.{BaseConverter.Convert(NextID++, 62)}";
-            Type = type;
-            Methods.Add("GetInt", (arguments) => {
-                if(arguments.Length > 1) throw new ArgumentException("Expected at most 1 (Selector) argument for 'Objective.GetInt(...)'.");
-                if(arguments.Length == 0) {
-                    return new VarInt(Access.Private, Usage.Default, GetNextHiddenID(), scope, 
-                        new VarSelector(Access.Private, Usage.Default, GetNextHiddenID(), scope, "@e"), this,
-                        new VarSelector(Access.Private, Usage.Default, GetNextHiddenID(), scope, "var"),
-                        new VarObjective(Access.Private, Usage.Default, GetNextHiddenID(), scope, "dummy"));
-                } else if(arguments[0] is VarSelector varSelector || arguments[0].TryCast(out varSelector)) {
-                    return new VarInt(Access.Private, Usage.Default, GetNextHiddenID(), scope, varSelector, this,
-                        new VarSelector(Access.Private, Usage.Default, GetNextHiddenID(), scope, "var"),
-                        new VarObjective(Access.Private, Usage.Default, GetNextHiddenID(), scope, "dummy"));
-                } else throw new ArgumentException($"Could not interpret '{arguments[0]}' as 'Selector'.");
-            });
-        }
+		public override ICollection<Access> AllowedAccessModifiers => new Access[] { Access.Private, Access.Public };
+		public override ICollection<Usage> AllowedUsageModifiers => new Usage[] { Usage.Default, Usage.Constant, Usage.Static };
 
 
-        protected override Variable Compile(Access access, Usage usage, string objectName, Compiler.Scope scope, ScriptWild[] arguments) {
-            //always expecting format: new Objective(string);
-            if(arguments.Length != 4
-                || arguments[0].IsWilds || (string)arguments[0].Word != "="
-                || arguments[1].IsWilds || (string)arguments[1].Word != "new"
-                || arguments[2].IsWilds || (string)arguments[2].Word != "Objective"
-                || arguments[3].IsWord || arguments[3].BlockType != "(\\)" || arguments[3].Wilds[0].IsWilds) {
-                throw new Compiler.SyntaxException("Expected ' = new Objective([type]);'.", arguments[0].ScriptTrace);
-            } else {
-                return new VarObjective(access, usage, objectName, scope, (string)arguments[3].Wilds[0].Word);
-            }
+		public VarObjective() : base() { }
 
-        }
-        
-        public override bool TryCast(Type type, [NotNullWhen(false)] out Variable result) {
+		public VarObjective(Access access, Usage usage, string name, Compiler.Scope scope, string type) :
+		base(access, usage, name, scope) {
+			ID = $"mcs.{BaseConverter.Convert(NextID++, 62)}";
+			Type = type;
+			Methods.Add("GetInt", (arguments) => {
+				if(arguments.Length > 1) throw new ArgumentException("Expected at most 1 (Selector) argument for 'Objective.GetInt(...)'.");
+				if(arguments.Length == 0) {
+					var x = new VarInt(Access.Private, Usage.Default, GetNextHiddenID(), scope);
+					x.SetValue("@e", GetConstant());
+					return x;
+				} else if(arguments[0] is VarSelector varSelector || arguments[0].TryCast(out varSelector)) {
+					var x = new VarInt(Access.Private, Usage.Default, GetNextHiddenID(), scope);
+					x.SetValue(varSelector.GetConstant(), GetConstant());
+					return x;
+				} else throw new ArgumentException($"Could not interpret '{arguments[0]}' as 'Selector'.");
+			});
+		}
 
-            if(type.IsAssignableFrom(typeof(PrimitiveType))) {
-                result = new PrimitiveType(
-                    Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope,
-                    new VarSelector(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope, "@e"), this,
-                    new VarSelector(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope, "var"),
-                    new VarObjective(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope, "dummy"));
-                return true;
-            }
-            
-            if(type.IsAssignableFrom(typeof(VarInt))) {
-                result = new VarInt(
-                    Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope,
-                    new VarSelector(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope, "@e"), this,
-                    new VarSelector(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope, "var"),
-                    new VarObjective(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope, "dummy"));
-                return true;
-            }
-            
-            if(type.IsAssignableFrom(typeof(VarBool))) {
-                result = new VarBool(
-                    Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope,
-                    new VarSelector(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope, "@e"), this,
-                    new VarSelector(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope, "var"),
-                    new VarObjective(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope, "dummy"));
-                return true;
-            }
 
-            result = null;
-            return false;
+		protected override Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) {
+			base.Initialize(access, usage, name, scope, trace);
 
-        }
+			throw new NotImplementedException();
 
-        public override void WriteInit(StreamWriter function) => function.WriteLine($"scoreboard objectives add {ID} {Type}");
-        public override void WritePrep(StreamWriter function) => function.WriteLine($"scoreboard objectives add {ID} {Type}");
-        public override void WriteDemo(StreamWriter function) => function.WriteLine($"scoreboard objectives remove {ID}");
+		}
 
-        public override string GetConstant() => ID;
+		public override bool TryCast(Type type, [NotNullWhen(false)] out Variable result) {
 
-        public static void ResetID() => NextID = 0;
+			if(type.IsAssignableFrom(typeof(VarInt))) {
+				result = new VarInt(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope);
+				((PrimitiveType)result).SetValue("@e", GetConstant());
+				return true;
+			}
 
-    }
+			if(type.IsAssignableFrom(typeof(VarBool))) {
+				result = new VarBool(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope);
+				((PrimitiveType)result).SetValue("@e", GetConstant());
+				return true;
+			}
+
+			result = null;
+			return false;
+
+		}
+
+		public override void WriteInit(StreamWriter function) => function.WriteLine($"scoreboard objectives add {ID} {Type}");
+		public override void WritePrep(StreamWriter function) => function.WriteLine($"scoreboard objectives add {ID} {Type}");
+		public override void WriteDemo(StreamWriter function) => function.WriteLine($"scoreboard objectives remove {ID}");
+
+		public override string GetConstant() => ID;
+
+		public static void ResetID() => NextID = 0;
+
+	}
 
 }

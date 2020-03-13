@@ -1,15 +1,14 @@
 ﻿using MCSharp.Variables;
-using static MCSharp.Compiler;
 
 namespace MCSharp {
 
-    public class Datapack {
+	public class Datapack {
 
-        public string Name { get; set; }
-        public string Path => Program.Directory + "\\" + Name;
-        public VarFunction Load { get; set; }
-        public VarFunction Main { get; set; }
+		public string Name { get; set; }
+		public string Path => Program.Directory + "\\" + Name;
+		public VarFunction Load { get; set; }
+		public VarFunction Main { get; set; }
 
-    }
+	}
 
 }

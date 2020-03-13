@@ -1,29 +1,28 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿namespace MCSharp.Compilation {
 
-namespace MCSharp.Compilation {
+	public struct ScriptChar {
 
-    public struct ScriptChar {
+		private char Character { get; }
+		public ScriptTrace ScriptTrace { get; }
 
-        private char Character { get; }
-        public ScriptTrace ScriptTrace { get; }
-
-        public ScriptChar(char character, string path, int line) {
-            Character = character;
-            ScriptTrace = new ScriptTrace(path, line);
-        }
+		public ScriptChar(char character, string path, int line) {
+			Character = character;
+			ScriptTrace = new ScriptTrace(path, line);
+		}
 
 
-        public static explicit operator char(ScriptChar character) => character.Character;
+		public static ScriptString operator +(ScriptChar left, ScriptChar right) => new ScriptString(new ScriptChar[] { left, right });
 
-        public static bool operator ==(ScriptChar left, char right) => (char)left == right;
-        public static bool operator ==(char left, ScriptChar right) => left == (char)right;
-        public static bool operator !=(ScriptChar left, char right) => (char)left != right;
-        public static bool operator !=(char left, ScriptChar right) => left != (char)right;
+		public static bool operator ==(ScriptChar left, char right) => (char)left == right;
+		public static bool operator ==(char left, ScriptChar right) => left == (char)right;
+		public static bool operator !=(ScriptChar left, char right) => (char)left != right;
+		public static bool operator !=(char left, ScriptChar right) => left != (char)right;
 
-        public override string ToString() => $"Line {ScriptTrace.FileLine}: '{Character.ToString()}'";
+		public static explicit operator char(ScriptChar character) => character.Character;
+		public static implicit operator ScriptWord(ScriptChar character) => new ScriptWord(character);
 
-    }
+		public override string ToString() => $"Line {ScriptTrace.FileLine}: '{Character.ToString()}'";
+
+	}
 
 }
