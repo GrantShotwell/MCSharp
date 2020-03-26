@@ -9,13 +9,13 @@ namespace MCSharp.Variables {
 	/// </summary>
 	public class VarSelector : Variable {
 
-		private string constant;
+		private string constant = null;
 
 		private string Value {
 			get => constant;
 			set {
 				if(constant == null) constant = value;
-				else throw new InvalidOperationException($"Cannot set the value of '{nameof(Value)}' because it already had been set.");
+				else throw new InvalidOperationException($"Cannot set the value of '{nameof(Value)}' because it already has been set.");
 			}
 		}
 
@@ -42,7 +42,6 @@ namespace MCSharp.Variables {
 
 				case Operation.Set:
 				if(operand is VarString varString || operand.TryCast(out varString)) {
-					//if(Usage == Usage.Static || Usage == Usage.Constant) throw new Compiler.SyntaxException("Cannot set a static/constant variable.", trace);
 					Value = varString.GetConstant();
 					return this;
 				} else throw new InvalidCastException(operand, TypeName, trace);

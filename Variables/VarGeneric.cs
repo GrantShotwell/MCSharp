@@ -20,9 +20,10 @@ namespace MCSharp.Variables {
 			: base(scriptClass.Access, scriptClass.Usage, scriptClass.Alias, Compiler.RootScope) {
 
 			ScriptClass = scriptClass;
+			Compiler.StaticClassObjects.Add(TypeName, this);
+			Compilers.Add(TypeName, Initialize);
 			foreach(var member in from ScriptMember member in ScriptClass.Values where member.Usage == Usage.Static select member)
 				AddMember(member);
-			Compilers.Add(TypeName, Initialize);
 
 		}
 
@@ -58,7 +59,7 @@ namespace MCSharp.Variables {
 				get = property.GetFunc;
 			}
 			if(!(property.SetFunc is null)) {
-				Compiler.WriteFunction<Variable>(Compiler.CurrentScope, property.GetMethod);
+				Compiler.WriteFunction<Variable>(Compiler.CurrentScope, property.SetMethod);
 				set = property.SetFunc;
 			}
 			return new Tuple<GetProperty, SetProperty>(get, set);

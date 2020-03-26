@@ -46,11 +46,11 @@ namespace MCSharp.Compilation {
 			Usage = usage;
 			Members = members;
 			ScriptTrace = scriptTrace;
-			StaticObject = new VarGeneric(this);
 
-			foreach(ScriptMember member in members.Values) {
-				if(member is ScriptMethod method) method.DeclaringType = this;
-			}
+			foreach(ScriptMember member in members.Values)
+				member.DeclaringType = this;
+
+			StaticObject = new VarGeneric(this);
 
 		}
 
@@ -63,7 +63,7 @@ namespace MCSharp.Compilation {
 			var members = new Dictionary<string, ScriptMember>();
 
 			var blocks = new Stack<string>();
-			ScriptWild?[] words = new ScriptWild?[3] { null, null, null };
+			ScriptWild?[] words = new ScriptWild?[3];
 
 			ScriptWord? alias = null, type = null;
 			Variable[] parameters = null;
@@ -75,6 +75,7 @@ namespace MCSharp.Compilation {
 					words[i] = words[i - 1];
 				words[0] = null;
 			}
+
 			for(int start = 0, end = 0; end < scriptClass.Length; end++) {
 
 				ScriptChar current = scriptClass[end];
@@ -172,15 +173,18 @@ namespace MCSharp.Compilation {
 												// <<End of Accessor>>
 												switch(accessor ?? throw new Exception("104503102020")) {
 													case ScriptProperty.Accessors.Get: {
-														if(get == null) get = new ScriptMethod($"get_{(string)alias}", (string)type, new Variable[] { },
-															null, accessors[a..b], Access.Private, usage ?? Usage.Default);
+														if(get == null) get = new ScriptMethod($"get_{(string)alias}", (string)type, new Variable[] {
+															// No parameters.
+														}, null, accessors[a..b], Access.Private, usage ?? Usage.Default);
 														else throw new Compiler.SyntaxException("Unexpected second 'get' accessor.", c.ScriptTrace);
 														break;
 													}
 													case ScriptProperty.Accessors.Set: {
 														if(set == null) set = new ScriptMethod($"set_{(string)alias}", (string)type, new Variable[] {
-                                                            /* TODO! */
-                                                        }, null, accessors[a..b], Access.Private, usage ?? Usage.Default);
+                                                            // 'value'
+															Variable.Compilers[(string)type].Invoke(Access.Private, Usage.Default,
+																Variable.GetNextHiddenID(), Compiler.CurrentScope, c.ScriptTrace)
+														}, null, accessors[a..b], Access.Private, usage ?? Usage.Default);
 														else throw new Compiler.SyntaxException("Unexpected second 'set' accessor.", c.ScriptTrace);
 														break;
 													}
@@ -192,11 +196,11 @@ namespace MCSharp.Compilation {
 										}
 
 									}
-									members.Add(new ScriptProperty(root + "\\" + (string)alias, (string)type, get, set,
+									members.Add(new ScriptProperty((string)alias, (string)type, get, set,
 										access ?? Access.Private, usage ?? Usage.Default, null, alias.Value.ScriptTrace));
 								} else {
 									// <<Method>>
-									members.Add(new ScriptMethod(root + "\\" + (string)alias, (string)type,
+									members.Add(new ScriptMethod((string)alias, (string)type,
 										parameters, null, scriptClass[start..end],
 										access ?? Access.Private, usage ?? Usage.Default));
 								}

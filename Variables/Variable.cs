@@ -121,7 +121,17 @@ namespace MCSharp.Variables {
 						} else throw new InvalidArgumentsException($"Could not parse '{(string)arrr.Wilds[i]}' into a variable.", arrr.Wilds[i].ScriptTrace);
 					}
 					return Methods[(string)name.Word].Invoke(variables);
-				} else throw new InvalidArgumentsException("Too many arguments for '.' operator.", Compiler.CurrentScriptTrace);
+				} else if(args.Length >= 3) {
+					if(Properties.TryGetValue(args[0], out var property)) {
+						// <<Setting Property>>
+						if(args[1] != "=") throw new Compiler.SyntaxException("Expected '='.", operation.ScriptTrace);
+						var wild = new ScriptWild(args[2..], "(\\)", ' ');
+						if(Compiler.TryParseValue(wild, Compiler.CurrentScope, out Variable value)) {
+							property.Item2.Invoke(value);
+							return null;
+						} else throw new Compiler.SyntaxException("Could not parse into a value.", wild.ScriptTrace);
+					} else throw new Exception("111103262020");
+				} else throw new InvalidArgumentsException("Invalid arguments for '.' operator.", Compiler.CurrentScriptTrace);
 			} else {
 				if(!Compiler.TryParseValue(new ScriptWild(args, " \\ ", ' '), Compiler.CurrentScope, out Variable operand))
 					throw new Compiler.SyntaxException("Could not parse into a value.", operation.ScriptTrace);
