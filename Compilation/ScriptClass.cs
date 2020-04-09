@@ -252,6 +252,27 @@ namespace MCSharp.Compilation {
 							break;
 						}
 
+						case '=':
+						case ';': if(blocks.Count == 0) {
+
+							start = end--;
+							alias = words[1].Value.Word;
+							type = words[2].Value.Word;
+
+							while((current = scriptClass[++end]) != ';' && end < scriptClass.Length) ;
+							var field = new ScriptField((string)alias.Value, (string)type.Value,
+								access ?? Access.Private, usage ?? Usage.Default, null, scriptClass[start..end]);
+							members.Add(field);
+
+							parameters = null;
+							alias = null;
+							type = null;
+							access = null;
+							usage = null;
+
+						}
+						break;
+
 					}
 				}
 

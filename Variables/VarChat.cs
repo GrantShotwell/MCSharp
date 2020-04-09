@@ -11,7 +11,7 @@ namespace MCSharp.Variables {
 		public override ICollection<Access> AllowedAccessModifiers => new Access[] { Access.Public };
 		public override ICollection<Usage> AllowedUsageModifiers => new Usage[] { Usage.Static };
 
-		public static Func<Variable[], Variable> Say { get; } = (args) => {
+		public static MethodDelegate Say { get; } = (args) => {
 			if(args.Length > 1) throw new InvalidArgumentsException($"'Chat.Say' takes no more than one argument!", Compiler.CurrentScriptTrace);
 			if(args.Length == 0) new Spy(null, "say", null);
 			else {
@@ -25,7 +25,7 @@ namespace MCSharp.Variables {
 			return null;
 		};
 
-		public static Func<Variable[], Variable> Tellraw { get; } = (args) => {
+		public static MethodDelegate Tellraw { get; } = (args) => {
 			if(args.Length > 2) throw new InvalidArgumentsException($"'Chat.Tellraw' takes no more than two arguments!", Compiler.CurrentScriptTrace);
 			if(args.Length == 0) new Spy(null, $"tellraw @a {{\"text\":\"\"}}", null);
 			if(args.Length == 1) {

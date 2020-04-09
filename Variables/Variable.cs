@@ -42,11 +42,29 @@ namespace MCSharp.Variables {
 		public Compiler.Scope Scope { get; }
 		protected Dictionary<string, Variable> Fields { get; } = new Dictionary<string, Variable>();
 		protected Dictionary<string, Tuple<GetProperty, SetProperty>> Properties { get; } = new Dictionary<string, Tuple<GetProperty, SetProperty>>();
-		protected Dictionary<string, Func<Variable[], Variable>> Methods { get; } = new Dictionary<string, Func<Variable[], Variable>>();
+		protected Dictionary<string, MethodDelegate> Methods { get; } = new Dictionary<string, MethodDelegate>();
+
+		public bool TryGetMember(string name, [NotNullWhen(true)] out object value) {
+			if(Fields.TryGetValue(name, out var field)) {
+				value = field;
+				return true;
+			}
+			if(Properties.TryGetValue(name, out var property)) {
+				value = property;
+				return true;
+			}
+			if(Methods.TryGetValue(name, out var method)) {
+				value = method;
+				return true;
+			}
+			value = null;
+			return false;
+		}
 
 		public delegate Variable Initializer(Access access, Usage usage, string objectName, Compiler.Scope scope, ScriptTrace trace);
 		public delegate Variable GetProperty();
 		public delegate void SetProperty(Variable variable);
+		public delegate Variable MethodDelegate(Variable[] arguments);
 
 
 		public Variable() {
@@ -99,39 +117,69 @@ namespace MCSharp.Variables {
 		}
 
 		public Variable InvokeOperation(ScriptWord operation, ScriptWild[] args) {
+
 			if(!OperationDictionary.TryGetValue((string)operation, out Operation op))
 				throw new Compiler.SyntaxException($"Unknown operator '{(string)operation}'.", operation.ScriptTrace);
+
 			if(op == Operation.Access) {
-				if(args.Length == 1 && args[0].IsWord) {
-					// <<Accessing Field or Property>>
-					string word = args[0];
-					if(Fields.TryGetValue(word, out Variable field)) {
-						return field;
-					} else if(Properties.TryGetValue(word, out Tuple<GetProperty, SetProperty> property)) {
-						return property.Item1.Invoke();
-					} else throw new Exception("023903132020");
-				} else if(args.Length == 2) {
-					// <<Accessing Method>>
-					var name = args[0];
-					var arrr = args[1];
-					Variable[] variables = new Variable[arrr.Wilds.Count];
-					for(int i = 0; i < arrr.Wilds.Count; i++) {
-						if(Compiler.TryParseValue(arrr.Wilds[i], Compiler.CurrentScope, out Variable variable)) {
-							variables[i] = variable;
-						} else throw new InvalidArgumentsException($"Could not parse '{(string)arrr.Wilds[i]}' into a variable.", arrr.Wilds[i].ScriptTrace);
-					}
-					return Methods[(string)name.Word].Invoke(variables);
-				} else if(args.Length >= 3) {
-					if(Properties.TryGetValue(args[0], out var property)) {
-						// <<Setting Property>>
-						if(args[1] != "=") throw new Compiler.SyntaxException("Expected '='.", operation.ScriptTrace);
-						var wild = new ScriptWild(args[2..], "(\\)", ' ');
-						if(Compiler.TryParseValue(wild, Compiler.CurrentScope, out Variable value)) {
-							property.Item2.Invoke(value);
-							return null;
-						} else throw new Compiler.SyntaxException("Could not parse into a value.", wild.ScriptTrace);
-					} else throw new Exception("111103262020");
-				} else throw new InvalidArgumentsException("Invalid arguments for '.' operator.", Compiler.CurrentScriptTrace);
+
+				if(TryGetMember(args[0], out object member)) {
+
+					int argsCount = args.Length;
+					if(member is Variable field) {
+						// <<Accessing Field>>
+						if(argsCount > 1) {
+							//Apply an operation to the field.
+							if(args[1].IsWilds) throw new Compiler.SyntaxException("Expected an operator.", args[1].ScriptTrace);
+							else return field.InvokeOperation(args[1].Word, argsCount > 2 ? args[2..] : new ScriptWild[] { });
+						} else return field;
+
+
+					} else if(member is Tuple<GetProperty, SetProperty> property) {
+						// <<Accessing Property>>
+						if(argsCount > 1) {
+							if(args[1].IsWilds) throw new Compiler.SyntaxException("Expected an operator.", args[1].ScriptTrace);
+							else if(args[1].Word == "=") {
+								//Set property
+								if(argsCount >= 2) {
+									if(Compiler.TryParseValue(new ScriptWild(args[2..], "(\\)", ' '), Compiler.CurrentScope, out Variable value)) {
+										property.Item2.Invoke(value);
+										return null;
+									} else throw new Compiler.SyntaxException("Could not parse into a value.", args[2].ScriptTrace);
+								} else throw new Compiler.SyntaxException("Expected a value.", args[0].ScriptTrace);
+							} else {
+								//Get property + Operation.
+								if(args[1].IsWilds) throw new Compiler.SyntaxException("Expected an operator.", args[1].ScriptTrace);
+								else return property.Item1.Invoke().InvokeOperation(args[1].Word, argsCount > 2 ? args[1..] : new ScriptWild[] { });
+							}
+						} else {
+							//Get property.
+							return property.Item1.Invoke();
+						}
+
+
+					} else if(member is MethodDelegate method) {
+						// <<Accessing Method>>
+						if(argsCount > 1) {
+							//TODO: call + operation
+							var name = args[0];
+							var arrr = args[1];
+							Variable[] variables = new Variable[arrr.Wilds.Count];
+							for(int i = 0; i < arrr.Wilds.Count; i++) {
+								if(Compiler.TryParseValue(arrr.Wilds[i], Compiler.CurrentScope, out Variable variable)) {
+									variables[i] = variable;
+								} else throw new InvalidArgumentsException($"Could not parse '{(string)arrr.Wilds[i]}' into a variable.",
+									arrr.Wilds[i].ScriptTrace);
+							}
+							return Methods[(string)name.Word].Invoke(variables);
+						} else throw new Exception("Internal Error: 015704082020");
+
+
+					} else throw new Exception("Internal Error: 012504082020");
+
+				} else throw new Exception("Internal Error: 0158504082020");
+
+
 			} else {
 				if(!Compiler.TryParseValue(new ScriptWild(args, " \\ ", ' '), Compiler.CurrentScope, out Variable operand))
 					throw new Compiler.SyntaxException("Could not parse into a value.", operation.ScriptTrace);
@@ -139,8 +187,9 @@ namespace MCSharp.Variables {
 			}
 		}
 
-		public virtual Variable InvokeOperation(Operation operation, Variable value, ScriptTrace trace) {
-			if(operation == Operation.Access) throw new Exception("022503112020");
+		public virtual Variable InvokeOperation(Operation operation, Variable operand, ScriptTrace trace) {
+			if(operation == Operation.Access) throw new Exception($"Internal Error: " +
+				$"{nameof(InvokeOperation)} overflow with {nameof(Operation)}.{nameof(Operation.Access)}");
 			else throw new InvalidArgumentsException($"Type '{TypeName}' has not defined the '{operation}' operation.", trace);
 		}
 

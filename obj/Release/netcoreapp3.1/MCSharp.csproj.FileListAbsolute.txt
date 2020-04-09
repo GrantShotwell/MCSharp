@@ -11,3 +11,5 @@ C:\Projects\MCSharp\MCSharp\obj\Release\netcoreapp3.1\MCSharp.AssemblyInfoInputs
 C:\Projects\MCSharp\MCSharp\obj\Release\netcoreapp3.1\MCSharp.AssemblyInfo.cs
 C:\Projects\MCSharp\MCSharp\obj\Release\netcoreapp3.1\MCSharp.dll
 C:\Projects\MCSharp\MCSharp\obj\Release\netcoreapp3.1\MCSharp.pdb
+C:\Projects\MCSharp\MCSharp\obj\Release\netcoreapp3.1\MCSharp.csproj.CoreCompileInputs.cache
+C:\Projects\MCSharp\MCSharp\obj\Release\netcoreapp3.1\MCSharp.genruntimeconfig.cache

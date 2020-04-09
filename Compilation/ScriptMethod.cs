@@ -4,6 +4,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using static MCSharp.Variables.Variable;
 
 namespace MCSharp.Compilation {
 
@@ -14,7 +15,7 @@ namespace MCSharp.Compilation {
 
 		private ScriptLine[] ScriptLines { get; }
 		public ScriptLine this[int index] => ScriptLines[index];
-		public Func<Variable[], Variable> Func { get; }
+		public MethodDelegate Delegate { get; }
 		public Variable ReturnValue { get; }
 		public Variable[] Parameters { get; }
 		public int Length => ScriptLines.Length;
@@ -49,7 +50,7 @@ namespace MCSharp.Compilation {
 				throw new ArgumentException("Argument cannot be null or empty.", nameof(type));
 			if(trace is null)
 				throw new ArgumentNullException(nameof(trace));
-			if(!Variable.Compilers.TryGetValue(type, out var func))
+			if(!Compilers.TryGetValue(type, out var func))
 				throw new Compiler.SyntaxException($"Type '{type}' does not exist.", phrases[0].ScriptTrace);
 
 			ScriptLines = phrases ?? throw new ArgumentNullException(nameof(phrases));
@@ -57,11 +58,11 @@ namespace MCSharp.Compilation {
 			Parameters = parameters ?? throw new ArgumentNullException(nameof(parameters));
 			ReturnValue = func.Invoke(Access.Private, Usage.Default, Variable.GetNextHiddenID(), Compiler.CurrentScope, trace);
 
-			Func = (arguments) => {
+			Delegate = (arguments) => {
 				for(int i = 0; i < arguments.Length; i++) {
 					Variable argument = arguments[i], parameter = Parameters[i];
 					if(argument.GetType().IsAssignableFrom(parameter.GetType()) || argument.TryCast(parameter.GetType(), out argument)) {
-						parameter.InvokeOperation(Variable.Operation.Set, argument, Compiler.AnonScriptTrace);
+						parameter.InvokeOperation(Operation.Set, argument, Compiler.AnonScriptTrace);
 					} else throw new Variable.InvalidCastException(argument, parameter.TypeName, trace);
 				}
 				new Spy(null, $"function {GameName}", null);

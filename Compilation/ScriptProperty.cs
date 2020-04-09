@@ -33,9 +33,9 @@ namespace MCSharp.Compilation {
 			if(setNull ? false : set.Parameters.Length != 1) throw new Exception("034503232020b"); //Set method should have one parameter.
 
 			GetMethod = get;
-			GetFunc = getNull ? (Variable.GetProperty)null : (() => get.Func.Invoke(new Variable[] { }));
+			GetFunc = getNull ? (Variable.GetProperty)null : (() => get.Delegate.Invoke(new Variable[] { }));
 			SetMethod = set;
-			SetFunc = setNull ? (Variable.SetProperty)null : ((x) => set.Func.Invoke(new Variable[] { x }));
+			SetFunc = setNull ? (Variable.SetProperty)null : ((x) => set.Delegate.Invoke(new Variable[] { x }));
 
 			if(!getNull) GetMethod.DeclaringType = declaringType;
 			if(!setNull) SetMethod.DeclaringType = declaringType;

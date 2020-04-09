@@ -18,9 +18,9 @@ namespace MCSharp.Compilation {
 		public Usage Usage { get; }
 		public ScriptTrace ScriptTrace { get; }
 
-		public ScriptMember(string alias, string type, Access access, Usage usage, ScriptClass declaringType, ScriptTrace scriptTrace) {
-			DeclaringType = declaringType;
-			ScriptTrace = scriptTrace ?? throw new ArgumentNullException(nameof(scriptTrace));
+		public ScriptMember(string alias, string type, Access access, Usage usage, ScriptClass declarer, ScriptTrace trace) {
+			DeclaringType = declarer;
+			ScriptTrace = trace ?? throw new ArgumentNullException(nameof(trace));
 			TypeName = type ?? throw new ArgumentNullException(nameof(type));
 			Access = access;
 			Usage = usage;

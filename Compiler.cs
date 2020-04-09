@@ -290,14 +290,16 @@ namespace MCSharp {
 									// <<Yes Variable>>
 									//Compile an operation.
 									//TODO!  Possible problem if a variable has the same name as an accessor.
-									ScriptWord operation = op.Value;
-									if(BooleanOperators.Contains((string)operation)) {
+									ScriptWord opWord = op.Value;
+									if(BooleanOperators.Contains((string)opWord)) {
 										if(variable is VarBool varBool || variable.TryCast(out varBool))
-											variable = varBool.InvokeOperation(operation, wild.Array[i..]);
+											variable = varBool.InvokeOperation(opWord, wild.Array[i..]);
 										else throw new SyntaxException(
-											$"Cannot cast '{variable}' into 'bool' for use in boolean operator '{(string)operation}'.", operation.ScriptTrace);
+											$"Cannot cast '{variable}' into 'bool' for use in boolean operator '{(string)opWord}'.", opWord.ScriptTrace);
 									} else {
-										variable = variable.InvokeOperation(Variable.OperationDictionary[(string)op.Value], x, current.ScriptTrace);
+										Variable.Operation operation = Variable.OperationDictionary[(string)op.Value];
+										if(operation == Variable.Operation.Access) goto CheckMembers;
+										else variable = variable.InvokeOperation(operation, x, current.ScriptTrace);
 									}
 									return true;
 								} else {
@@ -305,7 +307,9 @@ namespace MCSharp {
 									//Save the variable for the next operation.
 									variable = x;
 								}
-							} else {
+							} else goto CheckMembers;
+							goto AfterElse;
+							CheckMembers: {
 								// <<Not a Variable>>
 								//Check for method arguments.
 								ScriptWild args;
@@ -333,6 +337,7 @@ namespace MCSharp {
 									}
 								}
 							}
+							AfterElse:;
 						} else {
 							//Make recurive call to find the value of the block.
 							if(!TryParseValue(current, scope, out x))
