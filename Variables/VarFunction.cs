@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using static MCSharp.Compilation.ScriptObject;
 
 namespace MCSharp.Variables {
 
@@ -48,7 +49,10 @@ namespace MCSharp.Variables {
 
 		}
 
-		public override void WriteInit(StreamWriter function) => Compiler.WriteFunction<VarVoid>(Scope, ScriptMethod);
+		public override void WriteInit(StreamWriter function) {
+			base.WriteInit(function);
+			Compiler.WriteFunction<VarVoid>(Scope, null, ScriptMethod);
+		}
 
 		public struct Parameter {
 
@@ -58,7 +62,7 @@ namespace MCSharp.Variables {
 			public Parameter(string type, string name) { Type = type; Name = name; }
 
 			public Variable GetVariable(Compiler.Scope scope) {
-				if(Compilers.TryGetValue(Type, out var compiler)) {
+				if(Initializers.TryGetValue(Type, out var compiler)) {
 					return compiler.Invoke(Access.Private, Usage.Default, Name, scope, scope.DeclaringMethod.ScriptTrace);
 				} else throw new Compiler.SyntaxException($"Unknown type '{Type}'.", Compiler.CurrentScriptTrace);
 			}

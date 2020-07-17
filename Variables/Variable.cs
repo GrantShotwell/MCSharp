@@ -1,49 +1,96 @@
 ﻿using MCSharp.Compilation;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using System.Reflection;
 
 namespace MCSharp.Variables {
 
 	/// <summary>
 	/// Base class for classes that represent a thing in the game.
 	/// </summary>
+	[DebuggerDisplay("{TypeName,nq} {ObjectName,nq}")]
 	public abstract class Variable {
 
-		public static Dictionary<string, Initializer> Compilers { get; }
-				= new Dictionary<string, Initializer>();
+		/// <summary>
+		/// A collection of all <see cref="Initializer"/>s organized by their <see cref="TypeName"/>.
+		/// </summary>
+		public static Dictionary<string, Initializer> Initializers { get; } = new Dictionary<string, Initializer>();
 
-		public enum Operation { Access, Set, Add, Subtract, Multiply, Divide, Modulo, BooleanAnd, BooleanOr, BooleanNot }
+		/// <summary>
+		/// A collection of all <see cref="Constructor"/>s organized by their <see cref="TypeName"/>.
+		/// </summary>
+		public static Dictionary<string, Constructor> Constructors { get; } = new Dictionary<string, Constructor>();
+
+		#region Operations
+		public enum Operation { New, Access, Set, Add, Subtract, Multiply, Divide, Modulo, BooleanAnd, BooleanOr, BooleanNot }
 		public enum OperationType { Set, Arithmetic, Boolean, Misc }
 		public static IReadOnlyDictionary<string, Operation> OperationDictionary { get; } = new Dictionary<string, Operation>() {
-			{ ".", Operation.Access }, { "=", Operation.Set },
+			//Misc
+			{ ".", Operation.Access }, { "new", Operation.New },
+			//Set
+			{ "=", Operation.Set },
+			//Arithmetic
 			{ "+", Operation.Add }, { "-", Operation.Subtract },
 			{ "*", Operation.Multiply }, { "/", Operation.Divide }, { "%", Operation.Modulo },
+			//Boolean
 			{ "&&", Operation.BooleanAnd }, { "||", Operation.BooleanOr }, { "!", Operation.BooleanNot }
 		};
 		public static IReadOnlyDictionary<Operation, OperationType> OperationTypeDictionary { get; } = new Dictionary<Operation, OperationType>() {
-			{ Operation.Access, OperationType.Misc }, { Operation.Set, OperationType.Set },
+			//Misc
+			{ Operation.Access, OperationType.Misc }, { Operation.New, OperationType.Misc },
+			//Set
+			{ Operation.Set, OperationType.Set },
+			//Arithmetic
 			{ Operation.Add, OperationType.Arithmetic }, { Operation.Subtract, OperationType.Arithmetic },
 			{ Operation.Multiply, OperationType.Arithmetic }, { Operation.Divide, OperationType.Arithmetic }, { Operation.Modulo, OperationType.Arithmetic },
+			//Boolean
 			{ Operation.BooleanAnd, OperationType.Boolean }, { Operation.BooleanOr, OperationType.Boolean }, { Operation.BooleanNot, OperationType.Boolean }
 		};
+		#endregion
 
+		#region IDs
 		private static int hiddenID = 0;
+
 		public static string GetNextHiddenID() => $"anon_{BaseConverter.Convert(hiddenID++, 62)}";
+		public static void ResetHiddenID() => hiddenID = 0;
+		#endregion
 
+		#region Fields
+		private Compiler.Scope innerScope;
+		#endregion
+
+		#region Properties
 		public virtual int Order => 0;
+		/// <summary>The name of the type of this variable.</summary>
 		public abstract string TypeName { get; }
+		/// <summary>A collection of <see cref="Variables.Access"/> that are allowed.</summary>
 		public abstract ICollection<Access> AllowedAccessModifiers { get; }
+		/// <summary>The <see cref="Variables.Access"/> value of this variable.</summary>
 		public Access Access { get; }
+		/// <summary>A collection of <see cref="Variables.Usage"/> that are allowed.</summary>
 		public abstract ICollection<Usage> AllowedUsageModifiers { get; }
+		/// <summary>The <see cref="Variables.Usage"/> value of this variable.</summary>
 		public Usage Usage { get; }
+		/// <summary>The name of this object in code.</summary>
 		public string ObjectName { get; }
+		/// <summary>The scope that contains this variable.</summary>
 		public Compiler.Scope Scope { get; }
+		/// <summary>The scope that contains this variable's members.</summary>
+		public Compiler.Scope InnerScope => innerScope ??= new Compiler.Scope(Scope, this);
 		protected Dictionary<string, Variable> Fields { get; } = new Dictionary<string, Variable>();
-		protected Dictionary<string, Tuple<GetProperty, SetProperty>> Properties { get; } = new Dictionary<string, Tuple<GetProperty, SetProperty>>();
+		protected Dictionary<string, (GetProperty Get, SetProperty Set)> Properties { get; } = new Dictionary<string, (GetProperty Get, SetProperty Set)>();
 		protected Dictionary<string, MethodDelegate> Methods { get; } = new Dictionary<string, MethodDelegate>();
+		#endregion
 
+		/// <summary>
+		/// Retrieves the member of this object by name.
+		/// </summary>
+		/// <param name="name">The name of the member to access.</param>
+		/// <param name="value">The member found.</param>
+		/// <returns>Returns true if the member exists.</returns>
 		public bool TryGetMember(string name, [NotNullWhen(true)] out object value) {
 			if(Fields.TryGetValue(name, out var field)) {
 				value = field;
@@ -61,15 +108,50 @@ namespace MCSharp.Variables {
 			return false;
 		}
 
-		public delegate Variable Initializer(Access access, Usage usage, string objectName, Compiler.Scope scope, ScriptTrace trace);
+		/// <summary>
+		/// Initializes a variable.
+		/// </summary>
+		/// <returns>Returns the initialized variable.</returns>
+		public delegate Variable Initializer(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace);
+		/// <summary>
+		/// Constructs a value.
+		/// </summary>
+		/// <param name="arguments">The arguments passed to the constructor.</param>
+		/// <returns>Returns the value constructed.</returns>
+		public delegate Variable Constructor(Variable[] arguments);
+
+		/// <summary>
+		/// Represents a 'get' method of a property.
+		/// </summary>
+		/// <returns>Returns the value got.</returns>
 		public delegate Variable GetProperty();
+		/// <summary>
+		/// Represents a 'set' method of a property.
+		/// </summary>
+		/// <param name="variable">The value to set.</param>
 		public delegate void SetProperty(Variable variable);
+		/// <summary>
+		/// Represents a method.
+		/// </summary>
+		/// <param name="arguments">The arguments of the method.</param>
+		/// <returns>Returns the return value of the method.</returns>
 		public delegate Variable MethodDelegate(Variable[] arguments);
 
 
 		public Variable() {
 			Type type = GetType();
-			if(!typeof(Spy).IsAssignableFrom(type) && !typeof(VarGeneric).IsAssignableFrom(type)) Compilers.Add(TypeName, Initialize);
+			if(!typeof(Spy).IsAssignableFrom(type) && !typeof(VarGeneric).IsAssignableFrom(type)) {
+
+				MethodInfo initInfo = GetType().GetMethod(nameof(Initialize), BindingFlags.Instance | BindingFlags.NonPublic);
+				if(initInfo.GetBaseDefinition().DeclaringType != initInfo.DeclaringType)
+					Initializers.Add(TypeName, Initialize);
+				else throw new Compiler.InternalError($"All Variables must override {nameof(Initialize)}.");
+
+				MethodInfo cnstInfo = GetType().GetMethod(nameof(Construct), BindingFlags.Instance | BindingFlags.NonPublic);
+				if(cnstInfo.GetBaseDefinition().DeclaringType != cnstInfo.DeclaringType)
+					Constructors.Add(TypeName, Construct);
+
+			}
 		}
 
 		public Variable(Access access, Usage usage, string objectName, Compiler.Scope scope) {
@@ -113,7 +195,13 @@ namespace MCSharp.Variables {
 				throw new ArgumentNullException(nameof(scope));
 			if(trace is null)
 				throw new ArgumentNullException(nameof(trace));
-			return null;
+			return this;
+		}
+
+		protected virtual Variable Construct(Variable[] arguments) {
+			if(arguments is null)
+				throw new ArgumentNullException(nameof(arguments));
+			return this;
 		}
 
 		public Variable InvokeOperation(ScriptWord operation, ScriptWild[] args) {
@@ -121,7 +209,12 @@ namespace MCSharp.Variables {
 			if(!OperationDictionary.TryGetValue((string)operation, out Operation op))
 				throw new Compiler.SyntaxException($"Unknown operator '{(string)operation}'.", operation.ScriptTrace);
 
+
 			if(op == Operation.Access) {
+
+#if DEBUG_OUT
+				new Spy(null, $"# OP # {this}@{Scope} . {(string)args[0]}", null);
+#endif
 
 				if(TryGetMember(args[0], out object member)) {
 
@@ -135,7 +228,7 @@ namespace MCSharp.Variables {
 						} else return field;
 
 
-					} else if(member is Tuple<GetProperty, SetProperty> property) {
+					} else if(member is (GetProperty get, SetProperty set)) {
 						// <<Accessing Property>>
 						if(argsCount > 1) {
 							if(args[1].IsWilds) throw new Compiler.SyntaxException("Expected an operator.", args[1].ScriptTrace);
@@ -143,18 +236,18 @@ namespace MCSharp.Variables {
 								//Set property
 								if(argsCount >= 2) {
 									if(Compiler.TryParseValue(new ScriptWild(args[2..], "(\\)", ' '), Compiler.CurrentScope, out Variable value)) {
-										property.Item2.Invoke(value);
+										set.Invoke(value);
 										return null;
 									} else throw new Compiler.SyntaxException("Could not parse into a value.", args[2].ScriptTrace);
 								} else throw new Compiler.SyntaxException("Expected a value.", args[0].ScriptTrace);
 							} else {
 								//Get property + Operation.
 								if(args[1].IsWilds) throw new Compiler.SyntaxException("Expected an operator.", args[1].ScriptTrace);
-								else return property.Item1.Invoke().InvokeOperation(args[1].Word, argsCount > 2 ? args[1..] : new ScriptWild[] { });
+								else return get.Invoke().InvokeOperation(args[1].Word, argsCount > 2 ? args[1..] : new ScriptWild[] { });
 							}
 						} else {
 							//Get property.
-							return property.Item1.Invoke();
+							return get.Invoke();
 						}
 
 
@@ -183,35 +276,60 @@ namespace MCSharp.Variables {
 			} else {
 				if(!Compiler.TryParseValue(new ScriptWild(args, " \\ ", ' '), Compiler.CurrentScope, out Variable operand))
 					throw new Compiler.SyntaxException("Could not parse into a value.", operation.ScriptTrace);
+#if DEBUG_OUT
+				new Spy(null, $"# OP # {this}@{Scope} {op} {operand}@{operand.Scope}", null);
+#endif
 				return InvokeOperation(op, operand, operation.ScriptTrace);
 			}
 		}
 
 		public virtual Variable InvokeOperation(Operation operation, Variable operand, ScriptTrace trace) {
-			if(operation == Operation.Access) throw new Exception($"Internal Error: " +
-				$"{nameof(InvokeOperation)} overflow with {nameof(Operation)}.{nameof(Operation.Access)}");
+			if(OperationTypeDictionary[operation] == OperationType.Misc)
+				throw new Compiler.InternalError($"Operation type '{nameof(OperationType.Misc)}' cannot be used in the virtual {nameof(InvokeOperation)}.");
 			else throw new InvalidArgumentsException($"Type '{TypeName}' has not defined the '{operation}' operation.", trace);
 		}
 
 		/// <summary>
 		/// Writes the initialization commands to <see cref="Compiler.FunctionStack"/>.
 		/// </summary>
-		public virtual void WriteInit(StreamWriter function) { }
+		public virtual void WriteInit(StreamWriter function) {
+#if DEBUG_OUT
+			if(!(this is Spy)) function.WriteLine($"# INIT # {this}@{Scope}");
+#endif
+		}
 
 		/// <summary>
 		/// Writes commands needed to keep this variable 'maintained' for the next tick, if it is required.
 		/// </summary>
-		public virtual void WriteTick(StreamWriter function) { }
+		public virtual void WriteTick(StreamWriter function) {
+#if DEBUG_OUT
+			if(!(this is Spy)) function.WriteLine($"# TICK # {this}@{Scope}");
+#endif
+		}
 
 		/// <summary>
 		/// Writes the initialization commands to <see cref="Compiler.PrepFunction"/>.
 		/// </summary>
-		public virtual void WritePrep(StreamWriter function) { }
+		public virtual void WritePrep(StreamWriter function) {
+#if DEBUG_OUT
+			if(!(this is Spy)) function.WriteLine($"# PREP # {this}@{Scope}");
+#endif
+		}
+
+		public virtual void WriteDele(StreamWriter function) {
+#if DEBUG_OUT
+			if(!(this is Spy)) function.WriteLine($"# DELE # {this}@{Scope}");
+#endif
+		}
 
 		/// <summary>
-		/// Writes 'dispose' commands.
+		/// Writes commands to remove all trace of this variable.
 		/// </summary>
-		public virtual void WriteDemo(StreamWriter function) { }
+		public virtual void WriteDemo(StreamWriter function) {
+#if DEBUG_OUT
+			if(!(this is Spy)) function.WriteLine($"# DEMO # {this}@{Scope}");
+#endif
+		}
 
 		/// <summary>
 		/// Creates a new <see cref="Spy"/> that will copy the value of this to <paramref name="variable"/>.
@@ -274,8 +392,7 @@ namespace MCSharp.Variables {
 				: base($"[{at}] Cannot cast '{variable}' to type '{type}'.") { }
 		}
 
-		public override string ToString() => $"{TypeName} {ObjectName}";
-
+		public override string ToString() => this is Spy ? nameof(Spy) : $"{TypeName} {ObjectName}";
 
 	}
 

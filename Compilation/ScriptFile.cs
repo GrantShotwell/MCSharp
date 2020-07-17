@@ -1,35 +1,36 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace MCSharp.Compilation {
 
-	public class ScriptFile : IReadOnlyCollection<ScriptClass> {
+	//[DebuggerDisplay("ToString(),nq")]
+	public class ScriptFile : IReadOnlyCollection<ScriptObject> {
 
 
 		public static Dictionary<string, ScriptFile> Files { get; } = new Dictionary<string, ScriptFile>();
 
-		private ScriptClass[] ScriptClasses { get; }
-		public ScriptClass this[int index] => ScriptClasses[index];
+		private ScriptObject[] ScriptClasses { get; }
+		public ScriptObject this[int index] => ScriptClasses[index];
 		public int Length => ScriptClasses.Length;
-		int IReadOnlyCollection<ScriptClass>.Count => Length;
+		int IReadOnlyCollection<ScriptObject>.Count => Length;
 		public ScriptTrace ScriptTrace => ScriptClasses[0].ScriptTrace;
 
 
 		public ScriptFile(ScriptString scriptFile) : this(GetClasses(scriptFile)) { }
 
-		public ScriptFile(ScriptClass[] classes) {
+		public ScriptFile(ScriptObject[] classes) {
 			ScriptClasses = classes;
 			Files.Add(ScriptTrace.FilePath, this);
 		}
 
 
-		public static ScriptClass[] GetClasses(ScriptString file) {
-			var classes = new List<ScriptClass>();
+		public static ScriptObject[] GetClasses(ScriptString file) {
+			var classes = new List<ScriptObject>();
 
 			int start = 0, blocks = 0;
 
-			ScriptString?[] words = new ScriptString?[3];
-			ScriptString? alias = null;
+			ScriptString?[] words = new ScriptString?[8];
 
 			void Rotate() {
 				for(int i = words.Length - 1; i > 0; i--)
@@ -47,20 +48,18 @@ namespace MCSharp.Compilation {
 				}
 
 				if(char.IsWhiteSpace((char)current)) {
-					if((words[0].HasValue ? words[0].Value != "" : false) && blocks == 0) Rotate();
+					if(words[0].HasValue && words[0].Value != "" && blocks == 0) Rotate();
 				} else if(current == '{') {
 					blocks++;
 					if(blocks == 1) {
 						start = end + 1;
-						alias = words[1].Value;
 					}
-					Rotate();
 				} else if(current == '}') {
 					blocks--;
 					if(blocks == 0) {
-						classes.Add(new ScriptClass((string)alias.Value, file[start..end]));
+						//todo: access
+						classes.Add(new ScriptObject(words[1].Value, words[2].Value, file[start..end]));
 					}
-					Rotate();
 				} else if(blocks == 0) {
 					if(!words[0].HasValue) words[0] = current;
 					else {
@@ -77,8 +76,8 @@ namespace MCSharp.Compilation {
 			return classes.ToArray();
 		}
 
-		public IEnumerator<ScriptClass> GetEnumerator() => ((IReadOnlyCollection<ScriptClass>)ScriptClasses).GetEnumerator();
-		IEnumerator IEnumerable.GetEnumerator() => ((IReadOnlyCollection<ScriptClass>)ScriptClasses).GetEnumerator();
+		public IEnumerator<ScriptObject> GetEnumerator() => ((IReadOnlyCollection<ScriptObject>)ScriptClasses).GetEnumerator();
+		IEnumerator IEnumerable.GetEnumerator() => ((IReadOnlyCollection<ScriptObject>)ScriptClasses).GetEnumerator();
 
 	}
 

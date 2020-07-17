@@ -41,10 +41,10 @@ namespace MCSharp.Variables {
 			switch(operation) {
 
 				case Operation.Set:
-				if(operand is VarString varString || operand.TryCast(out varString)) {
-					Value = varString.GetConstant();
-					return this;
-				} else throw new InvalidCastException(operand, TypeName, trace);
+					if(operand is VarString varString || operand.TryCast(out varString)) {
+						Value = varString.GetConstant();
+						return this;
+					} else throw new InvalidCastException(operand, TypeName, trace);
 
 				default: return base.InvokeOperation(operation, operand, trace);
 			}

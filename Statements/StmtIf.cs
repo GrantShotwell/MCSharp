@@ -2,6 +2,7 @@
 using MCSharp.Variables;
 using System;
 using System.Collections.Generic;
+using static MCSharp.Compilation.ScriptObject;
 
 namespace MCSharp.Statements {
 
@@ -186,7 +187,7 @@ namespace MCSharp.Statements {
 				condition = varBool;
 				var statement = new ScriptMethod($"{Compiler.CurrentScope}\\{Compiler.CurrentScope.GetNextInnerID()}",
 					"void", new Variable[] { }, null, statementWild);
-				Compiler.WriteFunction<VarVoid>(Compiler.CurrentScope, statement);
+				Compiler.WriteFunction<VarVoid>(Compiler.CurrentScope, null, statement);
 				new Spy(null, $"execute if score {condition.Selector.GetConstant()} {condition.Objective.GetConstant()} matches 1.. " +
 					$"run function {statement.GameName}", null);
 
@@ -196,7 +197,7 @@ namespace MCSharp.Statements {
 
 				var statement = new ScriptMethod($"{Compiler.CurrentScope}\\{Compiler.CurrentScope.GetNextInnerID()}",
 					"void", new Variable[] { }, Compiler.CurrentScope.DeclaringType, elseWild.Value.Wilds[1]);
-				Compiler.WriteFunction<VarVoid>(Compiler.CurrentScope, statement);
+				Compiler.WriteFunction<VarVoid>(Compiler.CurrentScope, null, statement);
 				new Spy(null, $"execute if score {condition.Selector.GetConstant()} {condition.Objective.GetConstant()} matches ..0 " +
 					$"run function {statement.GameName}", null);
 

@@ -1,12 +1,14 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace MCSharp.Compilation {
 
 	/// <summary>
 	/// Not to be confused with <see cref="ScriptWord"/>.
 	/// </summary>
+	[DebuggerDisplay("{ToString(),nq}")]
 	public struct ScriptString : IList<ScriptChar> {
 
 
@@ -103,7 +105,7 @@ namespace MCSharp.Compilation {
 		public IEnumerator<ScriptChar> GetEnumerator() => ((IReadOnlyList<ScriptChar>)Characters).GetEnumerator();
 		IEnumerator IEnumerable.GetEnumerator() => ((IReadOnlyList<ScriptChar>)Characters).GetEnumerator();
 
-		public override string ToString() => $"{ScriptTrace}: \"{(string)this}\"";
+		public override string ToString() => $"[{ScriptTrace}] \"{(string)this}\"";
 
 		#endregion
 

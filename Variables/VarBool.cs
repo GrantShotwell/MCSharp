@@ -1,4 +1,5 @@
 ﻿using MCSharp.Compilation;
+using static MCSharp.Compilation.ScriptObject;
 
 namespace MCSharp.Variables {
 
@@ -25,10 +26,10 @@ namespace MCSharp.Variables {
 			switch(operation) {
 
 				case Operation.Set:
-				new Spy(null, $"scoreboard players operation " +
-					$"{Selector.GetConstant()} {Objective.GetConstant()} = " +
-					$"{right.Selector.GetConstant()} {right.Objective.GetConstant()}", null);
-				return this;
+					new Spy(null, $"scoreboard players operation " +
+						$"{Selector.GetConstant()} {Objective.GetConstant()} = " +
+						$"{right.Selector.GetConstant()} {right.Objective.GetConstant()}", null);
+					return this;
 
 				case Operation.BooleanNot: {
 					string id = GetNextHiddenID();
@@ -39,7 +40,7 @@ namespace MCSharp.Variables {
 					var function = new ScriptMethod($"{Compiler.CurrentScope}\\{Compiler.CurrentScope.GetNextInnerID()}",
 						"void", new Variable[] { }, Compiler.CurrentScope.DeclaringType,
 						new ScriptString($"if({anon.ObjectName}) {{ {anon.ObjectName} = false; }} else {{ {anon.ObjectName} = true; }}"));
-					Compiler.WriteFunction<VarVoid>(Compiler.CurrentScope, function);
+					Compiler.WriteFunction<VarVoid>(Compiler.CurrentScope, null, function);
 					//Write command: 'run that function'.
 					new Spy(null, $"function {function.GameName}", null);
 					return anon;
@@ -53,7 +54,7 @@ namespace MCSharp.Variables {
 					var function = new ScriptMethod($"{Compiler.CurrentScope}\\{Compiler.CurrentScope.GetNextInnerID()}",
 						"void", new Variable[] { }, Compiler.CurrentScope.DeclaringType,
 						new ScriptString($"if({anon.ObjectName}) {{ {anon.ObjectName} = {right.ObjectName}; }}"));
-					Compiler.WriteFunction<VarVoid>(Compiler.CurrentScope, function);
+					Compiler.WriteFunction<VarVoid>(Compiler.CurrentScope, null, function);
 					//Write command: 'run that function'.
 					new Spy(null, $"function {function.GameName}", null);
 					return anon;

@@ -1,5 +1,8 @@
-﻿namespace MCSharp.Compilation {
+﻿using System.Diagnostics;
 
+namespace MCSharp.Compilation {
+
+	[DebuggerDisplay("{ToString(),nq}")]
 	public class ScriptTrace {
 
 		public string FilePath { get; }

@@ -2,6 +2,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace MCSharp.Compilation {
 
@@ -30,10 +31,14 @@ namespace MCSharp.Compilation {
 		private readonly ScriptWild[] wilds;
 		public readonly string str;
 
-		public ScriptWild this[int index] => wilds[index];
+		public ScriptWild this[int index] {
+			[DebuggerStepThrough]
+			get => wilds[index];
+		}
+
 		public int Length => wilds.Length;
 		int IReadOnlyCollection<ScriptWild>.Count => Length;
-		public ScriptTrace ScriptTrace => wilds[0].ScriptTrace;
+		public ScriptTrace ScriptTrace { get; }
 
 
 		public ScriptLine(ScriptString line) : this(GetWilds(line)) { }
@@ -41,6 +46,7 @@ namespace MCSharp.Compilation {
 		public ScriptLine(ScriptWild wild) {
 
 			wilds = wild.Array;
+			ScriptTrace = wild.ScriptTrace;
 
 			int length = wilds.Length;
 			string[] array = new string[length];
@@ -56,6 +62,7 @@ namespace MCSharp.Compilation {
 
 			this.wilds = new ScriptWild[wilds.Length];
 			wilds.CopyTo(this.wilds, 0);
+			ScriptTrace = wilds.Length == 0 ? Compiler.AnonScriptTrace : wilds[0].ScriptTrace;
 
 			int length = wilds.Length;
 			string[] array = new string[length];

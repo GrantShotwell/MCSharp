@@ -10,7 +10,14 @@ namespace MCSharp.Compilation {
 				char current = list[i];
 				if(char.IsUpper(current)) {
 					list[i] = char.ToLower(current);
-					if(i != 0 && list[i - 1] != '\\' && list[i - 1] != '_') list.Insert(i++, '-');
+					if(i != 0
+						&& list[i - 1] != '\\'
+						&& list[i - 1] != '/'
+						&& list[i - 1] != '_'
+						&& list[i - 1] != '.'
+					) {
+						list.Insert(i++, '-');
+					}
 				}
 			}
 			return new string(list.ToArray());

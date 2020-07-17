@@ -32,7 +32,6 @@ namespace MCSharp {
 		static void Main(string[] args) {
 
 			Console.Title = $"MCSharp {ProgramVersion} - Minecraft {MinecraftVersion}";
-			Console.WindowWidth = (int)(Console.WindowWidth * 1.25);
 
 			var commands = new Dictionary<string, Action<string>>() {
 				{ "folder", Folder },
@@ -69,11 +68,11 @@ namespace MCSharp {
 					string argument = split[1].Trim();
 					switch(setting) {
 						case "default_datapacks_folder":
-						Folder(argument);
-						break;
+							Folder(argument);
+							break;
 						case "default_datapack_name":
-						Pack(argument);
-						break;
+							Pack(argument);
+							break;
 					}
 				}
 			} catch(FileNotFoundException) {

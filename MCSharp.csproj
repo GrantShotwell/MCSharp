@@ -6,10 +6,19 @@
     <StartupObject>MCSharp.Program</StartupObject>
     <ApplicationIcon>MC-crafting-center_with_CS-logo-placed.ico</ApplicationIcon>
     <Win32Resource />
+    <Configurations>Debug;Release;Debug Out</Configurations>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DefineConstants>TRACE;DEBUG</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug Out|AnyCPU'">
+    <DefineConstants>TRACE;DEBUG;DEBUG_OUT</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DefineConstants>TRACE</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>

@@ -1,5 +1,8 @@
-﻿namespace MCSharp.Compilation {
+﻿using System.Diagnostics;
 
+namespace MCSharp.Compilation {
+
+	[DebuggerDisplay("{ToString(),nq}")]
 	public struct ScriptChar {
 
 		private char Character { get; }
@@ -21,7 +24,7 @@
 		public static explicit operator char(ScriptChar character) => character.Character;
 		public static implicit operator ScriptWord(ScriptChar character) => new ScriptWord(character);
 
-		public override string ToString() => $"Line {ScriptTrace.FileLine}: '{Character.ToString()}'";
+		public override string ToString() => $"[{ScriptTrace}] '{Character}'";
 
 	}
 

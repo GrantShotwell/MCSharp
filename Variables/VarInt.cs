@@ -42,40 +42,40 @@ namespace MCSharp.Variables {
 				switch(operation) {
 
 					case Operation.Set:
-					new Spy(null, $"scoreboard players operation " +
-						$"{Selector.GetConstant()} {Objective.GetConstant()} = " +
-						$"{right.Selector.GetConstant()} {right.Objective.GetConstant()}", null);
-					return this;
+						new Spy(null, $"scoreboard players operation " +
+							$"{Selector.GetConstant()} {Objective.GetConstant()} = " +
+							$"{right.Selector.GetConstant()} {right.Objective.GetConstant()}", null);
+						return this;
 
 					case Operation.Add:
-					new Spy(null, $"scoreboard players operation " +
-						$"{left.Selector.GetConstant()} {left.Objective.GetConstant()} += " +
-						$"{right.Selector.GetConstant()} {right.Objective.GetConstant()}", null);
-					return left;
+						new Spy(null, $"scoreboard players operation " +
+							$"{left.Selector.GetConstant()} {left.Objective.GetConstant()} += " +
+							$"{right.Selector.GetConstant()} {right.Objective.GetConstant()}", null);
+						return left;
 
 					case Operation.Subtract:
-					new Spy(null, $"scoreboard players operation " +
-						$"{left.Selector.GetConstant()} {left.Objective.GetConstant()} -= " +
-						$"{right.Selector.GetConstant()} {right.Objective.GetConstant()}", null);
-					return left;
+						new Spy(null, $"scoreboard players operation " +
+							$"{left.Selector.GetConstant()} {left.Objective.GetConstant()} -= " +
+							$"{right.Selector.GetConstant()} {right.Objective.GetConstant()}", null);
+						return left;
 
 					case Operation.Multiply:
-					new Spy(null, $"scoreboard players operation " +
-						$"{left.Selector.GetConstant()} {left.Objective.GetConstant()} *= " +
-						$"{right.Selector.GetConstant()} {right.Objective.GetConstant()}", null);
-					return left;
+						new Spy(null, $"scoreboard players operation " +
+							$"{left.Selector.GetConstant()} {left.Objective.GetConstant()} *= " +
+							$"{right.Selector.GetConstant()} {right.Objective.GetConstant()}", null);
+						return left;
 
 					case Operation.Divide:
-					new Spy(null, $"scoreboard players operation " +
-						$"{left.Selector.GetConstant()} {left.Objective.GetConstant()} /= " +
-						$"{right.Selector.GetConstant()} {right.Objective.GetConstant()}", null);
-					return left;
+						new Spy(null, $"scoreboard players operation " +
+							$"{left.Selector.GetConstant()} {left.Objective.GetConstant()} /= " +
+							$"{right.Selector.GetConstant()} {right.Objective.GetConstant()}", null);
+						return left;
 
 					case Operation.Modulo:
-					new Spy(null, $"scoreboard players operation " +
-						$"{left.Selector.GetConstant()} {left.Objective.GetConstant()} %= " +
-						$"{right.Selector.GetConstant()} {right.Objective.GetConstant()}", null);
-					return left;
+						new Spy(null, $"scoreboard players operation " +
+							$"{left.Selector.GetConstant()} {left.Objective.GetConstant()} %= " +
+							$"{right.Selector.GetConstant()} {right.Objective.GetConstant()}", null);
+						return left;
 
 					default: return base.InvokeOperation(operation, operand, scriptTrace);
 

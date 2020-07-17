@@ -1,9 +1,11 @@
 ﻿using MCSharp.Compilation;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 
 namespace MCSharp.Variables {
+	[DebuggerDisplay("*SPY*")]
 	public class Spy : Variable {
 
 		public Action<StreamWriter> Prep { get; }
@@ -19,9 +21,9 @@ namespace MCSharp.Variables {
 
 		public Spy(string prep, string init, string demo) :
 		base(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope) {
-			Init = (function) => function.WriteLine(init);
-			Prep = (function) => function.WriteLine(prep);
-			Demo = (function) => function.WriteLine(demo);
+			Init = (function) => { if(init != null) function.WriteLine(init); };
+			Prep = (function) => { if(prep != null) function.WriteLine(prep); };
+			Demo = (function) => { if(demo != null) function.WriteLine(demo); };
 		}
 
 		public Spy(string[] prep, string[] init, string[] demo) :
@@ -40,9 +42,20 @@ namespace MCSharp.Variables {
 
 		protected override Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) => null;
 
-		public override void WriteInit(StreamWriter function) { if(Init != null) Init.Invoke(function); }
-		public override void WritePrep(StreamWriter function) { if(Prep != null) Prep.Invoke(function); }
-		public override void WriteDemo(StreamWriter function) { if(Demo != null) Demo.Invoke(function); }
+		public override void WriteInit(StreamWriter function) {
+			base.WriteInit(function);
+			if(Init != null) Init.Invoke(function);
+		}
+
+		public override void WritePrep(StreamWriter function) {
+			base.WritePrep(function);
+			if(Prep != null) Prep.Invoke(function);
+		}
+
+		public override void WriteDemo(StreamWriter function) {
+			base.WriteDemo(function);
+			if(Demo != null) Demo.Invoke(function);
+		}
 
 	}
 }

@@ -3,8 +3,12 @@ using MCSharp.Statements;
 using MCSharp.Variables;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Reflection;
+using System.Security;
+using static MCSharp.Compilation.ScriptObject;
+using static MCSharp.Variables.Variable;
 
 namespace MCSharp {
 
@@ -30,7 +34,10 @@ namespace MCSharp {
 		public static IReadOnlyDictionary<int, Scope> AllScopes => allScopes;
 		public static Scope RootScope { get; private set; }
 		private static Stack<Scope> ScopeStack { get; } = new Stack<Scope>();
-		public static Scope CurrentScope => ScopeStack.Peek();
+		public static Scope CurrentScope {
+			[DebuggerStepThrough]
+			get => ScopeStack.Peek();
+		}
 
 		public static Dictionary<string, Access> AccessModifiers { get; } = new Dictionary<string, Access>() {
 			{ "public", Access.Public },
@@ -45,7 +52,7 @@ namespace MCSharp {
 		public static void Compile(string directory) {
 
 			//Clear and reset saved values from last compile.
-			Reload();
+			Reset();
 
 			string functionsPath = directory + "\\functions";
 			string[] functions = Directory.GetFiles(functionsPath);
@@ -96,7 +103,7 @@ namespace MCSharp {
 				Console.Write("Compiling 'mcsript\\prep.mcfunction'...");
 
 				PrepFunction.WriteLine($"function {Program.Datapack.Name}:mcscript/demo");
-				if(publicVariables != null) foreach(Variable variable in publicVariables) variable.WritePrep(PrepFunction);
+				foreach(Variable variable in allVariables) variable.WritePrep(PrepFunction);
 				PrepFunction.WriteLine($"function {Program.Datapack.Name}:program/load");
 
 				PrepFunction.Close();
@@ -124,7 +131,7 @@ namespace MCSharp {
 				Console.ForegroundColor = ConsoleColor.Gray;
 				Console.Write("Compiling 'mcscript\\demo.mcfunction'...");
 
-				if(publicVariables != null) foreach(Variable variable in publicVariables) variable.WriteDemo(DemoFunction);
+				foreach(Variable variable in allVariables) variable.WriteDemo(DemoFunction);
 
 				DemoFunction.Close();
 
@@ -135,17 +142,21 @@ namespace MCSharp {
 
 		}
 
+		public static Scope WriteFunction<TReturn>(Scope parent, Variable declarer, ScriptMethod method) where TReturn : Variable {
+			return WriteFunction<TReturn>(parent, declarer, method, method.FilePath, method.FileName);
+		}
+
 		/// <summary>
 		/// Compiles a new function file with the given <paramref name="functionPath"/> from the given <paramref name="method"/>.
 		/// </summary>
-		public static Scope WriteFunction<TReturn>(Scope parent, ScriptMethod method) where TReturn : Variable {
+		private static Scope WriteFunction<TReturn>(Scope parent, Variable declarer, ScriptMethod method, string path, string name) where TReturn : Variable {
 
-			string path = method.FilePath;
-			string alias = method.FileName;
+			//string path = method.FilePath;
+			//string name = method.FileName;
 			CurrentScriptTrace = method.ScriptTrace;
 
 			Console.ForegroundColor = ConsoleColor.Gray;
-			Console.Write($" · Writing '{alias}'... ");
+			Console.Write($" · Writing '{name}'... ");
 			highestFunctionStackSize++;
 
 			string[] directorySplit = path.Split('\\')[..^1];
@@ -155,7 +166,11 @@ namespace MCSharp {
 			StreamWriter writer = File.CreateText(path.Split("(", 2)[0]);
 
 			FunctionStack.Push(writer);
-			ScopeStack.Push(new Scope(parent, method));
+			ScopeStack.Push(new Scope(parent, declarer, method));
+
+#if DEBUG_OUT
+			writer.Write($"# {method.FullAlias} :: {CurrentScope.ID}\n");
+#endif
 
 
 			var lines = (IReadOnlyList<ScriptLine>)method;
@@ -178,27 +193,29 @@ namespace MCSharp {
 						if(onFinish == null) {
 
 							//Look for STATIC CLASS OBJECT
-							if(wild.IsWord && StaticClassObjects.TryGetValue((string)wild.Word, out Variable v0)) {
+							if(wild.IsWord && StaticClassObjects.TryGetValue((string)wild.Word, out Variable v0)
+							&& j + 1 < wilds.Count && OperationDictionary.TryGetValue((string)wilds[j + 1].Word, out Operation operation)
+							&& operation == Operation.Access) {
 								onFinish = () => {
 									v0.InvokeOperation(args[0].Word, args.ToArray()[1..]);
 								};
 								continue;
 							}
 
-							//Look for TYPE NAME
-							if(wild.IsWord && Variable.Compilers.TryGetValue((string)wild.Word, out var initializer)) {
+							//Look for VALUE
+							if(TryParseValue(wild, CurrentScope, out Variable v1) && !StaticClassObjects.ContainsValue(v1)) {
 								onFinish = () => {
-									initializer.Invoke(Access.Private, Usage.Default, args[0], CurrentScope, args[0].ScriptTrace);
-									if(args.Count > 1) TryParseValue(new ScriptWild(args, " \\ ", ' '), CurrentScope, out _);
+									if(args.Count > 0) v1.InvokeOperation(args[0].Word, args.ToArray()[1..]);
+									else throw new Exception("115002272020");
 								};
 								continue;
 							}
 
-							//Look for VALUE
-							if(TryParseValue(wild, CurrentScope, out Variable variable)) {
+							//Look for TYPE NAME
+							if(wild.IsWord && Initializers.TryGetValue((string)wild.Word, out var initializer)) {
 								onFinish = () => {
-									if(args.Count > 0) variable.InvokeOperation(args[0].Word, args.ToArray()[1..]);
-									else throw new Exception("115002272020");
+									initializer.Invoke(Access.Private, Usage.Default, args[0], CurrentScope, args[0].ScriptTrace);
+									if(args.Count > 1) TryParseValue(new ScriptWild(args, " \\ ", ' '), CurrentScope, out _);
 								};
 								continue;
 							}
@@ -219,7 +236,7 @@ namespace MCSharp {
 
 			if(VariableScopes.TryGetValue(CurrentScope, out List<Variable> variables)) {
 				for(int i = 0; i < variables.Count; i++) variables[i].WriteInit(FunctionStack.Peek());
-				for(int i = 0; i < variables.Count; i++) variables[i].WriteDemo(FunctionStack.Peek());
+				for(int i = 0; i < variables.Count; i++) variables[i].WriteDele(FunctionStack.Peek());
 			}
 
 
@@ -228,7 +245,7 @@ namespace MCSharp {
 
 			Program.ClearCurrentConsoleLine();
 			Console.ForegroundColor = ConsoleColor.Green;
-			Console.WriteLine($" · Wrote '{alias}'.");
+			Console.WriteLine($" · Wrote '{name}'.");
 
 			return outScope;
 
@@ -242,16 +259,33 @@ namespace MCSharp {
 			if(wild.IsWord || wild.Count == 1) {
 
 				while(wild.IsWilds && wild.Count == 1) wild = wild.Wilds[0];
-				if(int.TryParse((string)wild.Word, out int _int)) {
-					variable = new VarInt(Access.Private, Usage.Constant, Variable.GetNextHiddenID(), CurrentScope);
+				string word = (string)wild.Word;
+
+				if(int.TryParse(word, out int _int)) {
+
+					// Special case: ints
+					variable = new VarInt(Access.Private, Usage.Constant, GetNextHiddenID(), CurrentScope);
 					((PrimitiveType)variable).SetValue(_int);
 					return true;
-				} else if(bool.TryParse((string)wild.Word, out bool _bool)) {
-					variable = new VarBool(Access.Private, Usage.Constant, Variable.GetNextHiddenID(), CurrentScope);
+
+				} else if(bool.TryParse(word, out bool _bool)) {
+
+					// Special case: bools
+					variable = new VarBool(Access.Private, Usage.Constant, GetNextHiddenID(), CurrentScope);
 					((PrimitiveType)variable).SetValue(_bool ? 1 : 0);
 					return true;
+
+				} else if(word[0] == '"' && word[^1] == '"') {
+
+					// Special case: strings
+					variable = new VarString(Access.Private, GetNextHiddenID(), CurrentScope, word[1..^1]);
+					return true;
+
 				} else {
+
+					// Variable by name
 					return TryGetVariable((string)wild.Word, scope, out variable);
+
 				}
 
 			} else {
@@ -268,7 +302,7 @@ namespace MCSharp {
 
 						X: if(current.IsWord || x != null) {
 
-							//Special case: "!" operator
+							// Special case: "!" operator
 							if(x == null && current.Word == "!") {
 								if(TryParseValue(wilds[i + 1], scope, out x)) {
 									variable = x.InvokeOperation(new ScriptString("!", "anon"), new ScriptWild[] { });
@@ -276,10 +310,34 @@ namespace MCSharp {
 								} else return false;
 							}
 
-							//Special case: strings
+							// Special case: strings
 							string s = current.IsWord ? (string)current.Word : "";
 							if(x == null && s.StartsWith('"') && s.EndsWith('"')) {
-								x = new VarString(Access.Private, Variable.GetNextHiddenID(), CurrentScope, s[1..^1]);
+								x = new VarString(Access.Private, GetNextHiddenID(), CurrentScope, s[1..^1]);
+							}
+
+							// Special case: "new" operator
+							// + unexpected operator check
+							if(current.IsWord && OperationDictionary.TryGetValue((string)current.Word, out Operation opr)) {
+								if(opr == Operation.New) {
+									if(i + 3 > wilds.Length) throw new SyntaxException("Incomplete 'new' operator.", current.ScriptTrace);
+									else if(wilds[i + 1].IsWilds) throw new SyntaxException("Invalid use of 'new' operator.", current.ScriptTrace);
+									else if(wilds[i + 2].IsWord) throw new SyntaxException("Invalid use of 'new' operator.", current.ScriptTrace);
+									else {
+										ScriptWord typeWord = wilds[i + 1].Word;
+										ScriptWild argsWild = wilds[i + 2];
+										if(argsWild.BlockType != "(\\)") throw new SyntaxException("Expected '('.", current.ScriptTrace);
+										i += 2;
+										Variable[] args = new Variable[argsWild.Count];
+										for(int indx = 0; indx < argsWild.Count; indx++)
+											if(!TryParseValue(argsWild[indx], scope, out args[indx]))
+												throw new SyntaxException("Could not parse into a value.", argsWild[indx].ScriptTrace);
+										if(!Constructors.TryGetValue((string)typeWord, out Constructor constructor))
+											throw new SyntaxException($"Could not find a constructor for type '{(string)typeWord}'.", typeWord.ScriptTrace);
+										x = constructor.Invoke(args);
+										if(x == null) throw new InternalError("Constructor returned null.");
+									}
+								} else throw new SyntaxException("Unexpected operator when a value was expected.", current.ScriptTrace);
 							}
 
 							//Check if it's a variable.
@@ -297,8 +355,8 @@ namespace MCSharp {
 										else throw new SyntaxException(
 											$"Cannot cast '{variable}' into 'bool' for use in boolean operator '{(string)opWord}'.", opWord.ScriptTrace);
 									} else {
-										Variable.Operation operation = Variable.OperationDictionary[(string)op.Value];
-										if(operation == Variable.Operation.Access) goto CheckMembers;
+										Operation operation = OperationDictionary[(string)op.Value];
+										if(operation == Operation.Access) goto CheckMembers;
 										else variable = variable.InvokeOperation(operation, x, current.ScriptTrace);
 									}
 									return true;
@@ -309,7 +367,8 @@ namespace MCSharp {
 								}
 							} else goto CheckMembers;
 							goto AfterElse;
-							CheckMembers: {
+							CheckMembers:
+							{
 								// <<Not a Variable>>
 								//Check for method arguments.
 								ScriptWild args;
@@ -360,6 +419,8 @@ namespace MCSharp {
 		/// 
 		/// </summary>
 		public static bool TryGetVariable(string name, Scope scope, out Variable variable) {
+			object member = null;
+			if(name == "this") return (variable = scope.DeclaringVariable) != null;
 			variable = null;
 			if(VariableNames.TryGetValue(name, out Dictionary<Scope, Variable> dictionary)) {
 				int min = int.MaxValue;
@@ -372,11 +433,30 @@ namespace MCSharp {
 						min = d;
 					}
 				}
+			} else if(scope.DeclaringVariable?.TryGetMember(name, out member) ?? false) {
+
+				if(member is Variable field) {
+					// <<Accessing Field>>
+					return (variable = field) != null;
+
+				} else if(member is (GetProperty get, SetProperty set)) {
+					// <<Accessing Property>>
+					return false;
+
+				} else if(member is MethodDelegate method) {
+					// <<Accessing Method>>
+					return false;
+
+				}
+
 			}
 			return variable != null;
 		}
 
-		private static void Reload() {
+		private static void Reset() {
+
+			//Clear constructors.
+			VarGeneric.CompiledConstructors.Clear();
 
 			//Reset anon script trace.
 			AnonScriptTrace = new ScriptTrace(Program.ScriptsFolder + "anon.this_file_does_not_exist", 0);
@@ -387,11 +467,10 @@ namespace MCSharp {
 			//Clear files from last compile.
 			ScriptFile.Files.Clear();
 
-			//Clear compilers from last compile.
-			Variable.Compilers.Clear();
-
-			//Clear datatypes from last compile.
+			//Clear types from last compile.
 			Datatypes.Clear();
+			Initializers.Clear();
+			Constructors.Clear();
 
 			//Reset objective ids.
 			VarObjective.ResetID();
@@ -408,6 +487,7 @@ namespace MCSharp {
 			//Clear variables from last compile.
 			VariableNames.Clear();
 			VariableScopes.Clear();
+			ResetHiddenID();
 
 			//Clear loaded statements from last compile.
 			Statement.Dictionary.Clear();
@@ -438,15 +518,16 @@ namespace MCSharp {
 		public class Scope {
 
 			private int nextInnerID = 0;
-			private readonly List<Scope> children = new List<Scope>();
 			private Scope parent;
-			private readonly ScriptClass declaringType;
+			private readonly List<Scope> children = new List<Scope>();
+			private readonly Variable declaringVariable;
 			private readonly ScriptMethod declaringMethod;
 
 			public int ID { get; }
-			public ScriptClass DeclaringType => declaringType ?? Parent?.DeclaringType ?? null;
+			public Variable DeclaringVariable => declaringVariable ?? Parent?.DeclaringVariable ?? null;
+			public ScriptObject DeclaringType => (DeclaringVariable as VarStruct)?.ScriptClass;
 			public ScriptMethod DeclaringMethod => declaringMethod ?? Parent?.DeclaringMethod ?? null;
-			public HashSet<Variable> Variables { get; } = new HashSet<Variable>();
+			public ICollection<Variable> Variables { get; } = new HashSet<Variable>();
 			public IReadOnlyCollection<Scope> Children => children;
 			public Scope Parent {
 				get => parent;
@@ -458,16 +539,9 @@ namespace MCSharp {
 			}
 
 
-			public Scope(Scope parent, ScriptClass declaringType = null) {
-				this.declaringType = declaringType;
-				ID = GetNextScopeID();
-				Parent = parent;
-				allScopes.Add(this);
-			}
-
-			public Scope(Scope parent, ScriptMethod declaringMethod) {
+			public Scope(Scope parent, Variable declaringVariable = null, ScriptMethod declaringMethod = null) {
+				this.declaringVariable = declaringVariable;
 				this.declaringMethod = declaringMethod;
-				declaringType = declaringMethod?.DeclaringType;
 				ID = GetNextScopeID();
 				Parent = parent;
 				allScopes.Add(this);
@@ -508,7 +582,12 @@ namespace MCSharp {
 		public static void Add(this Dictionary<int, Scope> dictionary, Scope scope) => dictionary.Add(scope.ID, scope);
 
 		public class SyntaxException : Exception {
-			public SyntaxException(string message, ScriptTrace at) : base($"{at}: {message}") { }
+			public SyntaxException(string message, ScriptTrace at) : base($"[{at}] {message}") { }
+		}
+
+		public class InternalError : Exception {
+			public InternalError(string message, ScriptTrace at) : base($"[{at}] {message}") { }
+			public InternalError(string message) : base(message) { }
 		}
 
 	}

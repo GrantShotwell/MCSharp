@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace MCSharp.Compilation {
 
+	[DebuggerDisplay("{ToString(),nq}")]
 	public struct ScriptWord : IReadOnlyList<ScriptChar> {
 
 		private ScriptString ScriptString { get; }
@@ -38,7 +40,7 @@ namespace MCSharp.Compilation {
 		public static bool operator ==(string left, ScriptWord right) => left == (string)right;
 		public static bool operator !=(string left, ScriptWord right) => left != (string)right;
 
-		public override string ToString() => $"{ScriptTrace}: \"{ScriptString}\"";
+		public override string ToString() => $"[{ScriptTrace}] \"{(string)this}\"";
 
 	}
 

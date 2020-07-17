@@ -8,7 +8,7 @@
     ".NETCoreApp,Version=v3.1": []
   },
   "packageFolders": {
-    "C:\\Users\\Lenovo Legion\\.nuget\\packages\\": {}
+    "C:\\Users\\Grant Shotwell\\.nuget\\packages\\": {}
   },
   "project": {
     "version": "1.0.0",
@@ -16,11 +16,11 @@
       "projectUniqueName": "C:\\Projects\\MCSharp\\MCSharp\\MCSharp.csproj",
       "projectName": "MCSharp",
       "projectPath": "C:\\Projects\\MCSharp\\MCSharp\\MCSharp.csproj",
-      "packagesPath": "C:\\Users\\Lenovo Legion\\.nuget\\packages\\",
+      "packagesPath": "C:\\Users\\Grant Shotwell\\.nuget\\packages\\",
       "outputPath": "C:\\Projects\\MCSharp\\MCSharp\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "C:\\Users\\Lenovo Legion\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Users\\Grant Shotwell\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
       "originalTargetFrameworks": [
@@ -58,7 +58,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\3.1.201\\RuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\3.1.302\\RuntimeIdentifierGraph.json"
       }
     }
   }
