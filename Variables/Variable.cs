@@ -294,7 +294,7 @@ namespace MCSharp.Variables {
 		/// </summary>
 		public virtual void WriteInit(StreamWriter function) {
 #if DEBUG_OUT
-			if(!(this is Spy)) function.WriteLine($"# INIT # {this}@{Scope}");
+			//if(!(this is Spy)) function.WriteLine($"# INIT # {this}@{Scope}");
 #endif
 		}
 
@@ -303,7 +303,7 @@ namespace MCSharp.Variables {
 		/// </summary>
 		public virtual void WriteTick(StreamWriter function) {
 #if DEBUG_OUT
-			if(!(this is Spy)) function.WriteLine($"# TICK # {this}@{Scope}");
+			//if(!(this is Spy)) function.WriteLine($"# TICK # {this}@{Scope}");
 #endif
 		}
 
@@ -312,13 +312,13 @@ namespace MCSharp.Variables {
 		/// </summary>
 		public virtual void WritePrep(StreamWriter function) {
 #if DEBUG_OUT
-			if(!(this is Spy)) function.WriteLine($"# PREP # {this}@{Scope}");
+			//if(!(this is Spy)) function.WriteLine($"# PREP # {this}@{Scope}");
 #endif
 		}
 
 		public virtual void WriteDele(StreamWriter function) {
 #if DEBUG_OUT
-			if(!(this is Spy)) function.WriteLine($"# DELE # {this}@{Scope}");
+			//if(!(this is Spy)) function.WriteLine($"# DELE # {this}@{Scope}");
 #endif
 		}
 
@@ -327,7 +327,7 @@ namespace MCSharp.Variables {
 		/// </summary>
 		public virtual void WriteDemo(StreamWriter function) {
 #if DEBUG_OUT
-			if(!(this is Spy)) function.WriteLine($"# DEMO # {this}@{Scope}");
+			//if(!(this is Spy)) function.WriteLine($"# DEMO # {this}@{Scope}");
 #endif
 		}
 

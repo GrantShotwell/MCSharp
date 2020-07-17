@@ -89,7 +89,7 @@ namespace MCSharp.Variables {
 				if(init.IsWord || !(init.Wilds[0] == "=")) throw new Compiler.SyntaxException("Expected '='.", init.ScriptTrace);
 				if(init.Wilds.Count < 2) throw new Compiler.SyntaxException("Expected value.", init.ScriptTrace);
 				if(Compiler.TryParseValue(new ScriptWild(init[1..].Array, "(\\)", ' '), Compiler.CurrentScope, out Variable value)) {
-					//fieldVariable.InvokeOperation(Operation.Set, value, init.ScriptTrace);
+					fieldVariable.InvokeOperation(Operation.Set, value, init.ScriptTrace);
 				} else throw new Compiler.SyntaxException($"Could not parse into '{field.TypeName}'.", field.ScriptTrace);
 			}
 			return fieldVariable;
@@ -107,20 +107,26 @@ namespace MCSharp.Variables {
 
 			// Make delegate.
 			return (arguments) => {
+
 				// Check that the number of given arguments is correct.
 				if(arguments.Length != constructor.Parameters.Length)
 					throw new InvalidArgumentsException($"Wrong number of arguments for '{constructor.Alias}'.Invoke(_).", Compiler.CurrentScriptTrace);
-				
+
+				// Reset metadata.
+				Variable reset = Initializers[TypeName].Invoke(Access.Private, Usage.Default, GetNextHiddenID(), constructor.Scope, Compiler.CurrentScriptTrace);
+
 				// Call the constructor.
 				new Spy(null, function => {
+					// Reset metadata.
+					reset.WriteCopyTo(function, constructor.ReturnValue);
 					// Copy arguments to parameters.
 					for(int i = 0; i < arguments.Length; i++) arguments[i].WriteCopyTo(Compiler.FunctionStack.Peek(), constructor.Parameters[i]);
 					// Call the constructor function.
 					function.WriteLine($"function {constructor.GameName}");
 				}, null);
 
+				// Give the return value.
 				return constructor.ReturnValue;
-				//return Initialize(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope, Compiler.CurrentScriptTrace) as VarStruct;
 
 			};
 

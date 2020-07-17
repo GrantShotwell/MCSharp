@@ -169,7 +169,7 @@ namespace MCSharp {
 			ScopeStack.Push(new Scope(parent, declarer, method));
 
 #if DEBUG_OUT
-			writer.Write($"# {method.FullAlias} :: {CurrentScope.ID}\n");
+			writer.Write($"# {method.FullAlias}@{CurrentScope.ID}\n");
 #endif
 
 
