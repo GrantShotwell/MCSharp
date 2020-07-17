@@ -27,7 +27,7 @@ namespace MCSharp.Variables {
 			Compiler.StaticClassObjects.Add(TypeName, this);
 			Initializers.Add(TypeName, Initialize);
 			Variable.Constructors.Add(TypeName, Construct);
-			foreach(var member in from ScriptMember member in ScriptClass.Values where (member is ScriptConstructor) || !(member is ScriptMethod) || member.Usage == Usage.Static select member)
+			foreach(var member in from ScriptMember member in ScriptClass.Values where member.Usage == Usage.Static || member is ScriptConstructor select member)
 				AddMember(member);
 
 		}
