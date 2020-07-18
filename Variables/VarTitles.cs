@@ -21,7 +21,7 @@ namespace MCSharp.Variables {
 			Methods.Add("ShowActionbar", args => Show("actionbar", args));
 		}
 
-		protected override Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) {
+		public override Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) {
 			base.Initialize(access, usage, name, scope, trace);
 			throw new Compiler.SyntaxException("Cannot make an instance of a static class.", trace);
 		}

@@ -71,10 +71,10 @@ namespace MCSharp.Variables {
 		}
 
 
-		protected override Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) {
+		public override Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) {
 			base.Initialize(access, usage, name, scope, trace);
 
-			throw new NotImplementedException();
+			throw new NotImplementedException("Cannot create objectives.");
 
 		}
 

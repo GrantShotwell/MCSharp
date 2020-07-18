@@ -25,12 +25,12 @@ namespace MCSharp.Variables {
 		: base(access, usage, name, scope, script) { }
 
 
-		protected override Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) {
+		public override Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) {
 			base.Initialize(access, usage, name, scope, trace);
 			return new VarStruct(access, usage, name, scope, ScriptClass);
 		}
 
-		protected override Variable Construct(Variable[] arguments) {
+		public override Variable Construct(Variable[] arguments) {
 			base.Construct(arguments);
 			//TODO: better 'finder' for overflows
 			foreach(Constructor constructor in Constructors) {
@@ -148,8 +148,8 @@ namespace MCSharp.Variables {
 		}
 
 		public override void WriteCopyTo(StreamWriter function, Variable variable) {
-
-			if(variable is VarStruct varStruct && varStruct.ScriptClass == ScriptClass) {
+			if(variable is Pointer<VarStruct> pointer) pointer.Variable = this;
+			else if(variable is VarStruct varStruct && varStruct.ScriptClass == ScriptClass) {
 				foreach(KeyValuePair<string, Variable> pair in Fields) {
 					string name = pair.Key;
 					Variable value = pair.Value;

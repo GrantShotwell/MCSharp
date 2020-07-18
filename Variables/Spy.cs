@@ -40,7 +40,7 @@ namespace MCSharp.Variables {
 			Demo = demo;
 		}
 
-		protected override Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) => null;
+		public override Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) => null;
 
 		public override void WriteInit(StreamWriter function) {
 			base.WriteInit(function);

@@ -1,4 +1,5 @@
 ﻿using MCSharp.Compilation;
+using System.IO;
 using static MCSharp.Compilation.ScriptObject;
 
 namespace MCSharp.Variables {
@@ -7,15 +8,25 @@ namespace MCSharp.Variables {
 
 		public override string TypeName => "bool";
 
+		public static VarBool TrueValue { get; private set; }
+		public static VarBool FalseValue { get; private set; }
+
 
 		public VarBool() : base() { }
 
 		public VarBool(Access access, Usage usage, string name, Compiler.Scope scope) : base(access, usage, name, scope) { }
 
 
-		protected override Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) {
+		public override Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) {
 			base.Initialize(access, usage, name, scope, trace);
 			return new VarBool(access, usage, name, scope);
+		}
+
+		public override void WriteCopyTo(StreamWriter function, Variable variable) {
+			if(variable is Pointer<VarBool> pointer) pointer.Variable = this;
+			else if(variable is VarInt varInt || variable.TryCast(out varInt)) {
+				function.WriteLine($"scoreboard players operation var {varInt.Objective.ID} = var {Objective.ID}");
+			} else throw new InvalidArgumentsException($"Unknown how to interpret '{variable}' as '{TypeName}'.", Compiler.CurrentScriptTrace);
 		}
 
 		public override Variable InvokeOperation(Operation operation, Variable operand, ScriptTrace scriptTrace) {
@@ -64,6 +75,8 @@ namespace MCSharp.Variables {
 
 			}
 		}
+
+		public override string GetJSON() => $"{{\"score\":{{\"name\":\"var\",\"objective\":\"{Objective.ID}\"}}}}";
 
 	}
 

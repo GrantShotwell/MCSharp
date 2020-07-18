@@ -15,7 +15,7 @@ namespace MCSharp.Variables {
 		: base(access, usage, objectName, scope) { }
 
 
-		protected override Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace)
+		public override Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace)
 			=> new VarVoid(access, usage, name, scope);
 
 	}

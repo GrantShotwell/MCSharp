@@ -33,17 +33,20 @@ namespace MCSharp.Variables {
 		public delegate Variable Caster(Variable value);
 
 		#region Operations
-		public enum Operation { New, Access, Set, Add, Subtract, Multiply, Divide, Modulo, BooleanAnd, BooleanOr, BooleanNot }
+		public enum Operation { New, Access, Set, Add, Subtract, Multiply, Divide, Modulo, GreaterThan, GreaterThanOrEqual, Equal, LessThan, LessThanOrEqual, BooleanAnd, BooleanOr, BooleanNot }
 		public enum OperationType { Set, Arithmetic, Boolean, Misc }
 		public static IReadOnlyDictionary<string, Operation> OperationDictionary { get; } = new Dictionary<string, Operation>() {
-			//Misc
+			// Misc
 			{ ".", Operation.Access }, { "new", Operation.New },
-			//Set
+			// Set
 			{ "=", Operation.Set },
-			//Arithmetic
+			// Arithmetic
 			{ "+", Operation.Add }, { "-", Operation.Subtract },
 			{ "*", Operation.Multiply }, { "/", Operation.Divide }, { "%", Operation.Modulo },
-			//Boolean
+			{ ">", Operation.GreaterThan }, {">=", Operation.GreaterThanOrEqual },
+			{ "<", Operation.LessThan }, { "<=", Operation.LessThanOrEqual },
+			{ "==", Operation.Equal },
+			// Boolean
 			{ "&&", Operation.BooleanAnd }, { "||", Operation.BooleanOr }, { "!", Operation.BooleanNot }
 		};
 		public static IReadOnlyDictionary<Operation, OperationType> OperationTypeDictionary { get; } = new Dictionary<Operation, OperationType>() {
@@ -54,6 +57,9 @@ namespace MCSharp.Variables {
 			//Arithmetic
 			{ Operation.Add, OperationType.Arithmetic }, { Operation.Subtract, OperationType.Arithmetic },
 			{ Operation.Multiply, OperationType.Arithmetic }, { Operation.Divide, OperationType.Arithmetic }, { Operation.Modulo, OperationType.Arithmetic },
+			{ Operation.GreaterThan, OperationType.Arithmetic }, { Operation.GreaterThanOrEqual, OperationType.Arithmetic },
+			{ Operation.LessThan, OperationType.Arithmetic }, { Operation.LessThanOrEqual, OperationType.Arithmetic },
+			{ Operation.Equal, OperationType.Arithmetic },
 			//Boolean
 			{ Operation.BooleanAnd, OperationType.Boolean }, { Operation.BooleanOr, OperationType.Boolean }, { Operation.BooleanNot, OperationType.Boolean }
 		};
@@ -151,18 +157,16 @@ namespace MCSharp.Variables {
 		#region Constructors
 		public Variable() {
 			Type type = GetType();
-			if(!typeof(Spy).IsAssignableFrom(type) && !typeof(VarGeneric).IsAssignableFrom(type)) {
+			if(!IsIgnoredType(type)) {
 
 				// Add initializer.
-				MethodInfo initInfo = GetType().GetMethod(nameof(Initialize), BindingFlags.Instance | BindingFlags.NonPublic);
-				if(initInfo.GetBaseDefinition().DeclaringType != initInfo.DeclaringType)
-					Initializers.Add(TypeName, Initialize);
+				MethodInfo initInfo = GetType().GetMethod(nameof(Initialize), BindingFlags.Instance | BindingFlags.Public);
+				if(initInfo.GetBaseDefinition().DeclaringType != initInfo.DeclaringType) Initializers.Add(TypeName, Initialize);
 				else throw new Compiler.InternalError($"All Variables must override {nameof(Initialize)}.");
 
 				// Add constructor.
-				MethodInfo cnstInfo = GetType().GetMethod(nameof(Construct), BindingFlags.Instance | BindingFlags.NonPublic);
-				if(cnstInfo.GetBaseDefinition().DeclaringType != cnstInfo.DeclaringType)
-					Constructors.Add(TypeName, Construct);
+				MethodInfo cnstInfo = GetType().GetMethod(nameof(Construct), BindingFlags.Instance | BindingFlags.Public);
+				if(cnstInfo.GetBaseDefinition().DeclaringType != cnstInfo.DeclaringType) Constructors.Add(TypeName, Construct);
 
 				// Add casters 'to'.
 				IDictionary<Type, Caster> castersTo = GetCasters_To();
@@ -223,7 +227,14 @@ namespace MCSharp.Variables {
 
 
 		#region Methods
-		protected virtual Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) {
+
+		public static bool IsIgnoredType(Type type) {
+			return typeof(Spy).IsAssignableFrom(type)
+				|| typeof(VarGeneric).IsAssignableFrom(type)
+				|| typeof(Pointer).IsAssignableFrom(type);
+		}
+
+		public virtual Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) {
 			if(string.IsNullOrEmpty(name))
 				throw new ArgumentException("message", nameof(name));
 			if(scope is null)
@@ -233,7 +244,7 @@ namespace MCSharp.Variables {
 			return this;
 		}
 
-		protected virtual Variable Construct(Variable[] arguments) {
+		public virtual Variable Construct(Variable[] arguments) {
 			if(arguments is null)
 				throw new ArgumentNullException(nameof(arguments));
 			return this;
@@ -288,7 +299,6 @@ namespace MCSharp.Variables {
 					} else if(member is MethodDelegate method) {
 						// <<Accessing Method>>
 						if(argsCount > 1) {
-							//TODO: call + operation
 							var name = args[0];
 							var arrr = args[1];
 							Variable[] variables = new Variable[arrr.Wilds.Count];
@@ -370,8 +380,10 @@ namespace MCSharp.Variables {
 		/// <summary>
 		/// Creates a new <see cref="Spy"/> that will copy the value of this to <paramref name="variable"/>.
 		/// </summary>
-		public virtual void WriteCopyTo(StreamWriter function, Variable variable)
-			=> throw new Compiler.SyntaxException($"Cannot pass the value of type '{TypeName}' to other variables!", Compiler.CurrentScriptTrace);
+		public virtual void WriteCopyTo(StreamWriter function, Variable variable) {
+			if(variable is Pointer<Variable> pointer) pointer.Variable = this;
+			else throw new Compiler.SyntaxException($"This type can only be passed to {nameof(Pointer<Variable>)}.", Compiler.CurrentScriptTrace);
+		}
 
 		public virtual IDictionary<Type, Caster> GetCasters_To() {
 			var casters = new Dictionary<Type, Caster> {

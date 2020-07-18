@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using static MCSharp.Compilation.ScriptObject;
 
 namespace MCSharp.Variables {
 
@@ -19,63 +20,77 @@ namespace MCSharp.Variables {
 		public VarInt(Access access, Usage usage, string name, Compiler.Scope scope) : base(access, usage, name, scope) { }
 
 
-		protected override Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) {
+		public override Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) {
 			base.Initialize(access, usage, name, scope, trace);
 			return new VarInt(access, usage, name, scope);
 		}
 
 		public override void WriteCopyTo(StreamWriter function, Variable variable) {
-			if(variable is VarInt varInt) {
+			if(variable is Pointer<VarInt> pointer) pointer.Variable = this;
+			else if(variable is VarInt varInt || variable.TryCast(out varInt)) {
 				function.WriteLine($"scoreboard players operation var {varInt.Objective.ID} = var {Objective.ID}");
 			} else throw new InvalidArgumentsException($"Unknown how to interpret '{variable}' as '{TypeName}'.", Compiler.CurrentScriptTrace);
 		}
-
-		public override string GetJSON() => $"{{\"score\":{{\"name\":\"var\",\"objective\":\"{Objective.ID}\"}}}}";
 
 		public override Variable InvokeOperation(Operation operation, Variable operand, ScriptTrace scriptTrace) {
 
 			if(operand is VarInt right || operand.TryCast(out right)) {
 
-				var left = operation == Operation.Set ? null : new VarInt(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope);
-				left?.SetValue(Selector, Objective);
+				string op;
 
 				switch(operation) {
 
 					case Operation.Set:
-						new Spy(null, $"scoreboard players operation " +
-							$"{Selector.GetConstant()} {Objective.GetConstant()} = " +
-							$"{right.Selector.GetConstant()} {right.Objective.GetConstant()}", null);
-						return this;
-
+						op = "=";
+						goto Bitwise;
 					case Operation.Add:
-						new Spy(null, $"scoreboard players operation " +
-							$"{left.Selector.GetConstant()} {left.Objective.GetConstant()} += " +
-							$"{right.Selector.GetConstant()} {right.Objective.GetConstant()}", null);
-						return left;
-
+						op = "+=";
+						goto Bitwise;
 					case Operation.Subtract:
-						new Spy(null, $"scoreboard players operation " +
-							$"{left.Selector.GetConstant()} {left.Objective.GetConstant()} -= " +
-							$"{right.Selector.GetConstant()} {right.Objective.GetConstant()}", null);
-						return left;
-
+						op = "-=";
+						goto Bitwise;
 					case Operation.Multiply:
-						new Spy(null, $"scoreboard players operation " +
-							$"{left.Selector.GetConstant()} {left.Objective.GetConstant()} *= " +
-							$"{right.Selector.GetConstant()} {right.Objective.GetConstant()}", null);
-						return left;
-
+						op = "*=";
+						goto Bitwise;
 					case Operation.Divide:
+						op = "/=";
+						goto Bitwise;
+					case Operation.Modulo:
+						op = "%";
+						goto Bitwise;
+
+						Bitwise:
+						var left = operation == Operation.Set ? null : new VarInt(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope);
+						left?.SetValue(Selector, Objective);
 						new Spy(null, $"scoreboard players operation " +
-							$"{left.Selector.GetConstant()} {left.Objective.GetConstant()} /= " +
+							$"{left.Selector.GetConstant()} {left.Objective.GetConstant()} {op} " +
 							$"{right.Selector.GetConstant()} {right.Objective.GetConstant()}", null);
 						return left;
 
-					case Operation.Modulo:
-						new Spy(null, $"scoreboard players operation " +
-							$"{left.Selector.GetConstant()} {left.Objective.GetConstant()} %= " +
-							$"{right.Selector.GetConstant()} {right.Objective.GetConstant()}", null);
-						return left;
+
+					case Operation.GreaterThan:
+						op = ">";
+						goto Comparison;
+					case Operation.GreaterThanOrEqual:
+						op = ">=";
+						goto Comparison;
+					case Operation.Equal:
+						op = "==";
+						goto Comparison;
+					case Operation.LessThan:
+						op = "<";
+						goto Comparison;
+					case Operation.LessThanOrEqual:
+						op = "<=";
+						goto Comparison;
+
+						Comparison:
+						var result = new VarBool(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope);
+						result.SetValue(0);
+						new Spy(null, $"execute if score {Selector.GetConstant()} {Objective.GetConstant()} {op} {right.Selector.GetConstant()} {right.Objective.GetConstant()} run " +
+							$"scoreboard players set {result.Selector.GetConstant()} {result.Objective.GetConstant()} 1", null);
+						return result;
+
 
 					default: return base.InvokeOperation(operation, operand, scriptTrace);
 
@@ -94,6 +109,9 @@ namespace MCSharp.Variables {
 			});
 			return casters;
 		}
+
+		public override string GetJSON() => $"{{\"score\":{{\"name\":\"var\",\"objective\":\"{Objective.ID}\"}}}}";
+
 	}
 
 }

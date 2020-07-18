@@ -204,21 +204,21 @@ namespace MCSharp {
 								continue;
 							}
 
+							//Look for TYPE NAME
+							if(wild.IsWord && Initializers.TryGetValue((string)wild.Word, out var initializer)) {
+								onFinish = () => {
+									initializer.Invoke(Access.Private, Usage.Default, args[0], CurrentScope, args[0].ScriptTrace);
+									if(args.Count > 1) _ = ParseValue(new ScriptWild(args, " \\ ", ' '), CurrentScope);
+								};
+								continue;
+							}
+
 							//Look for VALUE
 							Variable v1 = ParseValue(wild, CurrentScope);
 							if(!StaticClassObjects.ContainsValue(v1)) {
 								onFinish = () => {
 									if(args.Count > 0) v1.InvokeOperation(args[0].Word, args.ToArray()[1..]);
 									else throw new Exception("115002272020");
-								};
-								continue;
-							}
-
-							//Look for TYPE NAME
-							if(wild.IsWord && Initializers.TryGetValue((string)wild.Word, out var initializer)) {
-								onFinish = () => {
-									initializer.Invoke(Access.Private, Usage.Default, args[0], CurrentScope, args[0].ScriptTrace);
-									if(args.Count > 1) _ = ParseValue(new ScriptWild(args, " \\ ", ' '), CurrentScope);
 								};
 								continue;
 							}
@@ -525,8 +525,9 @@ namespace MCSharp {
 			foreach(TypeInfo info in assembly.DefinedTypes) {
 				if(info.IsSubclassOf(typeof(Variable)) && !info.IsAbstract) {
 					ConstructorInfo constructor = info.GetConstructor(new Type[] { });
+					if(IsIgnoredType(constructor.DeclaringType)) continue;
 					var variable = constructor.Invoke(new object[] { }) as Variable;
-					if((!(variable is Spy)) && (!(variable is VarGeneric))) Datatypes.Add(variable.TypeName, info.AsType());
+					Datatypes.Add(variable.TypeName, info.AsType());
 				}
 			}
 

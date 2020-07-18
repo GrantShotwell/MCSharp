@@ -238,47 +238,45 @@ namespace MCSharp.Compilation {
 					} else if((char)current == '"') inString = !inString;
 				} else escaped = false;
 
-				ScriptChar[] c;
-				if(characters.Count < maxOperatorSize) {
-					c = new ScriptChar[characters.Count + 1];
-					c[^1] = current;
-					characters.CopyTo(c, 0);
-				} else c = new ScriptChar[0];
-				var s = new ScriptString(c);
+				if(!inString) {
 
-				if(!inString && Variable.OperationDictionary.TryGetValue(((char)current).ToString(), out Variable.Operation thisOp)) {
+					if(Variable.OperationDictionary.TryGetValue(((char)current).ToString(), out Variable.Operation thisOp)) {
 
-					ScriptChar[] array = new ScriptChar[characters.Count];
-					characters.CopyTo(array, 0);
-					characters.Clear();
-					if(array.Length > 0) separated.Add(array);
+						ScriptChar[] array = new ScriptChar[characters.Count];
+						characters.CopyTo(array, 0);
+						characters.Clear();
+						if(array.Length > 0) separated.Add(array);
 
-					separated.Add(i + 1 < str.Length
-					 && Variable.OperationTypeDictionary[thisOp] == Variable.OperationType.Arithmetic
-					 && Variable.OperationDictionary.TryGetValue(((char)str[i + 1]).ToString(), out Variable.Operation nextOp)
-					 && Variable.OperationTypeDictionary[nextOp] == Variable.OperationType.Set
-						? (ScriptWord)(current + str[++i]) : current);
+						separated.Add(i + 1 < str.Length
+						 && Variable.OperationTypeDictionary[thisOp] == Variable.OperationType.Arithmetic
+						 && Variable.OperationDictionary.TryGetValue(((char)str[i + 1]).ToString(), out Variable.Operation nextOp)
+						 && Variable.OperationTypeDictionary[nextOp] == Variable.OperationType.Set
+							? (ScriptWord)(current + str[++i]) : current);
 
-					continue;
+						continue;
 
-				} else if(!inString && (IsBlockChar((char)current, out _) || IsSeparatorChar((char)current) || char.IsWhiteSpace((char)current))) {
-
-					ScriptChar[] array = new ScriptChar[characters.Count];
-					characters.CopyTo(array, 0);
-					characters.Clear();
-					if(array.Length > 0)
-						separated.Add(array);
-					if(!char.IsWhiteSpace((char)current)) {
-						characters.AddLast(current);
-						separated.Add(new ScriptString(characters));
-						characters = new LinkedList<ScriptChar>();
 					}
 
-				} else {
+					if(IsBlockChar((char)current, out _) || IsSeparatorChar((char)current) || char.IsWhiteSpace((char)current)) {
 
-					characters.AddLast(current);
+						ScriptChar[] array = new ScriptChar[characters.Count];
+						characters.CopyTo(array, 0);
+						characters.Clear();
+						if(array.Length > 0)
+							separated.Add(array);
+						if(!char.IsWhiteSpace((char)current)) {
+							characters.AddLast(current);
+							separated.Add(new ScriptString(characters));
+							characters = new LinkedList<ScriptChar>();
+						}
+
+						continue;
+
+					}
 
 				}
+
+				characters.AddLast(current);
 
 			}
 

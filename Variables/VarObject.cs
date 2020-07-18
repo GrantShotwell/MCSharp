@@ -22,12 +22,12 @@ namespace MCSharp.Variables {
 		: base(access, usage, name, scope, script) { }
 
 
-		protected override Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) {
+		public override Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) {
 			base.Initialize(access, usage, name, scope, trace);
 			return new VarObject(access, usage, name, scope, ScriptClass);
 		}
 
-		protected override Variable Construct(Variable[] arguments) {
+		public override Variable Construct(Variable[] arguments) {
 			base.Construct(arguments);
 			//TODO: better 'finder' for overflows
 			foreach(Constructor constructor in Constructors) {
