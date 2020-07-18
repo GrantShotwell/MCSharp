@@ -37,9 +37,8 @@ namespace MCSharp.Statements {
 		public override void Write(ScriptLine line) {
 			var method = Compiler.CurrentScope.DeclaringMethod;
 			if(method == null) throw new Compiler.SyntaxException("The 'return' statement requires a method.", line.ScriptTrace);
-			if(Compiler.TryParseValue(line[1], Compiler.CurrentScope, out Variable value))
-				method.ReturnValue.InvokeOperation(Variable.Operation.Set, value, line.ScriptTrace);
-			else throw new Exception();
+			Variable value = Compiler.ParseValue(line[1], Compiler.CurrentScope);
+			method.ReturnValue.InvokeOperation(Variable.Operation.Set, value, line.ScriptTrace);
 		}
 
 	}

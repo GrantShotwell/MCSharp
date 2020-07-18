@@ -76,9 +76,8 @@ namespace MCSharp.Variables {
 			if(init.Array.Length > 0) {
 				if(init.IsWord || !(init.Wilds[0] == "=")) throw new Compiler.SyntaxException("Expected '='.", init.ScriptTrace);
 				if(init.Wilds.Count < 2) throw new Compiler.SyntaxException("Expected value.", init.ScriptTrace);
-				if(Compiler.TryParseValue(new ScriptWild(init[1..].Array, "(\\)", ' '), Compiler.CurrentScope, out Variable value)) {
-					fieldVariable.InvokeOperation(Operation.Set, value, init.ScriptTrace);
-				} else throw new Compiler.SyntaxException($"Could not parse into '{field.TypeName}'.", field.ScriptTrace);
+				Variable value = Compiler.ParseValue(new ScriptWild(init[1..].Array, "(\\)", ' '), Compiler.CurrentScope);
+				fieldVariable.InvokeOperation(Operation.Set, value, init.ScriptTrace);
 			}
 			return fieldVariable;
 		}

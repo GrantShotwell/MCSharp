@@ -88,6 +88,7 @@ namespace MCSharp.Compilation {
 				if(str.Length == 1) {
 
 					char chr = (char)str[0];
+
 					if(IsBlockCharStart(chr, out string blk)) {
 						// Starting a new block tuple.
 						var tuple = new Tuple<char?, string, List<ScriptWild>>(null, blk, new List<ScriptWild>());
@@ -136,8 +137,8 @@ namespace MCSharp.Compilation {
 						}
 						continue;
 
-
 					}
+
 
 				}
 
@@ -150,7 +151,7 @@ namespace MCSharp.Compilation {
 					if(tuple.Item1 == null) {
 
 						var list = tuple.Item3;
-						list.Add((ScriptWord)str);
+						list.Add(new ScriptWord(str, true));
 						if(list.Count > 1) {
 							stack.Pop();
 							stack.Push(new Tuple<char?, string, List<ScriptWild>>(' ', tuple.Item2, list));
@@ -245,7 +246,7 @@ namespace MCSharp.Compilation {
 				} else c = new ScriptChar[0];
 				var s = new ScriptString(c);
 
-				if(Variable.OperationDictionary.TryGetValue(((char)current).ToString(), out Variable.Operation thisOp)) {
+				if(!inString && Variable.OperationDictionary.TryGetValue(((char)current).ToString(), out Variable.Operation thisOp)) {
 
 					ScriptChar[] array = new ScriptChar[characters.Count];
 					characters.CopyTo(array, 0);

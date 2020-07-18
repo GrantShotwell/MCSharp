@@ -177,8 +177,7 @@ namespace MCSharp.Statements {
 			ScriptWild? elseWild = line.Length > 3 ? (ScriptWild?)line[3] : null;
 			VarBool condition;
 
-			if(!Compiler.TryParseValue(conditionWild, Compiler.CurrentScope, out Variable conditionVariable))
-				throw new Compiler.SyntaxException("Could not parse into a value.", line.ScriptTrace);
+			Variable conditionVariable = Compiler.ParseValue(conditionWild, Compiler.CurrentScope);
 			if(!(conditionVariable is VarBool varBool) && !conditionVariable.TryCast(out varBool))
 				throw new Variable.InvalidArgumentsException($"Could not cast '{conditionVariable}' as 'bool'.", line.ScriptTrace);
 

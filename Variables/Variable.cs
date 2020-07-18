@@ -270,10 +270,9 @@ namespace MCSharp.Variables {
 							else if(args[1].Word == "=") {
 								//Set property
 								if(argsCount >= 2) {
-									if(Compiler.TryParseValue(new ScriptWild(args[2..], "(\\)", ' '), Compiler.CurrentScope, out Variable value)) {
-										set.Invoke(value);
-										return null;
-									} else throw new Compiler.SyntaxException("Could not parse into a value.", args[2].ScriptTrace);
+									Variable value = Compiler.ParseValue(new ScriptWild(args[2..], "(\\)", ' '), Compiler.CurrentScope);
+									set.Invoke(value);
+									return null;
 								} else throw new Compiler.SyntaxException("Expected a value.", args[0].ScriptTrace);
 							} else {
 								//Get property + Operation.
@@ -294,10 +293,8 @@ namespace MCSharp.Variables {
 							var arrr = args[1];
 							Variable[] variables = new Variable[arrr.Wilds.Count];
 							for(int i = 0; i < arrr.Wilds.Count; i++) {
-								if(Compiler.TryParseValue(arrr.Wilds[i], Compiler.CurrentScope, out Variable variable)) {
-									variables[i] = variable;
-								} else throw new InvalidArgumentsException($"Could not parse '{(string)arrr.Wilds[i]}' into a variable.",
-									arrr.Wilds[i].ScriptTrace);
+								Variable variable = Compiler.ParseValue(arrr.Wilds[i], Compiler.CurrentScope);
+								variables[i] = variable;
 							}
 							return Methods[(string)name.Word].Invoke(variables);
 						} else throw new Exception("Internal Error: 015704082020");
@@ -309,8 +306,7 @@ namespace MCSharp.Variables {
 
 
 			} else {
-				if(!Compiler.TryParseValue(new ScriptWild(args, " \\ ", ' '), Compiler.CurrentScope, out Variable operand))
-					throw new Compiler.SyntaxException("Could not parse into a value.", operation.ScriptTrace);
+				Variable operand = Compiler.ParseValue(new ScriptWild(args, " \\ ", ' '), Compiler.CurrentScope);
 #if DEBUG_OUT
 				new Spy(null, $"# OP # {this}@{Scope} {op} {operand}@{operand.Scope}", null);
 #endif
