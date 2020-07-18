@@ -27,21 +27,19 @@ namespace MCSharp.Variables {
 
 		public static MethodDelegate Tellraw { get; } = (args) => {
 			if(args.Length > 2) throw new InvalidArgumentsException($"'Chat.Tellraw' takes no more than two arguments!", Compiler.CurrentScriptTrace);
-			if(args.Length == 0) new Spy(null, $"tellraw @a {{\"text\":\"\"}}", null);
-			if(args.Length == 1) {
+			else if(args.Length == 0) new Spy(null, $"tellraw @a {{\"text\":\"\"}}", null);
+			else if(args.Length == 1) {
 				Variable arg0 = args[0];
-				if(arg0 is VarSelector varSelector || arg0.TryCast(out varSelector)) {
-					new Spy(null, $"tellraw {varSelector.GetConstant()} {{\"text\":\"\"}}", null);
-				} else throw new InvalidArgumentsException($"Unknown how to interpret variable '{arg0}' as type 'string'.", Compiler.CurrentScriptTrace);
+				if(!(arg0 is VarSelector varSelector || arg0.TryCast(out varSelector)))
+					throw new InvalidCastException(arg0, "Selector", Compiler.CurrentScriptTrace);
+				new Spy(null, $"tellraw {varSelector.GetConstant()} {{\"text\":\"\"}}", null);
 			} else {
 				Variable arg0 = args[0], arg1 = args[1];
-				if((arg0 is VarSelector varSelector || arg0.TryCast(out varSelector))
-				&& (arg1 is VarJSON varJSON || arg1.TryCast(out varJSON))) {
-					new Spy(null, $"tellraw {varSelector.GetConstant()} {varJSON.GetConstant()}", null);
-				} else {
-					if(varSelector == null) throw new InvalidCastException(arg0, "string", Compiler.CurrentScriptTrace);
-					else throw new InvalidCastException(arg1, "JSON", Compiler.CurrentScriptTrace);
-				}
+				if(!(arg0 is VarSelector varSelector || arg0.TryCast(out varSelector)))
+					throw new InvalidCastException(arg0, "Selector", Compiler.CurrentScriptTrace);
+				if(!(arg1 is VarJSON varJSON || arg1.TryCast(out varJSON)))
+					throw new InvalidCastException(arg1, "JSON", Compiler.CurrentScriptTrace);
+				new Spy(null, $"tellraw {varSelector.GetConstant()} {varJSON.GetConstant()}", null);
 			}
 			return null;
 		};

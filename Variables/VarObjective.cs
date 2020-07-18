@@ -78,23 +78,19 @@ namespace MCSharp.Variables {
 
 		}
 
-		public override bool TryCast(Type type, [NotNullWhen(false)] out Variable result) {
-
-			if(type.IsAssignableFrom(typeof(VarInt))) {
-				result = new VarInt(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope);
-				((PrimitiveType)result).SetValue("@e", GetConstant());
-				return true;
-			}
-
-			if(type.IsAssignableFrom(typeof(VarBool))) {
-				result = new VarBool(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope);
-				((PrimitiveType)result).SetValue("@e", GetConstant());
-				return true;
-			}
-
-			result = null;
-			return false;
-
+		public override IDictionary<Type, Caster> GetCasters_To() {
+			IDictionary<Type, Caster> casters = base.GetCasters_To();
+			casters.Add(GetType(), value => {
+				var result = new VarInt(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope);
+				result.SetValue("@e", GetConstant());
+				return result;
+			});
+			casters.Add(typeof(VarBool), value => {
+				var result = new VarBool(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope);
+				result.SetValue("@e", GetConstant());
+				return result;
+			});
+			return casters;
 		}
 
 		public override void WritePrep(StreamWriter function) {

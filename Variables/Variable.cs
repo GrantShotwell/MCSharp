@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Reflection;
+using System.Runtime.InteropServices.ComTypes;
 
 namespace MCSharp.Variables {
 
@@ -23,6 +24,13 @@ namespace MCSharp.Variables {
 		/// A collection of all <see cref="Constructor"/>s organized by their <see cref="TypeName"/>.
 		/// </summary>
 		public static Dictionary<string, Constructor> Constructors { get; } = new Dictionary<string, Constructor>();
+
+		public static Dictionary<(Type from, Type to), Caster[]> Casters { get; } = new Dictionary<(Type from, Type to), Caster[]>();
+
+		/// <summary>
+		/// Tries to cast <paramref name="value"/> into another type.
+		/// </summary>
+		public delegate Variable Caster(Variable value);
 
 		#region Operations
 		public enum Operation { New, Access, Set, Add, Subtract, Multiply, Divide, Modulo, BooleanAnd, BooleanOr, BooleanNot }
@@ -85,6 +93,7 @@ namespace MCSharp.Variables {
 		protected Dictionary<string, MethodDelegate> Methods { get; } = new Dictionary<string, MethodDelegate>();
 		#endregion
 
+		#region Members
 		/// <summary>
 		/// Retrieves the member of this object by name.
 		/// </summary>
@@ -136,20 +145,44 @@ namespace MCSharp.Variables {
 		/// <param name="arguments">The arguments of the method.</param>
 		/// <returns>Returns the return value of the method.</returns>
 		public delegate Variable MethodDelegate(Variable[] arguments);
+		#endregion
 
 
+		#region Constructors
 		public Variable() {
 			Type type = GetType();
 			if(!typeof(Spy).IsAssignableFrom(type) && !typeof(VarGeneric).IsAssignableFrom(type)) {
 
+				// Add initializer.
 				MethodInfo initInfo = GetType().GetMethod(nameof(Initialize), BindingFlags.Instance | BindingFlags.NonPublic);
 				if(initInfo.GetBaseDefinition().DeclaringType != initInfo.DeclaringType)
 					Initializers.Add(TypeName, Initialize);
 				else throw new Compiler.InternalError($"All Variables must override {nameof(Initialize)}.");
 
+				// Add constructor.
 				MethodInfo cnstInfo = GetType().GetMethod(nameof(Construct), BindingFlags.Instance | BindingFlags.NonPublic);
 				if(cnstInfo.GetBaseDefinition().DeclaringType != cnstInfo.DeclaringType)
 					Constructors.Add(TypeName, Construct);
+
+				// Add casters 'to'.
+				IDictionary<Type, Caster> castersTo = GetCasters_To();
+				foreach(KeyValuePair<Type, Caster> pair in castersTo) {
+					(Type type, Type key) key = (type, pair.Key);
+					Caster[] array;
+					if(!Casters.ContainsKey(key)) Casters.Add(key, array = new Caster[2]);
+					else array = Casters[key];
+					array[0] = pair.Value;
+				}
+
+				// Add casters 'from'.
+				IDictionary<Type, Caster> castersFrom = GetCasters_From();
+				foreach(KeyValuePair<Type, Caster> pair in castersFrom) {
+					(Type type, Type key) key = (pair.Key, type);
+					Caster[] array;
+					if(!Casters.ContainsKey(key)) Casters.Add(key, array = new Caster[2]);
+					else array = Casters[key];
+					array[1] = pair.Value;
+				}
 
 			}
 		}
@@ -186,8 +219,10 @@ namespace MCSharp.Variables {
 			variables.Add(this);
 
 		}
+		#endregion
 
 
+		#region Methods
 		protected virtual Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) {
 			if(string.IsNullOrEmpty(name))
 				throw new ArgumentException("message", nameof(name));
@@ -289,6 +324,7 @@ namespace MCSharp.Variables {
 			else throw new InvalidArgumentsException($"Type '{TypeName}' has not defined the '{operation}' operation.", trace);
 		}
 
+		#region Write Events
 		/// <summary>
 		/// Writes the initialization commands to <see cref="Compiler.FunctionStack"/>.
 		/// </summary>
@@ -316,6 +352,9 @@ namespace MCSharp.Variables {
 #endif
 		}
 
+		/// <summary>
+		/// Writes commands needed for when exiting scope.
+		/// </summary>
 		public virtual void WriteDele(StreamWriter function) {
 #if DEBUG_OUT
 			//if(!(this is Spy)) function.WriteLine($"# DELE # {this}@{Scope}");
@@ -330,6 +369,7 @@ namespace MCSharp.Variables {
 			//if(!(this is Spy)) function.WriteLine($"# DEMO # {this}@{Scope}");
 #endif
 		}
+		#endregion
 
 		/// <summary>
 		/// Creates a new <see cref="Spy"/> that will copy the value of this to <paramref name="variable"/>.
@@ -337,20 +377,42 @@ namespace MCSharp.Variables {
 		public virtual void WriteCopyTo(StreamWriter function, Variable variable)
 			=> throw new Compiler.SyntaxException($"Cannot pass the value of type '{TypeName}' to other variables!", Compiler.CurrentScriptTrace);
 
-		public bool TryCast<TVariable>([NotNullWhen(true)] out TVariable result) where TVariable : Variable {
-			bool success = TryCast(typeof(TVariable), out Variable variable);
-			result = variable as TVariable;
-			if(result is null && success) throw new Exception("123903042020");
-			return success;
+		public virtual IDictionary<Type, Caster> GetCasters_To() {
+			var casters = new Dictionary<Type, Caster> {
+				//{ GetType(), value => value },
+				{ typeof(VarString), value => value.GetString() },
+				{ typeof(VarJSON), value => new VarJSON(Access.Private, Usage.Constant, GetNextHiddenID(), value.Scope, value.GetJSON()) }
+			};
+			return casters;
 		}
 
-		/// <summary>
-		/// Attempts to create a new <see cref="Variable"/> of the given type.
-		/// </summary>
-		public virtual bool TryCast(Type type, [NotNullWhen(true)] out Variable result) {
-			return type.IsAssignableFrom(typeof(VarString)) ? (result = GetString()) != null
-				 : type.IsAssignableFrom(typeof(VarJSON)) ? (result = new VarJSON(Access.Private, Usage.Constant, GetNextHiddenID(), Scope, GetJSON())) != null
-				 : type.IsAssignableFrom((result = this).GetType());
+		public virtual IDictionary<Type, Caster> GetCasters_From() {
+			var casters = new Dictionary<Type, Caster> { };
+			return casters;
+		}
+
+		public bool TryCast<TVariable>([NotNullWhen(true)] out TVariable result) where TVariable : Variable {
+			(Type from, Type to) castInfo = (GetType(), typeof(TVariable));
+			if(!Casters.ContainsKey(castInfo)) {
+				result = null;
+				return false;
+			} else {
+				Caster[] casters = Casters[castInfo];
+				result = casters[0]?.Invoke(this) as TVariable ?? casters[1](this) as TVariable;
+				return result != null;
+			}
+		}
+
+		public bool TryCast(Type type, out Variable result) {
+			(Type from, Type to) castInfo = (GetType(), type);
+			if(!Casters.ContainsKey(castInfo)) {
+				result = null;
+				return false;
+			} else {
+				Caster[] casters = Casters[castInfo];
+				result = casters[0]?.Invoke(this) ?? casters[1](this);
+				return result != null;
+			}
 		}
 
 		/// <summary>
@@ -370,6 +432,10 @@ namespace MCSharp.Variables {
 		/// </summary>
 		public virtual VarString GetString() => new VarString(Access.Private, GetNextHiddenID(), Scope, ToString());
 
+		public override string ToString() => this is Spy ? nameof(Spy) : $"{TypeName} {ObjectName}";
+		#endregion
+
+		#region Exceptions
 		public class InvalidModifierException : Exception {
 			public InvalidModifierException(string modifier, string type, ScriptTrace at)
 				: base($"[{at}] The modifier '{modifier}' is not valid for the type '{type}'.") { }
@@ -391,8 +457,7 @@ namespace MCSharp.Variables {
 			public InvalidCastException(Variable variable, string type, ScriptTrace at)
 				: base($"[{at}] Cannot cast '{variable}' to type '{type}'.") { }
 		}
-
-		public override string ToString() => this is Spy ? nameof(Spy) : $"{TypeName} {ObjectName}";
+		#endregion
 
 	}
 

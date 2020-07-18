@@ -50,6 +50,14 @@ namespace MCSharp.Variables {
 			}
 		}
 
+		public override IDictionary<Type, Caster> GetCasters_From() {
+			IDictionary<Type, Caster> casters = base.GetCasters_From();
+			casters.Add(typeof(VarString), value => {
+				return new VarSelector(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope, value.GetConstant());
+			});
+			return casters;
+		}
+
 		public override string GetConstant() => Usage == Usage.Constant ? Value : base.GetConstant();
 		public override string GetJSON() => $"{{\"text\":\"{Value}\"}}";
 

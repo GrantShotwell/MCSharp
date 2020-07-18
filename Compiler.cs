@@ -455,6 +455,9 @@ namespace MCSharp {
 
 		private static void Reset() {
 
+			//Clear casters.
+			Variable.Casters.Clear();
+
 			//Clear constructors.
 			VarGeneric.CompiledConstructors.Clear();
 

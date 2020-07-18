@@ -85,16 +85,15 @@ namespace MCSharp.Variables {
 
 		}
 
-		public override bool TryCast(Type type, [NotNullWhen(false)] out Variable result) {
-			if(type.IsAssignableFrom(typeof(VarBool))) {
-				result = new VarBool(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope);
-				((PrimitiveType)result).SetValue(Selector, Objective);
-				return true;
-			} else {
-				return base.TryCast(type, out result);
-			}
+		public override IDictionary<Type, Caster> GetCasters_To() {
+			IDictionary<Type, Caster> casters = base.GetCasters_To();
+			casters.Add(typeof(VarBool), value => {
+				var result = new VarBool(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope);
+				result.SetValue(Selector, Objective);
+				return result;
+			});
+			return casters;
 		}
-
 	}
 
 }
