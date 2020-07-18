@@ -342,7 +342,6 @@ namespace MCSharp {
 									if(operation == Operation.Access) goto CheckMembers;
 									else variable = variable.InvokeOperation(operation, x, current.ScriptTrace);
 								}
-								return true;
 							} else {
 								// <<No Variable>>
 								//Save the variable for the next operation.
@@ -361,7 +360,6 @@ namespace MCSharp {
 								if(op.HasValue && op.Value == ".") {
 									if(variable != null) {
 										variable = variable.InvokeOperation(op.Value, new ScriptWild[] { current, args });
-										return true;
 									} else {
 										//TODO:  implicit 'this' call.
 										throw new NotImplementedException("TODO: add implicit '.this' call.");
@@ -372,7 +370,6 @@ namespace MCSharp {
 								//Find the property/field.
 								if(variable != null) {
 									variable = variable.InvokeOperation(op.Value, new ScriptWild[] { current });
-									return true;
 								} else {
 									//TODO:  implicit 'this' call.
 									throw new NotImplementedException("TODO: add implicit '.this' call.");
