@@ -256,51 +256,21 @@ namespace MCSharp {
 		/// </summary>
 		public static bool TryParseValue(ScriptWild wild, Scope scope, out Variable variable) {
 
-			if(wild.IsWord || wild.Count == 1) {
+			variable = null;
+			ScriptWild[] wilds = wild.Array;
+			bool @switch = false;
+			ScriptWord? op = null;
+			for(int i = 0; i < wilds.Length; i++) {
+				ScriptWild current = wilds[i];
+				if(@switch = !@switch) {
 
-				while(wild.IsWilds && wild.Count == 1) wild = wild.Wilds[0];
-				string word = (string)wild.Word;
+					Variable x = null;
 
-				if(int.TryParse(word, out int _int)) {
+					X: if(current.IsWord || x != null) {
 
-					// Special case: ints
-					variable = new VarInt(Access.Private, Usage.Constant, GetNextHiddenID(), CurrentScope);
-					((PrimitiveType)variable).SetValue(_int);
-					return true;
+						if(x == null) {
 
-				} else if(bool.TryParse(word, out bool _bool)) {
-
-					// Special case: bools
-					variable = new VarBool(Access.Private, Usage.Constant, GetNextHiddenID(), CurrentScope);
-					((PrimitiveType)variable).SetValue(_bool ? 1 : 0);
-					return true;
-
-				} else if(word[0] == '"' && word[^1] == '"') {
-
-					// Special case: strings
-					variable = new VarString(Access.Private, GetNextHiddenID(), CurrentScope, word[1..^1]);
-					return true;
-
-				} else {
-
-					// Variable by name
-					return TryGetVariable((string)wild.Word, scope, out variable);
-
-				}
-
-			} else {
-
-				variable = null;
-				ScriptWild[] wilds = wild.Array;
-				bool @switch = false;
-				ScriptWord? op = null;
-				for(int i = 0; i < wilds.Length; i++) {
-					ScriptWild current = wilds[i];
-					if(@switch = !@switch) {
-
-						Variable x = null;
-
-						X: if(current.IsWord || x != null) {
+							string word = (string)current.Word;
 
 							// Special case: "!" operator
 							if(x == null && current.Word == "!") {
@@ -311,104 +281,115 @@ namespace MCSharp {
 							}
 
 							// Special case: strings
-							string s = current.IsWord ? (string)current.Word : "";
-							if(x == null && s.StartsWith('"') && s.EndsWith('"')) {
-								x = new VarString(Access.Private, GetNextHiddenID(), CurrentScope, s[1..^1]);
+							if(x == null && word.StartsWith('"') && word.EndsWith('"')) {
+								x = new VarString(Access.Private, GetNextHiddenID(), CurrentScope, word[1..^1]);
 							}
 
-							// Special case: "new" operator
-							// + unexpected operator check
-							if(current.IsWord && OperationDictionary.TryGetValue((string)current.Word, out Operation opr)) {
-								if(opr == Operation.New) {
-									if(i + 3 > wilds.Length) throw new SyntaxException("Incomplete 'new' operator.", current.ScriptTrace);
-									else if(wilds[i + 1].IsWilds) throw new SyntaxException("Invalid use of 'new' operator.", current.ScriptTrace);
-									else if(wilds[i + 2].IsWord) throw new SyntaxException("Invalid use of 'new' operator.", current.ScriptTrace);
-									else {
-										ScriptWord typeWord = wilds[i + 1].Word;
-										ScriptWild argsWild = wilds[i + 2];
-										if(argsWild.BlockType != "(\\)") throw new SyntaxException("Expected '('.", current.ScriptTrace);
-										i += 2;
-										Variable[] args = new Variable[argsWild.Count];
-										for(int indx = 0; indx < argsWild.Count; indx++)
-											if(!TryParseValue(argsWild[indx], scope, out args[indx]))
-												throw new SyntaxException("Could not parse into a value.", argsWild[indx].ScriptTrace);
-										if(!Constructors.TryGetValue((string)typeWord, out Constructor constructor))
-											throw new SyntaxException($"Could not find a constructor for type '{(string)typeWord}'.", typeWord.ScriptTrace);
-										x = constructor.Invoke(args);
-										if(x == null) throw new InternalError("Constructor returned null.");
-									}
-								} else throw new SyntaxException("Unexpected operator when a value was expected.", current.ScriptTrace);
+							// Special case: ints
+							if(int.TryParse(current, out int _int)) {
+								x = new VarInt(Access.Private, Usage.Constant, GetNextHiddenID(), CurrentScope);
+								((PrimitiveType)x).SetValue(_int);
 							}
 
-							//Check if it's a variable.
-							if(x != null || TryGetVariable((string)current.Word, scope, out x)) {
-								// <<Is a Variable>>
-								//Check if we have a variable already.
-								if(variable != null) {
-									// <<Yes Variable>>
-									//Compile an operation.
-									//TODO!  Possible problem if a variable has the same name as an accessor.
-									ScriptWord opWord = op.Value;
-									if(BooleanOperators.Contains((string)opWord)) {
-										if(variable is VarBool varBool || variable.TryCast(out varBool))
-											variable = varBool.InvokeOperation(opWord, wild.Array[i..]);
-										else throw new SyntaxException(
-											$"Cannot cast '{variable}' into 'bool' for use in boolean operator '{(string)opWord}'.", opWord.ScriptTrace);
-									} else {
-										Operation operation = OperationDictionary[(string)op.Value];
-										if(operation == Operation.Access) goto CheckMembers;
-										else variable = variable.InvokeOperation(operation, x, current.ScriptTrace);
-									}
-									return true;
-								} else {
-									// <<No Variable>>
-									//Save the variable for the next operation.
-									variable = x;
+							// Special case: bools
+							if(bool.TryParse(current, out bool _bool)) {
+								x = new VarInt(Access.Private, Usage.Constant, GetNextHiddenID(), CurrentScope);
+								((PrimitiveType)x).SetValue(_bool ? 1 : 0);
+							}
+
+						}
+
+						// Special case: "new" operator
+						// + unexpected operator check
+						if(current.IsWord && OperationDictionary.TryGetValue((string)current.Word, out Operation opr)) {
+							if(opr == Operation.New) {
+								if(i + 3 > wilds.Length) throw new SyntaxException("Incomplete 'new' operator.", current.ScriptTrace);
+								else if(wilds[i + 1].IsWilds) throw new SyntaxException("Invalid use of 'new' operator.", current.ScriptTrace);
+								else if(wilds[i + 2].IsWord) throw new SyntaxException("Invalid use of 'new' operator.", current.ScriptTrace);
+								else {
+									ScriptWord typeWord = wilds[i + 1].Word;
+									ScriptWild argsWild = wilds[i + 2];
+									if(argsWild.BlockType != "(\\)") throw new SyntaxException("Expected '('.", current.ScriptTrace);
+									i += 2;
+									Variable[] args = new Variable[argsWild.Count];
+									for(int indx = 0; indx < argsWild.Count; indx++)
+										if(!TryParseValue(argsWild[indx], scope, out args[indx]))
+											throw new SyntaxException("Could not parse into a value.", argsWild[indx].ScriptTrace);
+									if(!Constructors.TryGetValue((string)typeWord, out Constructor constructor))
+										throw new SyntaxException($"Could not find a constructor for type '{(string)typeWord}'.", typeWord.ScriptTrace);
+									x = constructor.Invoke(args);
+									if(x == null) throw new InternalError("Constructor returned null.");
 								}
-							} else goto CheckMembers;
-							goto AfterElse;
-							CheckMembers:
-							{
-								// <<Not a Variable>>
-								//Check for method arguments.
-								ScriptWild args;
-								if(i + 1 < wilds.Length && (args = wilds[++i]).IsWilds && args.BlockType == "(\\)") {
-									// <<Method Arguments Exist>>
-									//Call the method if they used the '.' operator.
-									if(op.HasValue && op.Value == ".") {
-										if(variable != null) {
-											variable = variable.InvokeOperation(op.Value, new ScriptWild[] { current, args });
-											return true;
-										} else {
-											//TODO:  implicit 'this' call.
-											throw new NotImplementedException("TODO: add implicit '.this' call.");
-										}
-									} else throw new SyntaxException("Expected '.' operator.", CurrentScriptTrace);
+							} else throw new SyntaxException("Unexpected operator when a value was expected.", current.ScriptTrace);
+						}
+
+						//Check if it's a variable.
+						if(x != null || TryGetVariable((string)current.Word, scope, out x)) {
+							// <<Is a Variable>>
+							//Check if we have a variable already.
+							if(variable != null) {
+								// <<Yes Variable>>
+								//Compile an operation.
+								//TODO!  Possible problem if a variable has the same name as an accessor.
+								ScriptWord opWord = op.Value;
+								if(BooleanOperators.Contains((string)opWord)) {
+									if(variable is VarBool varBool || variable.TryCast(out varBool))
+										variable = varBool.InvokeOperation(opWord, wild.Array[i..]);
+									else throw new SyntaxException(
+										$"Cannot cast '{variable}' into 'bool' for use in boolean operator '{(string)opWord}'.", opWord.ScriptTrace);
 								} else {
-									// <<Method Arguments Don't Exist>>
-									//Find the property/field.
+									Operation operation = OperationDictionary[(string)op.Value];
+									if(operation == Operation.Access) goto CheckMembers;
+									else variable = variable.InvokeOperation(operation, x, current.ScriptTrace);
+								}
+								return true;
+							} else {
+								// <<No Variable>>
+								//Save the variable for the next operation.
+								variable = x;
+							}
+						} else goto CheckMembers;
+						goto AfterElse;
+						CheckMembers:
+						{
+							// <<Not a Variable>>
+							//Check for method arguments.
+							ScriptWild args;
+							if(i + 1 < wilds.Length && (args = wilds[++i]).IsWilds && args.BlockType == "(\\)") {
+								// <<Method Arguments Exist>>
+								//Call the method if they used the '.' operator.
+								if(op.HasValue && op.Value == ".") {
 									if(variable != null) {
-										variable = variable.InvokeOperation(op.Value, new ScriptWild[] { current });
+										variable = variable.InvokeOperation(op.Value, new ScriptWild[] { current, args });
 										return true;
 									} else {
 										//TODO:  implicit 'this' call.
 										throw new NotImplementedException("TODO: add implicit '.this' call.");
 									}
+								} else throw new SyntaxException("Expected '.' operator.", CurrentScriptTrace);
+							} else {
+								// <<Method Arguments Don't Exist>>
+								//Find the property/field.
+								if(variable != null) {
+									variable = variable.InvokeOperation(op.Value, new ScriptWild[] { current });
+									return true;
+								} else {
+									//TODO:  implicit 'this' call.
+									throw new NotImplementedException("TODO: add implicit '.this' call.");
 								}
 							}
-							AfterElse:;
-						} else {
-							//Make recurive call to find the value of the block.
-							if(!TryParseValue(current, scope, out x))
-								throw new SyntaxException("Could not parse into a value.", current.ScriptTrace);
-							goto X;
 						}
+						AfterElse:;
 					} else {
-						if(current.IsWord) op = current.Word;
-						else throw new SyntaxException("Unexpected block when an operator was expected.", CurrentScriptTrace);
+						//Make recurive call to find the value of the block.
+						if(!TryParseValue(current, scope, out x))
+							throw new SyntaxException("Could not parse into a value.", current.ScriptTrace);
+						goto X;
 					}
+				} else {
+					if(current.IsWord) op = current.Word;
+					else throw new SyntaxException("Unexpected block when an operator was expected.", CurrentScriptTrace);
 				}
-
 			}
 
 			return variable != null;

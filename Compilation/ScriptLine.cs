@@ -89,7 +89,7 @@ namespace MCSharp.Compilation {
 
 					char chr = (char)str[0];
 					if(IsBlockCharStart(chr, out string blk)) {
-						//Starting a new block tuple.
+						// Starting a new block tuple.
 						var tuple = new Tuple<char?, string, List<ScriptWild>>(null, blk, new List<ScriptWild>());
 						stack.Push(tuple);
 						continue;
@@ -101,15 +101,18 @@ namespace MCSharp.Compilation {
 							last = new Tuple<char?, string, List<ScriptWild>>(null, " \\ ", new List<ScriptWild>());
 							stack.Push(last);
 						}
-						//Check if a list is in progress.
+						// Check if a list is in progress.
 						if(last.Item1 == chr) {
-							//Continue that list.
+							// Continue that list.
 							last.Item3.Add(new ScriptWild(tuple.Item3.ToArray(), " \\ ", ' '));
+							var next = new Tuple<char?, string, List<ScriptWild>>(chr, " \\ ", new List<ScriptWild>());
+							stack.Push(next);
 						} else if(last.Item1 == null || last.Item1 == ' ' || chr == '.') {
-							//Make a new list.
+							// Make a new list.
 							var next = new Tuple<char?, string, List<ScriptWild>>(chr, tuple.Item2, new List<ScriptWild>());
 							next.Item3.Add(new ScriptWild(tuple.Item3.ToArray(), " \\ ", ' '));
 							stack.Push(next);
+							stack.Push(new Tuple<char?, string, List<ScriptWild>>(' ', " \\ ", new List<ScriptWild>()));
 						} else {
 							throw new Compiler.SyntaxException($"Expected '{last.Item1?.ToString() ?? "[nothing]"}' but got '{chr}'.", phrase.ScriptTrace);
 						}
@@ -117,7 +120,7 @@ namespace MCSharp.Compilation {
 
 
 					} else if(IsBlockCharEnd(chr, out blk)) {
-						//Ending the last block tuple.
+						// Ending the last block tuple.
 						var tuple = stack.Pop();
 						if(tuple.Item2 == " \\ ") {
 							do {
@@ -125,7 +128,7 @@ namespace MCSharp.Compilation {
 								if(tuple.Item3.Count > 1) next.Item3.Add(new ScriptWild(tuple.Item3.ToArray(), tuple.Item2, tuple.Item1 ?? ' '));
 								else next.Item3.Add(tuple.Item3[0]);
 								tuple = next;
-							} while(tuple.Item2[2] == ' ');
+							} while(stack.Count > 0 && stack.Peek().Item2 == " \\ ");
 							stack.Push(tuple);
 						} else {
 							if(tuple.Item2 != blk) throw new Compiler.SyntaxException($"Expected '{tuple.Item2[2]}' but got '{chr}'.", phrase.ScriptTrace);
@@ -140,8 +143,8 @@ namespace MCSharp.Compilation {
 
 				{
 
-					//Getting here means this is not a keyword.
-					//Add the word to whatever tuple we're on.
+					// Getting here means this is not a keyword.
+					// Add the word to whatever tuple we're on.
 					var tuple = stack.Peek();
 
 					if(tuple.Item1 == null) {
@@ -160,27 +163,7 @@ namespace MCSharp.Compilation {
 						list.Add((ScriptWord)str);
 						stack.Push(next);
 
-					} else if(tuple.Item1 != ' ') {
-
-						var list = tuple.Item3;
-						var sub = new LinkedList<ScriptWild>();
-						sub.AddFirst((ScriptWord)str);
-						int index = list.Count - 1;
-						while((index > 0) && (list[index].IsWilds ? list[index].FullBlockType == $" \\{tuple.Item1}\\ " : true)) {
-							var item = list[index];
-							list.RemoveAt(index--);
-							sub.AddFirst(item);
-						}
-						var array = new ScriptWild[sub.Count];
-						sub.CopyTo(array, 0);
-						list.Add(array.Length > 1 ? new ScriptWild(array, " \\ ", ' ') : (ScriptWord)str);
-
 					} else {
-
-						//var next = new Tuple<char?, string, List<ScriptWild>>(null, " \\ ", new List<ScriptWild>());
-						//var list = next.Item3;
-						//list.Add(new ScriptWord(str));
-						//stack.Push(next);
 
 						var list = tuple.Item3;
 						list.Add((ScriptWord)str);
@@ -193,7 +176,7 @@ namespace MCSharp.Compilation {
 
 			; //debug break
 
-			//Try to collapse redundant blocks.
+			// Try to collapse redundant blocks.
 			CollapseLoop: while(stack.Count > 1 && stack.Peek().Item2 == " \\ ") {
 				var tuple = stack.Pop();
 				if(tuple.Item3.Count > 1) {
@@ -212,7 +195,7 @@ namespace MCSharp.Compilation {
 				}
 			}
 
-			//Try to remove empty blocks.
+			// Try to remove empty blocks.
 			if(stack.Count > 1) {
 				var pop = stack.Pop();
 				var peek = stack.Peek();
@@ -225,8 +208,8 @@ namespace MCSharp.Compilation {
 				}
 			}
 
-			//Try to package into a single " \\ " block.
-			// (stack has to be size 1 to reach here)
+			// Try to package into a single " \\ " block.
+			//  (stack has to be size 1 to reach here)
 			if(stack.Peek().Item2 != " \\ ") {
 				var pop = stack.Pop();
 				var next = new Tuple<char?, string, List<ScriptWild>>(' ', " \\ ",
@@ -234,7 +217,7 @@ namespace MCSharp.Compilation {
 				stack.Push(next);
 			}
 
-			//Return.
+			// Return.
 			return stack.Peek().Item3.ToArray();
 		}
 
