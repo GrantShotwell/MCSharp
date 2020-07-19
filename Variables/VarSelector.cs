@@ -9,32 +9,39 @@ namespace MCSharp.Variables {
 	/// </summary>
 	public class VarSelector : Variable {
 
-		private string constant = null;
+		private VarString String { get; set; }
 
-		private string Value {
-			get => constant;
-			set {
-				if(constant == null) constant = value;
-				else throw new InvalidOperationException($"Cannot set the value of '{nameof(Value)}' because it already has been set.");
-			}
-		}
-
-		public override string TypeName => "Selector";
+		public override string TypeName => StaticTypeName;
+		public static string StaticTypeName => "Selector";
 
 		public override ICollection<Access> AllowedAccessModifiers => new Access[] { Access.Private, Access.Public };
-		public override ICollection<Usage> AllowedUsageModifiers => new Usage[] { Usage.Default, Usage.Constant, Usage.Static };
+		public override ICollection<Usage> AllowedUsageModifiers => new Usage[] { Usage.Default };
 
 
 		public VarSelector() : base() { }
-		public VarSelector(Access access, Usage usage, string name, Compiler.Scope scope, string value) :
-		base(access, Usage.Constant, name, scope) {
-			Value = value;
+		public VarSelector(Access access, Usage usage, string name, Compiler.Scope scope) : base(access, usage, name, scope) {
+			AddAutoProperty(String = new VarString(Access.Public, Usage.Default, char.ToLower(VarString.StaticTypeName[0]) + VarString.StaticTypeName.Substring(1), InnerScope));
 		}
 
+		public static explicit operator VarSelector(string str) => Constructors[StaticTypeName](new Variable[] { (VarString)str }) as VarSelector;
 
-		public override Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) {
-			base.Initialize(access, usage, name, scope, trace);
-			return new VarSelector(access, usage, name, scope, null);
+		public override Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) => new VarSelector(access, usage, name, scope);
+
+		private static readonly ParameterInfo[] ConstructorOverloads = new ParameterInfo[] {
+			new (Type Type, bool Reference)[] { (typeof(VarString), true) }
+		};
+		public override Variable Construct(ArgumentInfo passed) {
+			(ParameterInfo match, int index) = ParameterInfo.HighestMatch(ConstructorOverloads, passed);
+			match.SendArguments(passed);
+			switch(index) {
+				case 0:
+					var value = new VarSelector(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope);
+					value.String.InvokeOperation(Operation.Set, match.Parameters[0].Value as VarString, Compiler.CurrentScriptTrace);
+					value.Constructed = true;
+					return value;
+
+				default: throw new InvalidArgumentsException("Could not find a constructor overload that matches the given arguments.", Compiler.CurrentScriptTrace);
+			}
 		}
 
 		public override Variable InvokeOperation(Operation operation, Variable operand, ScriptTrace trace) {
@@ -42,7 +49,7 @@ namespace MCSharp.Variables {
 
 				case Operation.Set:
 					if(operand is VarString varString || operand.TryCast(out varString)) {
-						Value = varString.GetConstant();
+						String = varString;
 						return this;
 					} else throw new InvalidCastException(operand, TypeName, trace);
 
@@ -53,13 +60,15 @@ namespace MCSharp.Variables {
 		public override IDictionary<Type, Caster> GetCasters_From() {
 			IDictionary<Type, Caster> casters = base.GetCasters_From();
 			casters.Add(typeof(VarString), value => {
-				return new VarSelector(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope, value.GetConstant());
+				var result = new VarSelector(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope);
+				return Constructors[result.TypeName](new Variable[] { value });
 			});
 			return casters;
 		}
 
-		public override string GetConstant() => Usage == Usage.Constant ? Value : base.GetConstant();
-		public override string GetJSON() => $"{{\"text\":\"{Value}\"}}";
+		public override string GetConstant() => String.GetConstant();
+		public override string GetJSON() => String.GetJSON();
+		public override VarString GetString() => String;
 
 	}
 

@@ -25,17 +25,13 @@ namespace MCSharp.Variables {
 		: base(access, usage, name, scope, script) { }
 
 
-		public override Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) {
-			base.Initialize(access, usage, name, scope, trace);
-			return new VarStruct(access, usage, name, scope, ScriptClass);
-		}
+		public override Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) => new VarStruct(access, usage, name, scope, ScriptClass);
 
-		public override Variable Construct(Variable[] arguments) {
-			base.Construct(arguments);
+		public override Variable Construct(ArgumentInfo passed) {
 			//TODO: better 'finder' for overflows
 			foreach(Constructor constructor in Constructors) {
 				try {
-					return constructor.Invoke(arguments);
+					return constructor.Invoke(passed);
 				} catch(InvalidArgumentsException) {
 					continue;
 				} catch(InvalidCastException) {
@@ -105,10 +101,10 @@ namespace MCSharp.Variables {
 			}
 
 			// Make delegate.
-			return (arguments) => {
+			return (passed) => {
 
 				// Check that the number of given arguments is correct.
-				if(arguments.Length != constructor.Parameters.Length)
+				if(passed.Arguments.Count != constructor.Parameters.Length)
 					throw new InvalidArgumentsException($"Wrong number of arguments for '{constructor.Alias}'.Invoke(_).", Compiler.CurrentScriptTrace);
 
 				// Reset metadata.
@@ -119,7 +115,7 @@ namespace MCSharp.Variables {
 					// Reset metadata.
 					reset.WriteCopyTo(function, constructor.ReturnValue);
 					// Copy arguments to parameters.
-					for(int i = 0; i < arguments.Length; i++) arguments[i].WriteCopyTo(Compiler.FunctionStack.Peek(), constructor.Parameters[i]);
+					for(int i = 0; i < passed.Arguments.Count; i++) passed.Arguments[i].Value.WriteCopyTo(Compiler.FunctionStack.Peek(), constructor.Parameters[i]);
 					// Call the constructor function.
 					function.WriteLine($"function {constructor.GameName}");
 				}, null);

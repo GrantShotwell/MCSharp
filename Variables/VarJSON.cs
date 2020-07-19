@@ -7,7 +7,8 @@ namespace MCSharp.Variables {
 
 	public class VarJSON : Variable {
 
-		public override string TypeName => "JSON";
+		public override string TypeName => StaticTypeName;
+		public static string StaticTypeName => "JSON";
 
 		public string Value { get; }
 
@@ -23,12 +24,8 @@ namespace MCSharp.Variables {
 		}
 
 
-		public override Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) {
-			base.Initialize(access, usage, name, scope, trace);
-
-			throw new NotImplementedException();
-
-		}
+		public override Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) => throw new NotImplementedException();
+		public override Variable Construct(ArgumentInfo passed) => throw new NotImplementedException();
 
 		public override string GetConstant() => Value;
 

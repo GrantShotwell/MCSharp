@@ -7,7 +7,8 @@ namespace MCSharp.Variables {
 	public class VarChat : Variable {
 
 		public override int Order => 100;
-		public override string TypeName => "Chat";
+		public override string TypeName => StaticTypeName;
+		public static string StaticTypeName => "Chat";
 		public override ICollection<Access> AllowedAccessModifiers => new Access[] { Access.Public };
 		public override ICollection<Usage> AllowedUsageModifiers => new Usage[] { Usage.Static };
 
@@ -53,10 +54,8 @@ namespace MCSharp.Variables {
 			Methods.Add("Tellraw", Tellraw);
 		}
 
-		public override Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) {
-			base.Initialize(access, usage, name, scope, trace);
-			throw new Compiler.SyntaxException("Cannot make an instance of a static class.", trace);
-		}
+		public override Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) => throw new Compiler.SyntaxException("Cannot make an instance of a static class.", trace);
+		public override Variable Construct(ArgumentInfo passed) => throw new Compiler.SyntaxException("Cannot make an instance of a static class.", Compiler.CurrentScriptTrace);
 
 	}
 

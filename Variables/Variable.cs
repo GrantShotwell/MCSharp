@@ -5,7 +5,6 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Reflection;
-using System.Runtime.InteropServices.ComTypes;
 
 namespace MCSharp.Variables {
 
@@ -97,6 +96,7 @@ namespace MCSharp.Variables {
 		protected Dictionary<string, Variable> Fields { get; } = new Dictionary<string, Variable>();
 		protected Dictionary<string, (GetProperty Get, SetProperty Set)> Properties { get; } = new Dictionary<string, (GetProperty Get, SetProperty Set)>();
 		protected Dictionary<string, MethodDelegate> Methods { get; } = new Dictionary<string, MethodDelegate>();
+		public bool Constructed { get; protected set; } = false;
 		#endregion
 
 		#region Members
@@ -131,9 +131,9 @@ namespace MCSharp.Variables {
 		/// <summary>
 		/// Constructs a value.
 		/// </summary>
-		/// <param name="arguments">The arguments passed to the constructor.</param>
+		/// <param name="passed">The arguments passed to the constructor.</param>
 		/// <returns>Returns the value constructed.</returns>
-		public delegate Variable Constructor(Variable[] arguments);
+		public delegate Variable Constructor(ArgumentInfo passed);
 
 		/// <summary>
 		/// Represents a 'get' method of a property.
@@ -228,27 +228,20 @@ namespace MCSharp.Variables {
 
 		#region Methods
 
+		protected void AddAutoProperty<TVariable>(TVariable camel) where TVariable : Variable {
+			Fields.Add(camel.ObjectName, camel);
+			Properties.Add(char.ToUpper(camel.ObjectName[0]) + camel.ObjectName.Substring(1), (
+				Get: () => camel , Set: (value) => camel.InvokeOperation(Operation.Set, value, Compiler.CurrentScriptTrace)));
+		}
+
 		public static bool IsIgnoredType(Type type) {
 			return typeof(Spy).IsAssignableFrom(type)
 				|| typeof(VarGeneric).IsAssignableFrom(type)
 				|| typeof(Pointer).IsAssignableFrom(type);
 		}
 
-		public virtual Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) {
-			if(string.IsNullOrEmpty(name))
-				throw new ArgumentException("message", nameof(name));
-			if(scope is null)
-				throw new ArgumentNullException(nameof(scope));
-			if(trace is null)
-				throw new ArgumentNullException(nameof(trace));
-			return this;
-		}
-
-		public virtual Variable Construct(Variable[] arguments) {
-			if(arguments is null)
-				throw new ArgumentNullException(nameof(arguments));
-			return this;
-		}
+		public abstract Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace);
+		public abstract Variable Construct(ArgumentInfo passed);
 
 		public Variable InvokeOperation(ScriptWord operation, ScriptWild[] args) {
 
@@ -438,7 +431,11 @@ namespace MCSharp.Variables {
 		/// <summary>
 		/// The equivalent of <see cref="object.ToString()"/>.
 		/// </summary>
-		public virtual VarString GetString() => new VarString(Access.Private, GetNextHiddenID(), Scope, ToString());
+		public virtual VarString GetString() {
+			var value = new VarString(Access.Private, Usage.Default, GetNextHiddenID(), Scope);
+			value.SetValue(ToString());
+			return value;
+		}
 
 		public override string ToString() => this is Spy ? nameof(Spy) : $"{TypeName} {ObjectName}";
 		#endregion

@@ -9,7 +9,8 @@ namespace MCSharp.Variables {
 
 	public class VarInt : PrimitiveType {
 
-		public override string TypeName => "int";
+		public override string TypeName => StaticTypeName;
+		public static string StaticTypeName => "int";
 
 		public override ICollection<Access> AllowedAccessModifiers => new Access[] { Access.Private, Access.Public };
 		public override ICollection<Usage> AllowedUsageModifiers => new Usage[] { Usage.Default, Usage.Constant, Usage.Static };
@@ -20,10 +21,8 @@ namespace MCSharp.Variables {
 		public VarInt(Access access, Usage usage, string name, Compiler.Scope scope) : base(access, usage, name, scope) { }
 
 
-		public override Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) {
-			base.Initialize(access, usage, name, scope, trace);
-			return new VarInt(access, usage, name, scope);
-		}
+		public override Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) => new VarInt(access, usage, name, scope);
+		public override Variable Construct(ArgumentInfo passed) => throw new Compiler.SyntaxException($"'{TypeName}' types cannot be constructed.", Compiler.CurrentScriptTrace);
 
 		public override void WriteCopyTo(StreamWriter function, Variable variable) {
 			if(variable is Pointer<VarInt> pointer) pointer.Variable = this;
@@ -40,9 +39,6 @@ namespace MCSharp.Variables {
 
 				switch(operation) {
 
-					case Operation.Set:
-						op = "=";
-						goto Bitwise;
 					case Operation.Add:
 						op = "+=";
 						goto Bitwise;

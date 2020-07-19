@@ -6,7 +6,8 @@ namespace MCSharp.Variables {
 	public class VarScoreboard : Variable {
 
 		public override int Order => 100;
-		public override string TypeName => "Scoreboard";
+		public override string TypeName => StaticTypeName;
+		public static string StaticTypeName => "Scoreboard";
 
 		public override ICollection<Access> AllowedAccessModifiers => new Access[] { Access.Public };
 		public override ICollection<Usage> AllowedUsageModifiers => new Usage[] { Usage.Static };
@@ -21,10 +22,8 @@ namespace MCSharp.Variables {
 			Methods.Add("ClearDisplay", args => ClearDisplay(args));
 		}
 
-		public override Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) {
-			base.Initialize(access, usage, name, scope, trace);
-			throw new Compiler.SyntaxException("Cannot make an instance of a static class.", trace);
-		}
+		public override Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) => throw new Compiler.SyntaxException("Cannot make an instance of a static class.", trace);
+		public override Variable Construct(ArgumentInfo passed) => throw new Compiler.SyntaxException("Cannot make an instance of a static class.", Compiler.CurrentScriptTrace);
 
 		private Variable GetScore(Variable[] args) {
 			if(args.Length != 2)
@@ -35,7 +34,7 @@ namespace MCSharp.Variables {
 				throw new InvalidCastException(args[1], "Objective", Compiler.CurrentScriptTrace);
 
 			var value = new VarInt(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope);
-			value.SetValue(target.GetConstant(), objective.GetConstant());
+			value.SetValue(target, objective);
 			return value;
 
 		}

@@ -1,4 +1,5 @@
 ﻿using MCSharp.Compilation;
+using System;
 using System.IO;
 using static MCSharp.Compilation.ScriptObject;
 
@@ -6,10 +7,8 @@ namespace MCSharp.Variables {
 
 	public class VarBool : PrimitiveType {
 
-		public override string TypeName => "bool";
-
-		public static VarBool TrueValue { get; private set; }
-		public static VarBool FalseValue { get; private set; }
+		public override string TypeName => StaticTypeName;
+		public static string StaticTypeName => "bool";
 
 
 		public VarBool() : base() { }
@@ -17,10 +16,8 @@ namespace MCSharp.Variables {
 		public VarBool(Access access, Usage usage, string name, Compiler.Scope scope) : base(access, usage, name, scope) { }
 
 
-		public override Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) {
-			base.Initialize(access, usage, name, scope, trace);
-			return new VarBool(access, usage, name, scope);
-		}
+		public override Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) => new VarBool(access, usage, name, scope);
+		public override Variable Construct(ArgumentInfo passed) => throw new Compiler.SyntaxException($"'{TypeName}' types cannot be constructed.", Compiler.CurrentScriptTrace);
 
 		public override void WriteCopyTo(StreamWriter function, Variable variable) {
 			if(variable is Pointer<VarBool> pointer) pointer.Variable = this;
@@ -35,12 +32,6 @@ namespace MCSharp.Variables {
 				throw new Compiler.SyntaxException($"Cannot cast '{operand}' into '{TypeName}'.", scriptTrace);
 
 			switch(operation) {
-
-				case Operation.Set:
-					new Spy(null, $"scoreboard players operation " +
-						$"{Selector.GetConstant()} {Objective.GetConstant()} = " +
-						$"{right.Selector.GetConstant()} {right.Objective.GetConstant()}", null);
-					return this;
 
 				case Operation.BooleanNot: {
 					string id = GetNextHiddenID();

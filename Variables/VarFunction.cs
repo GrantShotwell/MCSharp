@@ -12,7 +12,8 @@ namespace MCSharp.Variables {
 	public class VarFunction : Variable {
 
 		public override int Order => 100;
-		public override string TypeName => "Function";
+		public override string TypeName => StaticTypeName;
+		public static string StaticTypeName => "Function";
 		public string FolderPath { get; }
 		public string GamePath { get; }
 		public List<string> Commands { get; } = new List<string>();
@@ -42,12 +43,8 @@ namespace MCSharp.Variables {
 		}
 
 
-		public override Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) {
-			base.Initialize(access, usage, name, scope, trace);
-
-			throw new NotImplementedException();
-
-		}
+		public override Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) => throw new NotImplementedException();
+		public override Variable Construct(ArgumentInfo passed) => throw new NotImplementedException();
 
 		public override void WriteInit(StreamWriter function) {
 			base.WriteInit(function);

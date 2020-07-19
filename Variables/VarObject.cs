@@ -22,17 +22,13 @@ namespace MCSharp.Variables {
 		: base(access, usage, name, scope, script) { }
 
 
-		public override Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) {
-			base.Initialize(access, usage, name, scope, trace);
-			return new VarObject(access, usage, name, scope, ScriptClass);
-		}
+		public override Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) => new VarObject(access, usage, name, scope, ScriptClass);
 
-		public override Variable Construct(Variable[] arguments) {
-			base.Construct(arguments);
+		public override Variable Construct(ArgumentInfo passed) {
 			//TODO: better 'finder' for overflows
 			foreach(Constructor constructor in Constructors) {
 				try {
-					return constructor.Invoke(arguments);
+					return constructor.Invoke(passed);
 				} catch(InvalidArgumentsException) {
 					continue;
 				} catch(InvalidCastException) {
@@ -83,14 +79,14 @@ namespace MCSharp.Variables {
 		}
 
 		public override Constructor CompileConstructor(ScriptConstructor constructor) {
-			return (args) => {
-				if(args.Length != constructor.Parameters.Length)
+			return (passed) => {
+				if(passed.Arguments.Count != constructor.Parameters.Length)
 					throw new InvalidArgumentsException($"Wrong number of arguments for '{constructor.Alias}'.Invoke(_).", Compiler.CurrentScriptTrace);
 				Variable buffer = Initialize(Access.Private, Usage.Default, GetNextHiddenID(),
 					new Compiler.Scope(Compiler.CurrentScope), Compiler.CurrentScriptTrace);
 				Compiler.WriteFunction<Variable>(Compiler.CurrentScope, buffer, constructor);
 				new Spy(null, (func) => {
-					for(int i = 0; i < args.Length; i++) args[i].WriteCopyTo(Compiler.FunctionStack.Peek(), constructor.Parameters[i]);
+					for(int i = 0; i < passed.Arguments.Count; i++) passed.Arguments[i].Value.WriteCopyTo(Compiler.FunctionStack.Peek(), constructor.Parameters[i]);
 					func.WriteLine($"function {constructor.GameName}");
 				}, null);
 				return constructor.ReturnValue;
