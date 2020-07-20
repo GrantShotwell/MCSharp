@@ -27,10 +27,7 @@ namespace MCSharp.Statements {
 					break;
 				}
 			}
-			lines.Add(new ScriptLine(new ScriptWild[] {
-				statement,
-				new ScriptWild(ScriptLine.GetWilds(function[start..end]), " \\ ", ' ')
-			}));
+			lines.Add(new ScriptLine(new ScriptWild[] { statement, ScriptLine.GetWilds(function[start..end]) }));
 			start = ++end;
 		}
 

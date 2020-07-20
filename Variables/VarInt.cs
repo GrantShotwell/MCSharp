@@ -99,8 +99,9 @@ namespace MCSharp.Variables {
 		public override IDictionary<Type, Caster> GetCasters_To() {
 			IDictionary<Type, Caster> casters = base.GetCasters_To();
 			casters.Add(typeof(VarBool), value => {
+				var original = value as VarInt;
 				var result = new VarBool(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope);
-				result.SetValue(Selector, Objective);
+				result.SetValue(original.Selector, original.Objective);
 				return result;
 			});
 			return casters;

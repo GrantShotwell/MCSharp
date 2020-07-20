@@ -39,6 +39,7 @@ namespace MCSharp.Variables {
 
 		public override string GetConstant() => Value;
 		public override VarString GetString() => this;
+		public override string GetJSON() => $"{{\"text\":\"{Value}\"}}";
 
 		public static explicit operator VarString(string str) => new VarString(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope) { Value = str };
 	}

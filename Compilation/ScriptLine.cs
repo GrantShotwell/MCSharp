@@ -3,6 +3,8 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
+using System.Transactions;
 
 namespace MCSharp.Compilation {
 
@@ -75,151 +77,149 @@ namespace MCSharp.Compilation {
 		}
 
 
-		public static ScriptWild[] GetWilds(ScriptString phrase) {
+		public static ScriptWild GetWilds(ScriptString phrase) {
 
 			ScriptString[] split = Separate(phrase);
 
-			var stack = new Stack<Tuple<char?, string, List<ScriptWild>>>();
-			stack.Push(new Tuple<char?, string, List<ScriptWild>>(null, " \\ ", new List<ScriptWild>()));
+			var stack = new Stack<(char? Separator, string Block, List<ScriptWild> List)>();
+			stack.Push((null, " \\ ", new List<ScriptWild>()));
 
 			for(int i = 0; i < split.Length; i++) {
 				ScriptString str = split[i];
 
 				if(str.Length == 1) {
 
-					char chr = (char)str[0];
+					char separator = (char)str[0];
 
-					if(IsBlockCharStart(chr, out string blk)) {
-						// Starting a new block tuple.
-						var tuple = new Tuple<char?, string, List<ScriptWild>>(null, blk, new List<ScriptWild>());
-						stack.Push(tuple);
-						continue;
+					// Is this the start of a new block?
+					if(IsBlockCharStart(separator, out string blk)) {
+						var current = stack.Peek();
 
-
-					} else if(IsSeparatorChar(chr)) {
-						var tuple = stack.Pop();
-						if(!stack.TryPeek(out var last)) {
-							last = new Tuple<char?, string, List<ScriptWild>>(null, " \\ ", new List<ScriptWild>());
-							stack.Push(last);
-						}
-						// Check if a list is in progress.
-						if(last.Item1 == chr) {
-							// Continue that list.
-							last.Item3.Add(new ScriptWild(tuple.Item3.ToArray(), " \\ ", ' '));
-							var next = new Tuple<char?, string, List<ScriptWild>>(chr, " \\ ", new List<ScriptWild>());
-							stack.Push(next);
-						} else if(last.Item1 == null || last.Item1 == ' ' || chr == '.') {
-							// Make a new list.
-							var next = new Tuple<char?, string, List<ScriptWild>>(chr, tuple.Item2, new List<ScriptWild>());
-							next.Item3.Add(new ScriptWild(tuple.Item3.ToArray(), " \\ ", ' '));
-							stack.Push(next);
-							stack.Push(new Tuple<char?, string, List<ScriptWild>>(' ', " \\ ", new List<ScriptWild>()));
-						} else {
-							throw new Compiler.SyntaxException($"Expected '{last.Item1?.ToString() ?? "[nothing]"}' but got '{chr}'.", phrase.ScriptTrace);
-						}
-						continue;
-
-
-					} else if(IsBlockCharEnd(chr, out blk)) {
-						// Ending the last block tuple.
-						var tuple = stack.Pop();
-						if(tuple.Item2 == " \\ ") {
-							do {
-								var next = stack.Pop();
-								if(tuple.Item3.Count > 1) next.Item3.Add(new ScriptWild(tuple.Item3.ToArray(), tuple.Item2, tuple.Item1 ?? ' '));
-								else next.Item3.Add(tuple.Item3[0]);
-								tuple = next;
-							} while(stack.Count > 0 && stack.Peek().Item2 == " \\ ");
-							stack.Push(tuple);
-						} else {
-							if(tuple.Item2 != blk) throw new Compiler.SyntaxException($"Expected '{tuple.Item2[2]}' but got '{chr}'.", phrase.ScriptTrace);
-							stack.Peek().Item3.Add(new ScriptWild(tuple.Item3.ToArray(), tuple.Item2, tuple.Item1 ?? ' '));
-						}
+                        // Is the current block empty?
+                        if(current.Block == " \\ " && current.List.Count == 0) stack.Pop();
+						// Starting a new block.
+                        stack.Push((null, blk, new List<ScriptWild>()));
+						
 						continue;
 
 					}
+					
+					// Is it separation time?
+					if(IsSeparatorChar(separator)) {
+						var current = stack.Peek();
+
+						// Does the current block have the same separator?
+						if(current.Separator == separator) {
+
+							// Start the next item in the separated list by adding something empty.
+							stack.Push((' ', " \\ ", new List<ScriptWild>()));
+							
+							continue;
+
+                        }
+
+						// Does the current block have no separator?
+						if(current.Separator == null) {
+
+							// Set the separator to this one.
+							current = stack.Pop();
+							stack.Push((separator, current.Block, current.List));
+							// Start the next item in the separated list by adding an empty block.
+							stack.Push((null, " \\ ", new List<ScriptWild>()));
+							
+							continue;
+
+                        }
+
+						// The current block is a different separated list.
+                        {
+
+							// The current block must an item in an unfinished separated block.
+							// Combine the current block into it.
+							current = stack.Pop();
+							stack.Peek().List.Add(new ScriptWild(current.List.ToArray(), current.Block, current.Separator ?? ' '));
+
+							current = stack.Peek();
+							
+							// Can we set the separator of this block to this separator?
+							if(current.Block == " \\ " && current.List.Count >= 1) {
+								// Set the separator of the current block to this separator.
+								current = stack.Pop();
+                                stack.Push((separator, current.Block, current.List));
+
+								continue;
+                            }
+
+							// Is the current block's list combinable into one?
+							if(current.Separator == ' ') {
+								// Add 'current' into a new separated block.
+								current = stack.Pop();
+								(char? Separator, string Block, List<ScriptWild> List) next = (separator, current.Block, new List<ScriptWild>());
+								next.List.Add(new ScriptWild(current.List.ToArray(), " \\ ", current.Separator ?? ' '));
+								stack.Push(next);
+								// Start the next item in the separated list by adding an empty block.
+								stack.Push((null, " \\ ", new List<ScriptWild>()));
+
+								continue;
+                            }
+
+							throw new Exception();
+
+                        }
 
 
-				}
+					}
+					
+					// Is this the end of a block?
+					if(IsBlockCharEnd(separator, out blk)) {
+						var current = stack.Pop();
 
-				{
+						// There could be at most one block that is the next item in an unfinished separated block.
+						// Is that there?
+						if(stack.Count >= 2 && stack.Peek().Block == " \\ ") {
+							// Add that item to the list.
+							var item = stack.Pop();
+                            stack.Peek().List.Add(new ScriptWild(item.List.ToArray(), item.Block, current.Separator ?? ' '));
+                        }
 
-					// Getting here means this is not a keyword.
-					// Add the word to whatever tuple we're on.
-					var tuple = stack.Peek();
-
-					if(tuple.Item1 == null) {
-
-						var list = tuple.Item3;
-						list.Add(new ScriptWord(str, true));
-						if(list.Count > 1) {
-							stack.Pop();
-							stack.Push(new Tuple<char?, string, List<ScriptWild>>(' ', tuple.Item2, list));
-						}
-
-					} else if(tuple.Item1 == ';') {
-
-						var next = new Tuple<char?, string, List<ScriptWild>>(null, " \\ ", new List<ScriptWild>());
-						var list = next.Item3;
-						list.Add((ScriptWord)str);
+						// Make sure there is a 'next' to combine 'current' with.
+						(char? Separator, string Block, List<ScriptWild> List) next;
+						if(stack.Count == 0) next = (null, " \\ ", new List<ScriptWild>());
+						else next = stack.Pop();
+						// Combine 'current' into 'next'.
+						next.List.Add(new ScriptWild(current.List.ToArray(), current.Block, current.Separator ?? ' '));
 						stack.Push(next);
 
-					} else {
-
-						var list = tuple.Item3;
-						list.Add((ScriptWord)str);
+						continue;
 
 					}
 
 				}
 
-			}
+				// 'str' is not a separator character or a block character.
+				{
 
-			; //debug break
+					// Add 'str' to the current block.
+					var current = stack.Peek();
+					current.List.Add(new ScriptWord(str, true));
+					// If we just made current.List.Count 2, then we know the separator is whitespace.
+					if(current.List.Count == 2) {
+						current = stack.Pop();
+						stack.Push((' ', current.Block, current.List));
+                    }
 
-			// Try to collapse redundant blocks.
-			CollapseLoop: while(stack.Count > 1 && stack.Peek().Item2 == " \\ ") {
-				var tuple = stack.Pop();
-				if(tuple.Item3.Count > 1) {
-					var peek = stack.Peek();
-					bool equalItems = (peek.Item1 ?? ' ') == (tuple.Item1 ?? ' ') && peek.Item2 == tuple.Item2;
-					bool combinable = peek.Item2 == " \\ " && equalItems;
-					if(peek.Item3.Count == 0 && equalItems) {
-						stack.Pop();
-						stack.Push(tuple);
-					} else if(peek.Item3.Count > 0 && combinable) {
-						foreach(var wild in tuple.Item3) peek.Item3.Add(wild);
-					} else peek.Item3.Add(new ScriptWild(tuple.Item3.ToArray(), tuple.Item2, tuple.Item1 ?? ' '));
-				} else {
-					if(tuple.Item3[0].IsWord) stack.Peek().Item3.Add(tuple.Item3[0].Word);
-					else stack.Peek().Item3.Add(new ScriptWild(tuple.Item3.ToArray(), tuple.Item2, tuple.Item1.Value));
+					continue;
+
 				}
+
 			}
 
-			// Try to remove empty blocks.
-			if(stack.Count > 1) {
-				var pop = stack.Pop();
-				var peek = stack.Peek();
-				if((peek.Item1 ?? ' ') == ' ' && peek.Item2 == " \\ " && peek.Item3.Count == 0) {
-					stack.Pop();
-					stack.Push(pop);
-					goto CollapseLoop;
-				} else {
-					throw new Compiler.SyntaxException($"Missing '{stack.Peek().Item2[2]}'.", phrase.ScriptTrace);
-				}
-			}
+			; // debug break
 
-			// Try to package into a single " \\ " block.
-			//  (stack has to be size 1 to reach here)
-			if(stack.Peek().Item2 != " \\ ") {
-				var pop = stack.Pop();
-				var next = new Tuple<char?, string, List<ScriptWild>>(' ', " \\ ",
-					new List<ScriptWild>() { new ScriptWild(pop.Item3.ToArray(), pop.Item2, pop.Item1 ?? ' ') });
-				stack.Push(next);
-			}
+			// Combine remaining stack into one.
+			ScriptWild result = new ScriptWild(stack.Reverse().ToArray(), " \\ ", ' ');
+            return result;
 
-			// Return.
-			return stack.Peek().Item3.ToArray();
 		}
 
 		private static ScriptString[] Separate(ScriptString str) {

@@ -61,7 +61,13 @@ namespace MCSharp.Variables {
 		/// <param name="selector">The selector to copy from.</param>
 		/// <param name="objective">The objective to copy from.</param>
 		public void SetValue(VarSelector selector, VarObjective objective) {
-			if(!Constructed) {
+
+            if(selector is null)
+                throw new ArgumentNullException(nameof(selector));
+            if(objective is null)
+                throw new ArgumentNullException(nameof(objective));
+
+            if(!Constructed) {
 				AddAutoProperty(Selector = new VarSelector(Access.Private, Usage.Default, char.ToLower(VarSelector.StaticTypeName[0]) + VarSelector.StaticTypeName.Substring(1), InnerScope));
 				Selector.InvokeOperation(Operation.Set, Constructors[Selector.TypeName](new Variable[] { (VarString)"var" }), Compiler.CurrentScriptTrace);
 #if DEBUG_OUT

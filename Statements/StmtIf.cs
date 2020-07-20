@@ -22,7 +22,7 @@ namespace MCSharp.Statements {
 			while(++end < function.Length) {
 				char chr = (char)function[end];
 
-				//Skip whitespaces, since the parsing is done mostly done in the separate loops below.
+				// Skip whitespaces, since the parsing is done mostly done in the separate loops below.
 				if(char.IsWhiteSpace(chr)) continue;
 
 				if(expectingCondition) {
@@ -30,31 +30,29 @@ namespace MCSharp.Statements {
 					if(chr == '(') stack.Push("(\\)");
 					else throw new Compiler.SyntaxException("Expected '(...)' after keyword 'if'.", Compiler.CurrentScriptTrace);
 					start = end;
-					//Find the end of the condition parenthesies.
+					// Find the end of the condition parenthesies.
 					while(++end < function.Length) {
 						chr = (char)function[end];
 						if(ScriptLine.IsBlockCharStart(chr, out string block)) {
-							//Start a new block.
+							// Start a new block.
 							stack.Push(block);
 						} else if(ScriptLine.IsBlockCharEnd(chr, out block)) {
-							//End the current block.
+							// End the current block.
 							string b = stack.Pop();
 							if(block != b) throw new Compiler.SyntaxException($"Expected '{b[2]}', but got '{block[2]}'.", Compiler.CurrentScriptTrace);
 							if(stack.Count == 0) /* <<End of Conditional>> */ break;
 						}
 					}
-					//Get the full conditional as a string.
+					// Get the full conditional as a string.
 					ScriptString s = function[start..(end + 1)];
-					//Parse the conditional using ScriptLine.GetWilds(...).
+					// Parse the conditional using ScriptLine.GetWilds(...).
 					var parsed = ScriptLine.GetWilds(s);
-					//Should always be a single ScriptWild, since it is completely in a (\\).
-					if(parsed.Length != 1) throw new Exception();
-					//Add the conditional to the list.
-					wilds.Add(parsed[0]);
+					// Add the conditional to the list.
+					wilds.Add(parsed);
 
-					//No longer expecting condition.
+					// No longer expecting condition.
 					expectingCondition = false;
-					//Next is an instruction.
+					// Next is an instruction.
 					expectingInstruction = true;
 
 
@@ -68,28 +66,26 @@ namespace MCSharp.Statements {
 						while(++end < function.Length) {
 							chr = (char)function[end];
 							if(ScriptLine.IsBlockCharStart(chr, out string block)) {
-								//Start a new block.
+								// Start a new block.
 								stack.Push(block);
 							} else if(ScriptLine.IsBlockCharEnd(chr, out block)) {
-								//End the current block.
+								// End the current block.
 								string b = stack.Pop();
 								if(block != b) throw new Compiler.SyntaxException($"Expected '{b[2]}', but got '{block[2]}'.", Compiler.CurrentScriptTrace);
-								if(stack.Count == 0) /* <<End of Code Block>> */ break;
+								if(stack.Count == 0) break; // End of Code Block
 							}
 						}
-						//Get the full code block as a string.
+						// Get the full code block as a string.
 						ScriptString s = function[start..(end + 1)];
-						//Parse the code block using ScriptLine.GetWilds(...).
+						// Parse the code block using ScriptLine.GetWilds(...).
 						var parsed = ScriptLine.GetWilds(s);
-						//Should always be a single ScriptWild, since it is completely in a {\\}.
-						if(parsed.Length != 1) throw new Exception();
-						//Add the code block to the list.
-						wilds.Add(parsed[0]);
+						// Add the code block to the list.
+						wilds.Add(parsed);
 
 					} else {
 						// <<Parsing Single Line>>
 						start = end;
-						//Find the ';'.
+						// Find the ';'.
 						while(++end < function.Length) {
 							chr = (char)function[end];
 							if(ScriptLine.IsBlockCharStart(chr, out string block)) {
@@ -101,21 +97,18 @@ namespace MCSharp.Statements {
 								if(block != b) throw new Compiler.SyntaxException($"Expected '{b[2]}', but got '{block[2]}'.", Compiler.CurrentScriptTrace);
 							} else if(stack.Count == 0) {
 								if(chr != ';') throw new Compiler.SyntaxException("Expected ';'.", Compiler.CurrentScriptTrace);
-								else /* <<End of Statement>> */ break;
+								else break; // End of Statement.
 							}
 						}
-						//Parse the conditional using ScriptLine.GetWilds(...).
-						var parsed = ScriptLine.GetWilds(function[start..end]);
-						//Group the parsed conditional into a ScriptWild.
-						var wild = new ScriptWild(parsed, "{\\}", ';');
-						//Add the conditional to the list.
-						wilds.Add(wild);
+                        // Parse the conditional using ScriptLine.GetWilds(...).
+                        ScriptWild parsed = ScriptLine.GetWilds(function[start..end]);
+						// Add the conditional to the list.
+						wilds.Add(parsed);
 					}
 
-					//No longer expecting an instruction.
+					// No longer expecting an instruction.
 					expectingInstruction = false;
-					//Next is 'else', if at all.
-					// (process of elimination)
+					// Next is 'else', if at all.
 
 
 				} else {
@@ -136,10 +129,10 @@ namespace MCSharp.Statements {
 
 							if(parsingBlock) {
 								// <<Finding an End of Block>>
-								if(chr == '}' && stack.Count == 0) /* <<Found End of Block>> */ break;
+								if(chr == '}' && stack.Count == 0) break;
 							} else if(parsingSingle) {
 								// <<Finding an End of Instruction>>
-								if(chr == ';' && stack.Count == 0) /* <<Found End of Instruction>> */ break;
+								if(chr == ';' && stack.Count == 0) break;
 							} else {
 								//Find what to find.
 								if(!char.IsWhiteSpace(chr)) {
@@ -148,12 +141,10 @@ namespace MCSharp.Statements {
 								}
 							}
 						}
-						//Parse the instruction using ScriptLine.GetWilds(...).
-						var parsed = ScriptLine.GetWilds(function[start..end]);
-						//Group the parsed instruction into a ScriptWild.
-						var wild = new ScriptWild(parsed, " \\ ", ' ');
-						//Add the instruction to the list.
-						wilds.Add(wild);
+                        // Parse the instruction using ScriptLine.GetWilds(...).
+                        ScriptWild parsed = ScriptLine.GetWilds(function[start..end]);
+						// Add the instruction to the list.
+						wilds.Add(parsed);
 						break;
 
 					} else {
@@ -165,7 +156,7 @@ namespace MCSharp.Statements {
 
 			}
 
-			//Add 'wilds' as the ScriptLine.
+			// Add 'wilds' as the ScriptLine.
 			list.Add(new ScriptLine(wilds.ToArray()));
 
 		}
@@ -184,8 +175,9 @@ namespace MCSharp.Statements {
 			{
 
 				condition = varBool;
-				var statement = new ScriptMethod($"{Compiler.CurrentScope}\\{Compiler.CurrentScope.GetNextInnerID()}",
-					"void", new Variable[] { }, null, statementWild);
+                var statement = new ScriptMethod($"{Compiler.CurrentScope}\\{Compiler.CurrentScope.GetNextInnerID()}",
+                    "void", new Variable[] { }, null, statementWild);
+				statement.DeclaringType = Compiler.CurrentScope.DeclaringType;
 				Compiler.WriteFunction<VarVoid>(Compiler.CurrentScope, null, statement);
 				new Spy(null, $"execute if score {condition.Selector.GetConstant()} {condition.Objective.GetConstant()} matches 1.. " +
 					$"run function {statement.GameName}", null);
@@ -195,7 +187,8 @@ namespace MCSharp.Statements {
 			if(elseWild.HasValue) {
 
 				var statement = new ScriptMethod($"{Compiler.CurrentScope}\\{Compiler.CurrentScope.GetNextInnerID()}",
-					"void", new Variable[] { }, Compiler.CurrentScope.DeclaringType, elseWild.Value.Wilds[1]);
+					"void", new Variable[] { }, null, elseWild.Value[1..]);
+				statement.DeclaringType = Compiler.CurrentScope.DeclaringType;
 				Compiler.WriteFunction<VarVoid>(Compiler.CurrentScope, null, statement);
 				new Spy(null, $"execute if score {condition.Selector.GetConstant()} {condition.Objective.GetConstant()} matches ..0 " +
 					$"run function {statement.GameName}", null);

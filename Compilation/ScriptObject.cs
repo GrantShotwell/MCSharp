@@ -256,7 +256,7 @@ namespace MCSharp.Compilation {
 							if(blocks.Pop() != "(\\)") throw new Compiler.SyntaxException("Expected ')'.", scriptClass[end].ScriptTrace);
 							if(blocks.Count == 0) {
 								// <<End of Parameters>>
-								ScriptWild paramDefs = ScriptLine.GetWilds(scriptClass[(start - 1)..(end + 1)])[0];
+								ScriptWild paramDefs = ScriptLine.GetWilds(scriptClass[(start - 1)..(end + 1)]);
 
 								//Make sense of the parameter definition.
 								if(paramDefs.FullBlockType == "(\\,\\)") {
@@ -372,7 +372,7 @@ namespace MCSharp.Compilation {
 			public ScriptWild Init { get; }
 
 			public ScriptField(string alias, string type, Access access, Usage usage, ScriptObject declarer, ScriptString phrase)
-			: this(alias, type, access, usage, declarer, new ScriptWild(ScriptLine.GetWilds(phrase), "(\\)", ' ')) { }
+			: this(alias, type, access, usage, declarer, new ScriptWild(ScriptLine.GetWilds(phrase).Array, "(\\)", ' ')) { }
 
 			public ScriptField(string alias, string type, Access access, Usage usage, ScriptObject declarer, ScriptWild init)
 			: base(alias, type, access, usage, declarer, init.ScriptTrace) {
@@ -517,8 +517,8 @@ namespace MCSharp.Compilation {
 				[DebuggerStepThrough]
 				set {
 					if(value is null) return;
-					value.Methods.Add(this);
 					base.DeclaringType = value;
+					value.Methods.Add(this);
 				}
 			}
 

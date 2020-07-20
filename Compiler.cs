@@ -178,6 +178,7 @@ namespace MCSharp {
 			var lines = (IReadOnlyList<ScriptLine>)method;
 			for(int i = 0; i < lines.Count; i++) {
 				ScriptLine line = lines[i];
+				if(line.Length == 0) continue; // Empty line.
 
 				if(line[0].IsWord && Statement.Dictionary.TryGetValue(line[0], out Tuple<Statement.Reader, Statement.Writer> tuple)) {
 

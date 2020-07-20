@@ -56,7 +56,7 @@ namespace MCSharp.Compilation {
 		/// <summary>The name of this member if Minecraft gave it a function name.</summary>
 		public string GameName {
 			[DebuggerStepThrough]
-			get => $"{Program.Datapack.Name}:{Script.FixAlias(FullAlias.Replace('.', '/'))}";
+			get => $"{Program.Datapack.Name}:{Script.FixAlias(FullAlias.Replace('.', '/').Replace('\\', '/'))}";
 		}
 
 		/// <summary>The <see cref="Variable.TypeName"/> for the type of this member.</summary>
