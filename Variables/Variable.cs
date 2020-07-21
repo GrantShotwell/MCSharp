@@ -258,17 +258,37 @@ namespace MCSharp.Variables {
 				if(TryGetMember(args[0], out object member)) {
 
 					int argsCount = args.Length;
+
 					if(member is Variable field) {
-						// <<Accessing Field>>
+
 						if(argsCount > 1) {
 							//Apply an operation to the field.
 							if(args[1].IsWilds) throw new Compiler.SyntaxException("Expected an operator.", args[1].ScriptTrace);
 							else return field.InvokeOperation(args[1].Word, argsCount > 2 ? args[2..] : new ScriptWild[] { });
 						} else return field;
 
+					}
 
-					} else if(member is (GetProperty get, SetProperty set)) {
-						// <<Accessing Property>>
+					if(member is MethodDelegate method) {
+
+						if(argsCount > 1) {
+							// Name of the method.
+							var name = args[0];
+							// Arguments for the method.
+							var arrr = args[1];
+							Variable[] variables = new Variable[arrr.Wilds.Count];
+							for(int i = 0; i < arrr.Wilds.Count; i++) {
+								Variable variable = Compiler.ParseValue(arrr.Wilds[i], Compiler.CurrentScope);
+								variables[i] = variable;
+							}
+							return Methods[(string)name.Word].Invoke(new ArgumentInfo(variables, arrr.ScriptTrace));
+						} else throw new Exception("Internal Error: 015704082020");
+
+					}
+
+					(GetProperty get, SetProperty set) = ((GetProperty, SetProperty))member;
+					if(get != null || set != null) {
+
 						if(argsCount > 1) {
 							if(args[1].IsWilds) throw new Compiler.SyntaxException("Expected an operator.", args[1].ScriptTrace);
 							else if(args[1].Word == "=") {
@@ -288,24 +308,10 @@ namespace MCSharp.Variables {
 							return get.Invoke();
 						}
 
+					}
 
-					} else if(member is MethodDelegate method) {
-						// <<Accessing Method>>
-						if(argsCount > 1) {
-							var name = args[0];
-							var arrr = args[1];
-							Variable[] variables = new Variable[arrr.Wilds.Count];
-							for(int i = 0; i < arrr.Wilds.Count; i++) {
-								Variable variable = Compiler.ParseValue(arrr.Wilds[i], Compiler.CurrentScope);
-								variables[i] = variable;
-							}
-							return Methods[(string)name.Word].Invoke(new ArgumentInfo(variables, arrr.ScriptTrace));
-						} else throw new Exception("Internal Error: 015704082020");
-
-
-					} else throw new Exception("Internal Error: 012504082020");
-
-				} else throw new Exception("Internal Error: 0158504082020");
+					throw new Exception("Internal Error: 012504082020");
+                } else throw new Exception("Internal Error: 0158504082020");
 
 
 			} else {
@@ -462,6 +468,12 @@ namespace MCSharp.Variables {
 			public InvalidCastException(Variable variable, string type, ScriptTrace at)
 				: base($"[{at}] Cannot cast '{variable}' to type '{type}'.") { }
 		}
+
+		public class MissingOverloadException : Compiler.InternalError {
+			public MissingOverloadException(string name, int index, ArgumentInfo arguments)
+				: base($"Not all {name} overflows have been accounted for ({index}).", arguments.ScriptTrace) { }
+		}
+
 		#endregion
 
 	}

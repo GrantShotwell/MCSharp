@@ -35,7 +35,7 @@ namespace MCSharp.Variables {
 						new Spy(null, $"say {text}", null);
 						return null;
 
-					default: throw new Compiler.InternalError($"Not all Chat.Say overflows were accounted for ({index}).");
+					default: throw new MissingOverloadException($"{TypeName}.Say", index, arguments);
 				}
 
 			});
@@ -58,7 +58,7 @@ namespace MCSharp.Variables {
 						new Spy(null, $"tellraw {selector} {json}", null);
 						return null;
 
-					default: throw new Compiler.InternalError($"Not all Chat.Tellraw overflows were accounted for ({index}).");
+					default: throw new MissingOverloadException($"{TypeName}.Tellraw", index, arguments);
 				}
 
 			});

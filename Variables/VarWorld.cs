@@ -36,7 +36,7 @@ namespace MCSharp.Variables {
                         new Spy(null, $"time set {time}", null);
                         return null;
 
-                    default: throw new Compiler.InternalError($"Not all World.SetTime overflows were accounted for ({index}).");
+                    default: throw new MissingOverloadException($"{TypeName}.SetTime", index, arguments);
                 }
             });
 
@@ -57,7 +57,7 @@ namespace MCSharp.Variables {
                         new Spy(null, $"time add {amount}", null);
                         return null;
 
-                    default: throw new Compiler.InternalError($"Not all World.AddTime overflows were accounted for ({index}).");
+                    default: throw new MissingOverloadException($"{TypeName}.AddTime", index, arguments);
                 }
             });
             
@@ -85,7 +85,7 @@ namespace MCSharp.Variables {
                         new Spy(null, $"execute store result score {result.Selector.GetConstant()} {result.Objective.GetConstant()} run time query {type}", null);
                         return result;
 
-                    default: throw new Compiler.InternalError($"Not all World.SetTime overflows were accounted for ({index}).");
+                    default: throw new MissingOverloadException($"{TypeName}.GetTime", index, arguments);
                 }
             });
 

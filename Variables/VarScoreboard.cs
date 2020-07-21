@@ -39,7 +39,7 @@ namespace MCSharp.Variables {
 						value.SetValue(selector, objective);
 						return value;
 
-					default: throw new Compiler.InternalError($"Not all Scoreboard.GetScore overflows were accounted for ({index}).", arguments.ScriptTrace);
+					default: throw new MissingOverloadException($"{TypeName}.GetScore", index, arguments);
 
 				}
 
@@ -70,7 +70,7 @@ namespace MCSharp.Variables {
 							$"{from.Selector.GetConstant()} {from.Objective.GetConstant()}", null);
 						return null;
 
-					default: throw new Compiler.InternalError($"Not all Scoreboard.SetScore overflows were accounted for ({index}).", arguments.ScriptTrace);
+					default: throw new MissingOverloadException($"{TypeName}.SetScore", index, arguments);
 
 				}
 
@@ -99,8 +99,8 @@ namespace MCSharp.Variables {
 						new Spy(null, $"scoreboard objectives setdisplay {display} {objective}", null);
 						return null;
 
-					default: throw new Compiler.InternalError($"Not all Scoreboard.SetDisplay overflows were accounted for ({index}).", arguments.ScriptTrace);
-                }
+					default: throw new MissingOverloadException($"{TypeName}.SetDisplay", index, arguments);
+				}
 
 			});
 

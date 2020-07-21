@@ -46,9 +46,9 @@ namespace MCSharp.Variables {
 			new (Type Type, bool Reference)[] { },
 			new (Type Type, bool Reference)[] { (typeof(VarString), true) }
 		};
-		public override Variable Construct(ArgumentInfo passed) {
-			(ParameterInfo match, int index) = ParameterInfo.HighestMatch(ConstructorOverloads, passed);
-			match.Grab(passed);
+		public override Variable Construct(ArgumentInfo arguments) {
+			(ParameterInfo match, int index) = ParameterInfo.HighestMatch(ConstructorOverloads, arguments);
+			match.Grab(arguments);
 
 			string type;
 			switch(index) {
@@ -76,7 +76,7 @@ namespace MCSharp.Variables {
 					return value;
 
 
-				default: throw new Compiler.InternalError($"Not all Objective constructor overflows were accounted for ({index}).");
+				default: throw new MissingOverloadException("Objective constructor", index, arguments);
 			}
 		}
 
