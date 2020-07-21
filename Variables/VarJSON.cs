@@ -10,22 +10,22 @@ namespace MCSharp.Variables {
 		public override string TypeName => StaticTypeName;
 		public static string StaticTypeName => "JSON";
 
-		public string Value { get; }
+		private string Value { get; set; }
 
 		public override ICollection<Access> AllowedAccessModifiers => new Access[] { Access.Public, Access.Private };
 		public override ICollection<Usage> AllowedUsageModifiers => new Usage[] { Usage.Default, Usage.Constant };
 
 
 		public VarJSON() : base() { }
+		public VarJSON(Access access, Usage usage, string objectName, Compiler.Scope scope) : base(access, usage, objectName, scope) { }
 
-		public VarJSON(Access access, Usage usage, string objectName, Compiler.Scope scope, string value) :
-		base(access, usage, objectName, scope) {
-			Value = value;
-		}
+		public static explicit operator VarJSON(string str) => new VarJSON(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope) { Value = str };
 
 
 		public override Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) => throw new NotImplementedException();
 		public override Variable Construct(ArgumentInfo passed) => throw new NotImplementedException();
+
+		public void SetValue(string value) => Value = value;
 
 		public override string GetConstant() => Value;
         public override string GetJSON() => Value;

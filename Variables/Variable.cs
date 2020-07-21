@@ -388,7 +388,11 @@ namespace MCSharp.Variables {
 			var casters = new Dictionary<Type, Caster> {
 				//{ GetType(), value => value },
 				{ typeof(VarString), value => value.GetString() },
-				{ typeof(VarJSON), value => new VarJSON(Access.Private, Usage.Constant, GetNextHiddenID(), value.Scope, value.GetJSON()) }
+				{ typeof(VarJSON), value => {
+					var json = new VarJSON(Access.Private, Usage.Constant, GetNextHiddenID(), value.Scope);
+					json.SetValue(value.GetJSON());
+					return json;
+				} }
 			};
 			return casters;
 		}

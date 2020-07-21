@@ -323,7 +323,9 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public static bool IsBlockChar(char chr, out string type)
+        public ScriptWild ToWild() => new ScriptWild(wilds, "{\\}", ';');
+
+        public static bool IsBlockChar(char chr, out string type)
 			=> IsBlockCharStart(chr, out type) ? true : IsBlockCharEnd(chr, out type);
 
 		public static bool IsBlockCharStart(char chr, out string block) {
