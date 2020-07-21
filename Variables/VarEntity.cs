@@ -27,11 +27,11 @@ namespace MCSharp.Variables {
 		};
 		public override Variable Construct(ArgumentInfo passed) {
 			(ParameterInfo match, int index) = ParameterInfo.HighestMatch(ConstructorOverloads, passed);
-			match.SendArguments(passed);
+			match.Grab(passed);
 			switch(index) {
 				case 0:
 					var value = new VarEntity(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope);
-					value.Selector.InvokeOperation(Operation.Set, match.Parameters[0].Value as VarSelector, Compiler.CurrentScriptTrace);
+					value.Selector.InvokeOperation(Operation.Set, match[0].Value as VarSelector, Compiler.CurrentScriptTrace);
 					value.Constructed = true;
 					return value;
 

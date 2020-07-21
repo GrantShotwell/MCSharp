@@ -190,6 +190,20 @@ namespace MCSharp.Compilation {
 						next.List.Add(new ScriptWild(current.List.ToArray(), current.Block, current.Separator ?? ' '));
 						stack.Push(next);
 
+						// If the stack is greater than one, then we combine the top two.
+						if(stack.Count > 1) {
+							var top1 = stack.Pop();
+							var top2 = stack.Pop();
+							if(top2.Block == " \\ ") {
+								top2.List.Add(new ScriptWild(top1.List, top1.Block, top1.Separator ?? ' '));
+								stack.Push(top2);
+							} else {
+								(char? Separation, string Block, List<ScriptWild> List) whitespace = (' ', " \\ ", new List<ScriptWild>());
+								whitespace.List.Add(new ScriptWild(top2.List, top2.Block, top2.Separator ?? ' '));
+								whitespace.List.Add(new ScriptWild(top1.List, top1.Block, top1.Separator ?? ' '));
+							}
+						}
+
 						continue;
 
 					}

@@ -31,11 +31,11 @@ namespace MCSharp.Variables {
 			GamePath = $"{Program.Datapack.Name}:{function.Alias.Replace('\\', '/')}";
 			FolderPath = $"{Program.Datapack.Name}:{function.FullAlias}.mcfunction";
 			ScriptMethod = function;
-			Methods.Add("Invoke", (args) => {
-				if(args.Length != Parameters.Count)
+			Methods.Add("Invoke", (arguments) => {
+				if(arguments.Count != Parameters.Count)
 					throw new InvalidArgumentsException($"Wrong number of arguments for '{this}'.Invoke(_).", Compiler.CurrentScriptTrace);
 				new Spy(null, (function) => {
-					for(int i = 0; i < args.Length; i++) args[i].WriteCopyTo(Compiler.FunctionStack.Peek(), Parameters[i]);
+					for(int i = 0; i < arguments.Count; i++) arguments[i].Value.WriteCopyTo(Compiler.FunctionStack.Peek(), Parameters[i]);
 					function.WriteLine($"function {GamePath}");
 				}, null);
 				return null;

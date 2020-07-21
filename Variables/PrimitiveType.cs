@@ -44,12 +44,12 @@ namespace MCSharp.Variables {
 		public void SetValue(int value) {
 			if(!Constructed) {
 				AddAutoProperty(Selector = new VarSelector(Access.Private, Usage.Default, char.ToLower(VarSelector.StaticTypeName[0]) + VarSelector.StaticTypeName.Substring(1), InnerScope));
-				Selector.InvokeOperation(Operation.Set, Constructors[Selector.TypeName](new Variable[] { (VarString)"var" }), Compiler.CurrentScriptTrace);
+				Selector.InvokeOperation(Operation.Set, Constructors[Selector.TypeName](new ArgumentInfo(new Variable[] { (VarString)"var" }, Compiler.CurrentScriptTrace)), Compiler.CurrentScriptTrace);
 #if DEBUG_OUT
 			VarObjective.NextID = $"{name}@{Scope}";
 #endif
 				AddAutoProperty(Objective = new VarObjective(Access.Private, Usage.Default, char.ToLower(VarObjective.StaticTypeName[0]) + VarObjective.StaticTypeName.Substring(1), InnerScope));
-				Objective.InvokeOperation(Operation.Set, Constructors[Objective.TypeName](new Variable[] { (VarString)"dummy" }), Compiler.CurrentScriptTrace);
+				Objective.InvokeOperation(Operation.Set, Constructors[Objective.TypeName](new ArgumentInfo(new Variable[] { (VarString)"dummy" }, Compiler.CurrentScriptTrace)), Compiler.CurrentScriptTrace);
 				Constructed = true;
 			}
 			new Spy(null, $"scoreboard players set {Selector.GetConstant()} {Objective.GetConstant()} {value}", null);
@@ -69,12 +69,12 @@ namespace MCSharp.Variables {
 
             if(!Constructed) {
 				AddAutoProperty(Selector = new VarSelector(Access.Private, Usage.Default, char.ToLower(VarSelector.StaticTypeName[0]) + VarSelector.StaticTypeName.Substring(1), InnerScope));
-				Selector.InvokeOperation(Operation.Set, Constructors[Selector.TypeName](new Variable[] { (VarString)"var" }), Compiler.CurrentScriptTrace);
+				Selector.InvokeOperation(Operation.Set, Constructors[Selector.TypeName](new ArgumentInfo(new Variable[] { (VarString)"var" }, Compiler.CurrentScriptTrace)), Compiler.CurrentScriptTrace);
 #if DEBUG_OUT
 			VarObjective.NextID = $"{name}@{Scope}";
 #endif
 				AddAutoProperty(Objective = new VarObjective(Access.Private, Usage.Default, char.ToLower(VarObjective.StaticTypeName[0]) + VarObjective.StaticTypeName.Substring(1), InnerScope));
-				Objective.InvokeOperation(Operation.Set, Constructors[Objective.TypeName](new Variable[] { (VarString)"dummy" }), Compiler.CurrentScriptTrace);
+				Objective.InvokeOperation(Operation.Set, Constructors[Objective.TypeName](new ArgumentInfo(new Variable[] { (VarString)"dummy" }, Compiler.CurrentScriptTrace)), Compiler.CurrentScriptTrace);
 				Constructed = true;
 			}
 			new Spy(null, $"scoreboard players operation {Selector.GetConstant()} {Objective.GetConstant()} = {selector.GetConstant()} {objective.GetConstant()}", null);

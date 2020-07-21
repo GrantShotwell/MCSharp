@@ -37,22 +37,7 @@ namespace MCSharp.Variables {
 
 
 		public VarObjective() : base() { }
-		public VarObjective(Access access, Usage usage, string name, Compiler.Scope scope) : base(access, usage, name, scope) {
-			Methods.Add("GetInt", (arguments) => {
-				if(arguments.Length > 1) throw new ArgumentException("Expected at most 1 (Selector) argument for 'Objective.GetInt(...)'.");
-				if(arguments.Length == 0) {
-					var x = new VarInt(Access.Private, Usage.Default, GetNextHiddenID(), scope);
-					x.SetValue((VarSelector)"@e", this);
-					var y = Constructors[VarInt.StaticTypeName](new Variable[] { x });
-
-					return x;
-				} else if(arguments[0] is VarSelector varSelector || arguments[0].TryCast(out varSelector)) {
-					var x = new VarInt(Access.Private, Usage.Default, GetNextHiddenID(), scope);
-					x.SetValue(varSelector, this);
-					return x;
-				} else throw new ArgumentException($"Could not interpret '{arguments[0]}' as 'Selector'.");
-			});
-		}
+		public VarObjective(Access access, Usage usage, string name, Compiler.Scope scope) : base(access, usage, name, scope) { }
 
 
 		public override Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) => new VarObjective(access, usage, name, scope);
@@ -63,7 +48,8 @@ namespace MCSharp.Variables {
 		};
 		public override Variable Construct(ArgumentInfo passed) {
 			(ParameterInfo match, int index) = ParameterInfo.HighestMatch(ConstructorOverloads, passed);
-			match.SendArguments(passed);
+			match.Grab(passed);
+
 			string type;
 			switch(index) {
 
@@ -71,7 +57,7 @@ namespace MCSharp.Variables {
 					type = "dummy";
 					goto Construct;
 				case 2:
-					type = (match.Parameters[0].Value as VarString).GetConstant();
+					type = (match[0].Value as VarString).GetConstant();
 					goto Construct;
 
 
@@ -90,7 +76,7 @@ namespace MCSharp.Variables {
 					return value;
 
 
-				default: throw new InvalidArgumentsException("Could not find a constructor overload that matches the given arguments.", Compiler.CurrentScriptTrace);
+				default: throw new Compiler.InternalError($"Not all Objective constructor overflows were accounted for ({index}).");
 			}
 		}
 

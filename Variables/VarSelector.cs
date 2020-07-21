@@ -23,24 +23,25 @@ namespace MCSharp.Variables {
 			AddAutoProperty(String = new VarString(Access.Public, Usage.Default, char.ToLower(VarString.StaticTypeName[0]) + VarString.StaticTypeName.Substring(1), InnerScope));
 		}
 
-		public static explicit operator VarSelector(string str) => Constructors[StaticTypeName](new Variable[] { (VarString)str }) as VarSelector;
+		public static explicit operator VarSelector(string str) => Constructors[StaticTypeName](new ArgumentInfo(new Variable[] { (VarString)str }, Compiler.CurrentScriptTrace)) as VarSelector;
 
 		public override Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) => new VarSelector(access, usage, name, scope);
 
 		private static readonly ParameterInfo[] ConstructorOverloads = new ParameterInfo[] {
 			new (Type Type, bool Reference)[] { (typeof(VarString), true) }
 		};
-		public override Variable Construct(ArgumentInfo passed) {
-			(ParameterInfo match, int index) = ParameterInfo.HighestMatch(ConstructorOverloads, passed);
-			match.SendArguments(passed);
+		public override Variable Construct(ArgumentInfo arguments) {
+			(ParameterInfo match, int index) = ParameterInfo.HighestMatch(ConstructorOverloads, arguments);
+			match.Grab(arguments);
+
 			switch(index) {
 				case 0:
 					var value = new VarSelector(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope);
-					value.String.InvokeOperation(Operation.Set, match.Parameters[0].Value as VarString, Compiler.CurrentScriptTrace);
+					value.String.InvokeOperation(Operation.Set, match[0].Value as VarString, Compiler.CurrentScriptTrace);
 					value.Constructed = true;
 					return value;
 
-				default: throw new InvalidArgumentsException("Could not find a constructor overload that matches the given arguments.", Compiler.CurrentScriptTrace);
+				default: throw new Compiler.InternalError($"Not all Objective constructor overflows were accounted for ({index}).", arguments.ScriptTrace);
 			}
 		}
 
@@ -61,7 +62,7 @@ namespace MCSharp.Variables {
 			IDictionary<Type, Caster> casters = base.GetCasters_From();
 			casters.Add(typeof(VarString), value => {
 				var result = new VarSelector(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope);
-				return Constructors[result.TypeName](new Variable[] { value });
+				return Constructors[result.TypeName](new ArgumentInfo(new Variable[] { value }, Compiler.CurrentScriptTrace));
 			});
 			return casters;
 		}

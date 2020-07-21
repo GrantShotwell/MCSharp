@@ -63,11 +63,11 @@ namespace MCSharp.Variables {
 			// Make delegate.
 			return (arguments) => {
 				// Check number of arguments.
-				if(arguments.Length != method.Parameters.Length)
+				if(arguments.Count != method.Parameters.Length)
 					throw new InvalidArgumentsException($"Wrong number of arguments for '{method.Alias}'.Invoke(_).", Compiler.CurrentScriptTrace);
 				new Spy(null, (function) => {
 					// Copy arguments to parameters.
-					for(int i = 0; i < arguments.Length; i++) arguments[i].WriteCopyTo(Compiler.FunctionStack.Peek(), method.Parameters[i]);
+					for(int i = 0; i < arguments.Count; i++) arguments[i].Value.WriteCopyTo(Compiler.FunctionStack.Peek(), method.Parameters[i]);
 					// Call the function.
 					function.WriteLine($"function {method.GameName}");
 				}, null);
@@ -101,10 +101,10 @@ namespace MCSharp.Variables {
 			}
 
 			// Make delegate.
-			return (passed) => {
+			return (arguments) => {
 
 				// Check that the number of given arguments is correct.
-				if(passed.Arguments.Count != constructor.Parameters.Length)
+				if(arguments.Count != constructor.Parameters.Length)
 					throw new InvalidArgumentsException($"Wrong number of arguments for '{constructor.Alias}'.Invoke(_).", Compiler.CurrentScriptTrace);
 
 				// Reset metadata.
@@ -115,7 +115,7 @@ namespace MCSharp.Variables {
 					// Reset metadata.
 					reset.WriteCopyTo(function, constructor.ReturnValue);
 					// Copy arguments to parameters.
-					for(int i = 0; i < passed.Arguments.Count; i++) passed.Arguments[i].Value.WriteCopyTo(Compiler.FunctionStack.Peek(), constructor.Parameters[i]);
+					for(int i = 0; i < arguments.Count; i++) arguments[i].Value.WriteCopyTo(Compiler.FunctionStack.Peek(), constructor.Parameters[i]);
 					// Call the constructor function.
 					function.WriteLine($"function {constructor.GameName}");
 				}, null);

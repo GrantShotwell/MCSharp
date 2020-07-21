@@ -320,12 +320,12 @@ namespace MCSharp {
 										ScriptWild argsWild = wilds[i + 2];
 										if(argsWild.BlockType != "(\\)") throw new SyntaxException("Expected '('.", current.ScriptTrace);
 										i += 2;
-										Variable[] args = new Variable[argsWild.Count];
+										Variable[] arguments = new Variable[argsWild.Count];
 										for(int indx = 0; indx < argsWild.Count; indx++)
-											args[indx] = ParseValue(argsWild[indx], scope);
+											arguments[indx] = ParseValue(argsWild[indx], scope);
 										if(!Constructors.TryGetValue((string)typeWord, out Constructor constructor))
 											throw new SyntaxException($"Could not find a constructor for type '{(string)typeWord}'.", typeWord.ScriptTrace);
-										x = constructor.Invoke(args);
+										x = constructor.Invoke(new ArgumentInfo(arguments, argsWild.ScriptTrace));
 										if(x == null) throw new InternalError("Constructor returned null.");
 									}
 								} else throw new SyntaxException("Unexpected operator when a value was expected.", current.ScriptTrace);
@@ -389,32 +389,32 @@ namespace MCSharp {
 							var chain = new LinkedList<ScriptWild>();
 							// 'current' is the name of the first member.
 							if(!current.IsWord) throw new SyntaxException($"Expected member name after '.' operator.", current.ScriptTrace);
-							chain.AddLast(current);
 
 							// Find the entire accessor operator chain.
-							int j = i;
 							int lastAccessor = i - 1;
 							bool AtEnd() {
-								i = j;
 
-								if(j + 1 >= wilds.Length) return true;
+								// We are either on a field/property access name or method access name.
+								// Are we on a method access name?
+								if(i + 1 < wilds.Length && wilds[i + 1].IsWilds && wilds[i + 1].BlockType == "(\\)") {
+									// Add method name and arguments to chain.
+									chain.AddLast(wilds[i]);
+									chain.AddLast(wilds[++i]);
+								} else {
+									// Add field/property name to chain.
+									chain.AddLast(wilds[i]);
+                                }
 
-								// Should be '.' operator.
-								var item1 = wilds[++j];
-								if(!item1.IsWord || item1 != ".") return true;
-								// Should be a name of a member (always one word).
-								var item2 = wilds[++j];
-								if(!item2.IsWord) return true;
-
-								lastAccessor = j - 1;
-								chain.AddLast(item1);
-								chain.AddLast(item2);
-
-								// Check if there are method arguments.
-								var item3 = wilds[++j];
-								if(item3.IsWilds && item3.FullBlockType == "(\\,\\)")
-									chain.AddLast(item3);
-								return false;
+								// Is there a next access operator?
+								if(i + 1 < wilds.Length && wilds[i + 1].IsWord && (string)wilds[i + 1].Word == ".") {
+									// Add the operator.
+									chain.AddLast(wilds[++i]);
+									// The chain continues!
+									return false;
+                                } else {
+									// The chain ends.
+									return true;
+                                }
 
 							}
 							while(!AtEnd()) ;

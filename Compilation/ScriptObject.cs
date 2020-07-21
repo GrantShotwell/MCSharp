@@ -422,9 +422,9 @@ namespace MCSharp.Compilation {
 				if(!setNull && set.Parameters.Length != 1) throw new Exception("034503232020b"); //Set method should have one parameter.
 
 				GetMethod = get;
-				GetFunc = getNull ? (GetProperty)null : (() => get.Delegate.Invoke(new Variable[] { }));
+				GetFunc = getNull ? (GetProperty)null : () => get.Delegate.Invoke(new ArgumentInfo(new Variable[] { }, trace));
 				SetMethod = set;
-				SetFunc = setNull ? (SetProperty)null : ((x) => set.Delegate.Invoke(new Variable[] { x }));
+				SetFunc = setNull ? (SetProperty)null : (x) => set.Delegate.Invoke(new ArgumentInfo(new Variable[] { x }, trace));
 
 				if(!getNull) GetMethod.DeclaringType = declaringType;
 				if(!setNull) SetMethod.DeclaringType = declaringType;
@@ -552,8 +552,8 @@ namespace MCSharp.Compilation {
 				}
 
 				Delegate = (arguments) => {
-					for(int i = 0; i < arguments.Length; i++) {
-						Variable argument = arguments[i], parameter = Parameters[i];
+					for(int i = 0; i < arguments.Count; i++) {
+						Variable argument = arguments[i].Value, parameter = Parameters[i];
 						if(argument.GetType().IsAssignableFrom(parameter.GetType()) || argument.TryCast(parameter.GetType(), out argument)) {
 							parameter.InvokeOperation(Operation.Set, argument, Compiler.AnonScriptTrace);
 						} else throw new Variable.InvalidCastException(argument, parameter.TypeName, trace);

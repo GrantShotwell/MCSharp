@@ -148,9 +148,9 @@ namespace MCSharp.Variables {
 		/// <summary>
 		/// Represents a method.
 		/// </summary>
-		/// <param name="arguments">The arguments of the method.</param>
+		/// <param name="passed">The arguments of the method.</param>
 		/// <returns>Returns the return value of the method.</returns>
-		public delegate Variable MethodDelegate(Variable[] arguments);
+		public delegate Variable MethodDelegate(ArgumentInfo passed);
 		#endregion
 
 
@@ -299,7 +299,7 @@ namespace MCSharp.Variables {
 								Variable variable = Compiler.ParseValue(arrr.Wilds[i], Compiler.CurrentScope);
 								variables[i] = variable;
 							}
-							return Methods[(string)name.Word].Invoke(variables);
+							return Methods[(string)name.Word].Invoke(new ArgumentInfo(variables, arrr.ScriptTrace));
 						} else throw new Exception("Internal Error: 015704082020");
 
 

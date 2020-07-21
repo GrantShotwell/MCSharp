@@ -54,11 +54,11 @@ namespace MCSharp.Variables {
 
 		public override MethodDelegate CompileMethod(ScriptMethod function) {
 			Compiler.WriteFunction<Variable>(Scope, this, function);
-			return (args) => {
-				if(args.Length != function.Parameters.Length)
+			return (arguments) => {
+				if(arguments.Count != function.Parameters.Length)
 					throw new InvalidArgumentsException($"Wrong number of arguments for '{function.Alias}'.Invoke(_).", Compiler.CurrentScriptTrace);
 				new Spy(null, (func) => {
-					for(int i = 0; i < args.Length; i++) args[i].WriteCopyTo(Compiler.FunctionStack.Peek(), function.Parameters[i]);
+					for(int i = 0; i < arguments.Count; i++) arguments[i].Value.WriteCopyTo(Compiler.FunctionStack.Peek(), function.Parameters[i]);
 					func.WriteLine($"function {function.GameName}");
 				}, null);
 				return function.ReturnValue;
@@ -79,14 +79,14 @@ namespace MCSharp.Variables {
 		}
 
 		public override Constructor CompileConstructor(ScriptConstructor constructor) {
-			return (passed) => {
-				if(passed.Arguments.Count != constructor.Parameters.Length)
+			return (arguments) => {
+				if(arguments.Count != constructor.Parameters.Length)
 					throw new InvalidArgumentsException($"Wrong number of arguments for '{constructor.Alias}'.Invoke(_).", Compiler.CurrentScriptTrace);
 				Variable buffer = Initialize(Access.Private, Usage.Default, GetNextHiddenID(),
 					new Compiler.Scope(Compiler.CurrentScope), Compiler.CurrentScriptTrace);
 				Compiler.WriteFunction<Variable>(Compiler.CurrentScope, buffer, constructor);
 				new Spy(null, (func) => {
-					for(int i = 0; i < passed.Arguments.Count; i++) passed.Arguments[i].Value.WriteCopyTo(Compiler.FunctionStack.Peek(), constructor.Parameters[i]);
+					for(int i = 0; i < arguments.Count; i++) arguments[i].Value.WriteCopyTo(Compiler.FunctionStack.Peek(), constructor.Parameters[i]);
 					func.WriteLine($"function {constructor.GameName}");
 				}, null);
 				return constructor.ReturnValue;

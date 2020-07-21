@@ -12,46 +12,62 @@ namespace MCSharp.Variables {
 		public override ICollection<Access> AllowedAccessModifiers => new Access[] { Access.Public };
 		public override ICollection<Usage> AllowedUsageModifiers => new Usage[] { Usage.Static };
 
-		public static MethodDelegate Say { get; } = (args) => {
-			if(args.Length > 1) throw new InvalidArgumentsException($"'Chat.Say' takes no more than one argument!", Compiler.CurrentScriptTrace);
-			if(args.Length == 0) new Spy(null, "say", null);
-			else {
-				Variable arg0 = args[0];
-				if(arg0 is VarString varString || arg0.TryCast(out varString)) {
-					new Spy(null, $"say {varString.GetConstant()}", null);
-				} else {
-					throw new InvalidArgumentsException($"Unknown how to interpret variable '{arg0}' as type 'string'.", Compiler.CurrentScriptTrace);
-				}
-			}
-			return null;
-		};
-
-		public static MethodDelegate Tellraw { get; } = (args) => {
-			if(args.Length > 2) throw new InvalidArgumentsException($"'Chat.Tellraw' takes no more than two arguments!", Compiler.CurrentScriptTrace);
-			else if(args.Length == 0) new Spy(null, $"tellraw @a {{\"text\":\"\"}}", null);
-			else if(args.Length == 1) {
-				Variable arg0 = args[0];
-				if(!(arg0 is VarSelector varSelector || arg0.TryCast(out varSelector)))
-					throw new InvalidCastException(arg0, "Selector", Compiler.CurrentScriptTrace);
-				new Spy(null, $"tellraw {varSelector.GetConstant()} {{\"text\":\"\"}}", null);
-			} else {
-				Variable arg0 = args[0], arg1 = args[1];
-				if(!(arg0 is VarSelector varSelector || arg0.TryCast(out varSelector)))
-					throw new InvalidCastException(arg0, "Selector", Compiler.CurrentScriptTrace);
-				if(!(arg1 is VarJSON varJSON || arg1.TryCast(out varJSON)))
-					throw new InvalidCastException(arg1, "JSON", Compiler.CurrentScriptTrace);
-				new Spy(null, $"tellraw {varSelector.GetConstant()} {varJSON.GetConstant()}", null);
-			}
-			return null;
-		};
-
 		public VarChat() : base() {
 			Compiler.StaticClassObjects.Add("Chat", new VarChat("Chat"));
 		}
 
 		public VarChat(string name) : base(Access.Public, Usage.Static, name, Compiler.RootScope) {
-			Methods.Add("Say", Say);
-			Methods.Add("Tellraw", Tellraw);
+
+			ParameterInfo[] SayInfo = new ParameterInfo[] {
+				new (Type, bool)[] { (typeof(VarString), true) }
+			};
+			Methods.Add("Say", arguments => {
+				(ParameterInfo match, int index) = ParameterInfo.HighestMatch(SayInfo, arguments);
+				match.Grab(arguments);
+
+				string text;
+				switch(index) {
+					case 0:
+						text = match[0].Value.GetConstant();
+						goto Say;
+
+						Say:
+						new Spy(null, $"say {text}", null);
+						return null;
+
+					default: throw new Compiler.InternalError($"Not all Chat.Say overflows were accounted for ({index}).");
+				}
+
+			});
+
+			ParameterInfo[] TellrawInfo = new ParameterInfo[] {
+				new (Type, bool)[] { (typeof(VarSelector), true) },
+				new (Type, bool)[] { (typeof(VarSelector), true), (typeof(VarJSON), true) }
+			};
+			Methods.Add("Tellraw", arguments => {
+				(ParameterInfo match, int index) = ParameterInfo.HighestMatch(TellrawInfo, arguments);
+				match.Grab(arguments);
+
+				string selector, json;
+				switch(index) {
+					case 0:
+						selector = match[0].Value.GetConstant();
+						json = "{\"text\":\"\"}";
+						goto Tellraw;
+					case 1:
+						selector = match[0].Value.GetConstant();
+						json = match[1].Value.GetJSON();
+						goto Tellraw;
+
+						Tellraw:
+						new Spy(null, $"tellraw {selector} {json}", null);
+						return null;
+
+					default: throw new Compiler.InternalError($"Not all Chat.Tellraw overflows were accounted for ({index}).");
+				}
+
+			});
+
 		}
 
 		public override Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) => throw new Compiler.SyntaxException("Cannot make an instance of a static class.", trace);
