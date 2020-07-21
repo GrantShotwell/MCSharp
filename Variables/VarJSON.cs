@@ -28,8 +28,9 @@ namespace MCSharp.Variables {
 		public override Variable Construct(ArgumentInfo passed) => throw new NotImplementedException();
 
 		public override string GetConstant() => Value;
+        public override string GetJSON() => Value;
 
-		public static string EscapeValue(string value, int escapes) {
+        public static string EscapeValue(string value, int escapes) {
 			var original = new LinkedList<char>(value);
 			var escaped = new LinkedList<char>();
 

@@ -69,15 +69,22 @@ namespace MCSharp.Variables {
 				throw new Variable.InvalidArgumentsException($"Number of arguments don't match.", passed.ScriptTrace);
 			int length = Parameters.Count;
 			for(int i = 0; i < length; i++) {
+
 				var parameter = Parameters[i];
 				var argument = passed[i];
+				Variable result;
+
 				if(Parameters[i].Reference) {
-					Parameters[i] = (parameter.Type, parameter.Reference, argument.Value);
-				} else {
-					Variable result = parameter.Value.InvokeOperation(Variable.Operation.Set, argument.Value, Compiler.CurrentScriptTrace);
+					result = argument.Value;
+                    if(!parameter.Type.IsAssignableFrom(argument.Type) && !argument.Value.TryCast(parameter.Type, out result))
+                        throw new Variable.InvalidArgumentsException($"Failed set argument {i}.", passed.ScriptTrace);
+                } else {
+					result = parameter.Value.InvokeOperation(Variable.Operation.Set, argument.Value, Compiler.CurrentScriptTrace);
 					if(result is null) throw new Variable.InvalidArgumentsException($"Failed set argument {i}.", passed.ScriptTrace);
-					Parameters[i] = (parameter.Type, parameter.Reference, result);
 				}
+
+				Parameters[i] = (parameter.Type, parameter.Reference, result);
+
 			}
 		}
 
