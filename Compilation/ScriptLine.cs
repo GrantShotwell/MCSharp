@@ -89,31 +89,36 @@ namespace MCSharp.Compilation {
 
 				if(str.Length == 1) {
 
-					char separator = (char)str[0];
+					char character = (char)str[0];
 
 					// Is this the start of a new block?
-					if(IsBlockCharStart(separator, out string blk)) {
+					if(IsBlockCharStart(character, out string block)) {
 						var current = stack.Peek();
 
                         // Is the current block empty?
                         if(current.Block == " \\ " && current.List.Count == 0) stack.Pop();
 						// Starting a new block.
-                        stack.Push((null, blk, new List<ScriptWild>()));
+                        stack.Push((null, block, new List<ScriptWild>()));
 						
 						continue;
 
 					}
 					
 					// Is it separation time?
-					if(IsSeparatorChar(separator)) {
-						var current = stack.Peek();
+					if(IsSeparatorChar(character)) {
+						var current = stack.Pop();
+						(char? Separator, string Block, List<ScriptWild> List)? under = stack.Count == 0 ? ((char? Separator, string Block, List<ScriptWild> List)?)null : stack.Peek();
+						stack.Push(current);
 
-						// Does the current block have the same separator?
-						if(current.Separator == separator) {
+						// Does the 'under' block have the same separator?
+						if(under.HasValue && under.Value.Separator == character) {
 
-							// Start the next item in the separated list by adding something empty.
+							// Add 'current' to 'under'.
+							current = stack.Pop();
+							under.Value.List.Add(new ScriptWild(current.List.ToArray(), current.Block, current.Separator ?? ' '));
+							// Start the next item in the separated list by adding an empty item.
 							stack.Push((' ', " \\ ", new List<ScriptWild>()));
-							
+
 							continue;
 
                         }
@@ -123,16 +128,11 @@ namespace MCSharp.Compilation {
 
 							// Set the separator to this one.
 							current = stack.Pop();
-							stack.Push((separator, current.Block, current.List));
-							// Start the next item in the separated list by adding an empty block.
-							stack.Push((null, " \\ ", new List<ScriptWild>()));
+							stack.Push((character, current.Block, current.List));
+							// Start the next item in the separated list by adding an empty item.
+							stack.Push((' ', " \\ ", new List<ScriptWild>()));
 							
 							continue;
-
-                        }
-
-						//
-						if(stack.Count > 0 && stack.Peek().Separator == ' ') {
 
                         }
 
@@ -142,27 +142,35 @@ namespace MCSharp.Compilation {
 							// Is the current block an item in an unfinished separated block?
 							current = stack.Pop();
                             if(stack.Count == 0 || stack.Peek().Block != " \\ ") {
+
 								// Combine the current block into it.
-								stack.Push((separator, current.Block, new List<ScriptWild>()));
+								stack.Push((character, current.Block, new List<ScriptWild>()));
                                 stack.Peek().List.Add(new ScriptWild(current.List.ToArray(), " \\ ", current.Separator ?? ' '));
+								// Start the next item in the separated list by adding an empty item.
+								stack.Push((' ', " \\ ", new List<ScriptWild>()));
+
 								continue;
                             }
 							stack.Push(current);
 							
 							// Can we set the separator of this block to this separator?
 							if(current.Block == " \\ " && current.List.Count >= 1) {
+
 								// Set the separator of the current block to this separator.
 								current = stack.Pop();
-                                stack.Push((separator, current.Block, current.List));
+                                stack.Push((character, current.Block, current.List));
+								// Start the next item in the separated list by adding an empty item.
+								stack.Push((' ', " \\ ", new List<ScriptWild>()));
 
 								continue;
                             }
 
 							// Is the current block's list combinable into one?
 							if(current.Separator == ' ') {
+
 								// Add 'current' into a new separated block.
 								current = stack.Pop();
-								(char? Separator, string Block, List<ScriptWild> List) next = (separator, current.Block, new List<ScriptWild>());
+								(char? Separator, string Block, List<ScriptWild> List) next = (character, current.Block, new List<ScriptWild>());
 								next.List.Add(new ScriptWild(current.List.ToArray(), " \\ ", current.Separator ?? ' '));
 								stack.Push(next);
 								// Start the next item in the separated list by adding an empty block.
@@ -179,7 +187,7 @@ namespace MCSharp.Compilation {
 					}
 					
 					// Is this the end of a block?
-					if(IsBlockCharEnd(separator, out blk)) {
+					if(IsBlockCharEnd(character, out block)) {
 
 						// The current block is the next item in the block we are ending.
 						var item = stack.Pop();
@@ -187,6 +195,18 @@ namespace MCSharp.Compilation {
 						if(stack.Count == 0) list = (null, " \\ ", new List<ScriptWild>());
 						else list = stack.Pop();
 						list.List.Add(new ScriptWild(item.List.ToArray(), item.Block, item.Separator ?? ' '));
+
+						// Remove empty item, if any.
+						if(list.List.Count > 0) {
+							var last = list.List[^1];
+							if(last.IsWord) {
+								if((string)last.Word == string.Empty)
+									list.List.RemoveAt(list.List.Count - 1);
+                            } else {
+								if(last.Count == 0 && last.FullBlockType == " \\ ")
+									list.List.RemoveAt(list.List.Count - 1);
+                            }
+                        }
 
 						// The current block is the block we are ending. Finished blocks become a ScriptWild.
 						if(stack.Count == 0) stack.Push((null, " \\ ", new List<ScriptWild>()));

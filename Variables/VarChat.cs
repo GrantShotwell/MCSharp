@@ -41,7 +41,6 @@ namespace MCSharp.Variables {
 			});
 
 			ParameterInfo[] TellrawInfo = new ParameterInfo[] {
-				new (Type, bool)[] { (typeof(VarSelector), true) },
 				new (Type, bool)[] { (typeof(VarSelector), true), (typeof(VarJSON), true) }
 			};
 			Methods.Add("Tellraw", arguments => {
@@ -51,10 +50,6 @@ namespace MCSharp.Variables {
 				string selector, json;
 				switch(index) {
 					case 0:
-						selector = match[0].Value.GetConstant();
-						json = "{\"text\":\"\"}";
-						goto Tellraw;
-					case 1:
 						selector = match[0].Value.GetConstant();
 						json = match[1].Value.GetJSON();
 						goto Tellraw;
