@@ -71,7 +71,7 @@ namespace MCSharp.Variables {
 						op = ">=";
 						goto Comparison;
 					case Operation.Equal:
-						op = "==";
+						op = "=";
 						goto Comparison;
 					case Operation.LessThan:
 						op = "<";

@@ -248,7 +248,7 @@ namespace MCSharp.Compilation {
 
 			var separated = new List<ScriptString>(str.Length);
 			var characters = new LinkedList<ScriptChar>();
-			bool inString = false, escaped = false;
+			bool inString = false, escaped = false, lastWasOperator = false;
 
 			for(int i = 0; i < str.Length; i++) {
 				ScriptChar current = str[i];
@@ -269,12 +269,23 @@ namespace MCSharp.Compilation {
 						characters.Clear();
 						if(array.Length > 0) separated.Add(array);
 
-						separated.Add(i + 1 < str.Length
-						 && Variable.OperationTypeDictionary[thisOp] == Variable.OperationType.Arithmetic
-						 && Variable.OperationDictionary.TryGetValue(((char)str[i + 1]).ToString(), out Variable.Operation nextOp)
-						 && Variable.OperationTypeDictionary[nextOp] == Variable.OperationType.Set
-							? (ScriptWord)(current + str[++i]) : current);
+						if(lastWasOperator) {
 
+                            ScriptString last = separated[^1];
+							separated.RemoveAt(separated.Count - 1);
+							separated.Add(last + current);
+
+                        } else {
+
+							separated.Add(i + 1 < str.Length
+							 && Variable.OperationTypeDictionary[thisOp] == Variable.OperationType.Arithmetic
+							 && Variable.OperationDictionary.TryGetValue(((char)str[i + 1]).ToString(), out Variable.Operation nextOp)
+							 && Variable.OperationTypeDictionary[nextOp] == Variable.OperationType.Set
+								? (ScriptWord)(current + str[++i]) : current);
+
+                        }
+
+						lastWasOperator = true;
 						continue;
 
 					}
@@ -284,14 +295,15 @@ namespace MCSharp.Compilation {
 						ScriptChar[] array = new ScriptChar[characters.Count];
 						characters.CopyTo(array, 0);
 						characters.Clear();
-						if(array.Length > 0)
-							separated.Add(array);
+						if(array.Length > 0) separated.Add(array);
+
 						if(!char.IsWhiteSpace((char)current)) {
 							characters.AddLast(current);
 							separated.Add(new ScriptString(characters));
 							characters = new LinkedList<ScriptChar>();
 						}
 
+						lastWasOperator = false;
 						continue;
 
 					}
@@ -299,6 +311,9 @@ namespace MCSharp.Compilation {
 				}
 
 				characters.AddLast(current);
+
+				lastWasOperator = false;
+				continue;
 
 			}
 
