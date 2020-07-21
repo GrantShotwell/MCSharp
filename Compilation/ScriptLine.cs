@@ -131,15 +131,23 @@ namespace MCSharp.Compilation {
 
                         }
 
+						//
+						if(stack.Count > 0 && stack.Peek().Separator == ' ') {
+
+                        }
+
 						// The current block is a different separated list.
                         {
 
-							// The current block must an item in an unfinished separated block.
-							// Combine the current block into it.
+							// Is the current block an item in an unfinished separated block?
 							current = stack.Pop();
-							stack.Peek().List.Add(new ScriptWild(current.List.ToArray(), current.Block, current.Separator ?? ' '));
-
-							current = stack.Peek();
+                            if(stack.Count == 0 || stack.Peek().Block != " \\ ") {
+								// Combine the current block into it.
+								stack.Push((separator, current.Block, new List<ScriptWild>()));
+                                stack.Peek().List.Add(new ScriptWild(current.List.ToArray(), " \\ ", current.Separator ?? ' '));
+								continue;
+                            }
+							stack.Push(current);
 							
 							// Can we set the separator of this block to this separator?
 							if(current.Block == " \\ " && current.List.Count >= 1) {
@@ -172,37 +180,17 @@ namespace MCSharp.Compilation {
 					
 					// Is this the end of a block?
 					if(IsBlockCharEnd(separator, out blk)) {
-						var current = stack.Pop();
 
-						// There could be at most one block that is the next item in an unfinished separated block.
-						// Is that there?
-						if(stack.Count >= 2 && stack.Peek().Block == " \\ ") {
-							// Add that item to the list.
-							var item = stack.Pop();
-                            stack.Peek().List.Add(new ScriptWild(item.List.ToArray(), item.Block, current.Separator ?? ' '));
-                        }
+						// The current block is the next item in the block we are ending.
+						var item = stack.Pop();
+						(char? Separator, string Block, List<ScriptWild> List) list;
+						if(stack.Count == 0) list = (null, " \\ ", new List<ScriptWild>());
+						else list = stack.Pop();
+						list.List.Add(new ScriptWild(item.List.ToArray(), item.Block, item.Separator ?? ' '));
 
-						// Make sure there is a 'next' to combine 'current' with.
-						(char? Separator, string Block, List<ScriptWild> List) next;
-						if(stack.Count == 0) next = (null, " \\ ", new List<ScriptWild>());
-						else next = stack.Pop();
-						// Combine 'current' into 'next'.
-						next.List.Add(new ScriptWild(current.List.ToArray(), current.Block, current.Separator ?? ' '));
-						stack.Push(next);
-
-						// If the stack is greater than one, then we combine the top two.
-						if(stack.Count > 1) {
-							var top1 = stack.Pop();
-							var top2 = stack.Pop();
-							if(top2.Block == " \\ ") {
-								top2.List.Add(new ScriptWild(top1.List, top1.Block, top1.Separator ?? ' '));
-								stack.Push(top2);
-							} else {
-								(char? Separation, string Block, List<ScriptWild> List) whitespace = (' ', " \\ ", new List<ScriptWild>());
-								whitespace.List.Add(new ScriptWild(top2.List, top2.Block, top2.Separator ?? ' '));
-								whitespace.List.Add(new ScriptWild(top1.List, top1.Block, top1.Separator ?? ' '));
-							}
-						}
+						// The current block is the block we are ending. Finished blocks become a ScriptWild.
+						if(stack.Count == 0) stack.Push((null, " \\ ", new List<ScriptWild>()));
+						stack.Peek().List.Add(new ScriptWild(list.List.ToArray(), list.Block, list.Separator ?? ' '));
 
 						continue;
 

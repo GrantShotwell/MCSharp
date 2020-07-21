@@ -163,7 +163,7 @@ namespace MCSharp.Compilation {
 				return array;
 			} else if(wild.SeparationType == ' ') {
 				return new ScriptLine[] { new ScriptLine(wild.Array) };
-			} else throw new Exception();
+			} else throw new ArgumentException("Block/Separation was not correct, which means there was a parsing error somewhere.", nameof(wild));
 		}
 
 		public class FakeReadonlyException : Compiler.InternalError {

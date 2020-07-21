@@ -52,7 +52,7 @@ namespace MCSharp.Variables {
 						op = "/=";
 						goto Bitwise;
 					case Operation.Modulo:
-						op = "%";
+						op = "%=";
 						goto Bitwise;
 
 						Bitwise:

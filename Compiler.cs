@@ -487,7 +487,7 @@ namespace MCSharp {
 			VarGeneric.CompiledConstructors.Clear();
 
 			//Reset anon script trace.
-			AnonScriptTrace = new ScriptTrace(Program.ScriptsFolder + "anon.this_file_does_not_exist", 0);
+			AnonScriptTrace = new ScriptTrace(Program.ScriptsFolder + "TRACE_LOST", 0);
 
 			//Clear static class objects from last compile.
 			StaticClassObjects.Clear();
