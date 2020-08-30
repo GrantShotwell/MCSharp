@@ -115,7 +115,8 @@ namespace MCSharp.Statements {
 					// <<Expecting 'else' Statement>>
 					if(!LookFor("else", (string)function, start, end, out int i)) {
 						// <<Parsing 'else' Statement>>
-						start = end = i - 1;
+						end = i - 1 + 4;
+						start = end - 3;
 						bool parsingBlock = false, parsingSingle = false;
 						while(++end < function.Length) {
 							chr = (char)function[end];
@@ -134,7 +135,7 @@ namespace MCSharp.Statements {
 								// <<Finding an End of Instruction>>
 								if(chr == ';' && stack.Count == 0) break;
 							} else {
-								//Find what to find.
+								// Find what to find.
 								if(!char.IsWhiteSpace(chr)) {
 									if(chr == '{') parsingBlock = true;
 									else parsingSingle = true;
@@ -142,10 +143,11 @@ namespace MCSharp.Statements {
 							}
 						}
                         // Parse the instruction using ScriptLine.GetWilds(...).
-                        ScriptWild parsed = ScriptLine.GetWilds(function[start..end]);
+                        ScriptWild parsed = ScriptLine.GetWilds(function[start..(end + 1)]);
 						// Add the instruction to the list.
 						wilds.Add(parsed[0]);
-						wilds.Add(parsed[1..]);
+						wilds.Add(parsed[1..2]);
+						start = end += 2;
 						break;
 
 					} else {
@@ -176,8 +178,8 @@ namespace MCSharp.Statements {
 			{
 
 				condition = varBool;
-				var statement = new ScriptMethod(Compiler.Scope.ToUnderscoredLowercase($"{Compiler.CurrentScope}\\{Compiler.CurrentScope.GetNextInnerID()}"),
-					"void", new Variable[] { }, null, statementWild) { DeclaringType = Compiler.CurrentScope.DeclaringType };
+				var statement = new ScriptMethod(Compiler.CurrentScope.GetNextAnonMethodAlias(),
+					"void", new Variable[] { }, null, statementWild) { DeclaringType = Compiler.CurrentScope.DeclaringType, Anonymous = true };
 				Compiler.WriteFunction<VarVoid>(Compiler.CurrentScope, null, statement);
 				new Spy(null, $"execute if score {condition.Selector.GetConstant()} {condition.Objective.GetConstant()} matches 1.. " +
 					$"run function {statement.GameName}", null);
@@ -186,8 +188,9 @@ namespace MCSharp.Statements {
 
 			if(elseWild.HasValue) {
 
-				var statement = new ScriptMethod(Compiler.Scope.ToUnderscoredLowercase($"{Compiler.CurrentScope}\\{Compiler.CurrentScope.GetNextInnerID()}"),
-					"void", new Variable[] { }, null, elseWild.Value) { DeclaringType = Compiler.CurrentScope.DeclaringType };
+				var statement = new ScriptMethod(Compiler.CurrentScope.GetNextAnonMethodAlias(),
+					"void", new Variable[] { }, null, elseWild.Value) { DeclaringType = Compiler.CurrentScope.DeclaringType, Anonymous = true };
+				statement.Anonymous = true;
 				Compiler.WriteFunction<VarVoid>(Compiler.CurrentScope, null, statement);
 				new Spy(null, $"execute if score {condition.Selector.GetConstant()} {condition.Objective.GetConstant()} matches ..0 " +
 					$"run function {statement.GameName}", null);

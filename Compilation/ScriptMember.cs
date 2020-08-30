@@ -11,6 +11,7 @@ namespace MCSharp.Compilation {
 	/// Represents an organized character structure of some class member.
 	/// </summary>
 	public abstract class ScriptMember {
+
 		protected string alias;
 		protected string typeName;
 		protected ScriptObject declaringType;
@@ -85,6 +86,7 @@ namespace MCSharp.Compilation {
 				else throw new FakeReadonlyException(true);
 			}
 		}
+		public bool Anonymous { get; set; }
 		public Access Access { get; }
 		public Usage Usage { get; }
 		public ScriptTrace ScriptTrace { get; }

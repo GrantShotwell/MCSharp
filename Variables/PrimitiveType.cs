@@ -7,6 +7,7 @@ using System.IO;
 namespace MCSharp.Variables {
 
 	public abstract class PrimitiveType : Variable {
+
 		private int constant;
 		private VarObjective objective;
 		private VarSelector selector;
@@ -18,6 +19,7 @@ namespace MCSharp.Variables {
 			[DebuggerStepThrough]
 			get {
 				if(Usage == Usage.Constant) throw new InvalidOperationException("Cannot get the selector of a constant primitive.");
+				else if(!Constructed) throw new InvalidOperationException("Cannot get the selector of a primitive that has not been constructed.");
 				else return selector;
 			}
 			[DebuggerStepThrough]
@@ -31,6 +33,7 @@ namespace MCSharp.Variables {
 			[DebuggerStepThrough]
 			get {
 				if(Usage == Usage.Constant) throw new InvalidOperationException("Cannot get the objective of a constant primitive.");
+				else if(!Constructed) throw new InvalidOperationException("Cannot get the objective of a primitive that has not been constructed.");
 				else return objective;
 			}
 			[DebuggerStepThrough]
@@ -39,12 +42,12 @@ namespace MCSharp.Variables {
 				else objective = value;
 			}
 		}
-
+		/// <summary>The constant value.</summary>
 		public int Constant {
 			[DebuggerStepThrough]
 			get {
 				if(Usage != Usage.Constant) throw new InvalidOperationException("Cannot get the constant value of a non-constant primitive.");
-				else if(!Constructed) throw new InvalidOperationException("Cannot get a constant value of a constant primitive that has not been set.");
+				else if(!Constructed) throw new InvalidOperationException("Cannot get the constant value of a constant primitive that has not been set.");
 				else return constant;
 			}
 			[DebuggerStepThrough]
@@ -67,9 +70,48 @@ namespace MCSharp.Variables {
 
 		public override Variable InvokeOperation(Operation operation, Variable operand, ScriptTrace trace) {
 			switch(operation) {
-				case Operation.Set:
+
+				case Operation.Equal: {
 					if(operand is PrimitiveType right || operand.TryCast(out right)) {
-						
+
+						VarBool result;
+						if(Usage == Usage.Constant) {
+							if(right.Usage == Usage.Constant) {
+								result = new VarBool(Access.Private, Usage.Constant, GetNextHiddenID(), Scope);
+								result.SetValue(Constant == right.Constant ? 1 : 0);
+							} else {
+								result = new VarBool(Access.Private, Usage.Default, GetNextHiddenID(), Scope);
+								result.SetValue(0);
+								new Spy(null, $"execute if score " +
+									$"{right.Selector.GetConstant()} {right.Objective.GetConstant()} matches " +
+									$"{Constant} run " +
+									$"scoreboard players set {result.Selector.GetConstant()} {result.Objective.GetConstant()} 1", null);
+							}
+						} else {
+							if(right.Usage == Usage.Constant) {
+								result = new VarBool(Access.Private, Usage.Default, GetNextHiddenID(), Scope);
+								result.SetValue(0);
+								new Spy(null, $"execute if score " +
+									$"{Selector.GetConstant()} {Objective.GetConstant()} matches " +
+									$"{right.Constant} run " +
+									$"scoreboard players set {result.Selector.GetConstant()} {result.Objective.GetConstant()} 1", null);
+							} else {
+								result = new VarBool(Access.Private, Usage.Default, GetNextHiddenID(), Scope);
+								result.SetValue(0);
+								new Spy(null, $"execute if score " +
+									$"{Selector.GetConstant()} {Objective.GetConstant()} = " +
+									$"{right.Selector.GetConstant()} {right.Objective.GetConstant()} run " +
+									$"scoreboard players set {result.Selector.GetConstant()} {result.Objective.GetConstant()} 1", null);
+							}
+						}
+						return result;
+
+					} else throw new InvalidCastException(operand, "primitive", trace);
+				}
+
+				case Operation.Set: {
+					if(operand is PrimitiveType right || operand.TryCast(out right)) {
+
 						if(Usage == Usage.Constant) {
 							if(right.Usage == Usage.Constant) {
 								SetValue(right.Constant);
@@ -88,6 +130,8 @@ namespace MCSharp.Variables {
 						}
 
 					} else throw new InvalidCastException(operand, "primitive", trace);
+				}
+
 				default: return base.InvokeOperation(operation, operand, trace);
 			}
 		}
@@ -106,14 +150,19 @@ namespace MCSharp.Variables {
 			} else {
 
 				if(!Constructed) {
-					AddAutoProperty(Selector = new VarSelector(Access.Private, Usage.Constant, char.ToLower(VarSelector.StaticTypeName[0]) + VarSelector.StaticTypeName.Substring(1), InnerScope));
-					Selector.InvokeOperation(Operation.Set, Constructors[Selector.TypeName](new ArgumentInfo(new Variable[] { (VarString)"var" }, Compiler.CurrentScriptTrace)), Compiler.CurrentScriptTrace);
+
+					VarSelector sel;
+					AddAutoProperty(Selector = sel = new VarSelector(Access.Private, Usage.Constant, char.ToLower(VarSelector.StaticTypeName[0]) + VarSelector.StaticTypeName.Substring(1), InnerScope));
+					sel.InvokeOperation(Operation.Set, Constructors[sel.TypeName](new ArgumentInfo(new Variable[] { (VarString)"var" }, Compiler.CurrentScriptTrace)), Compiler.CurrentScriptTrace);
 #if DEBUG_OUT
 					VarObjective.NextID = $"{name}@{Scope}";
 #endif
-					AddAutoProperty(Objective = new VarObjective(Access.Private, Usage.Constant, char.ToLower(VarObjective.StaticTypeName[0]) + VarObjective.StaticTypeName.Substring(1), InnerScope));
-					Objective.InvokeOperation(Operation.Set, Constructors[Objective.TypeName](new ArgumentInfo(new Variable[] { (VarString)"dummy" }, Compiler.CurrentScriptTrace)), Compiler.CurrentScriptTrace);
+					VarObjective obj;
+					AddAutoProperty(Objective = obj = new VarObjective(Access.Private, Usage.Constant, char.ToLower(VarObjective.StaticTypeName[0]) + VarObjective.StaticTypeName.Substring(1), InnerScope));
+					obj.InvokeOperation(Operation.Set, Constructors[obj.TypeName](new ArgumentInfo(new Variable[] { (VarString)"dummy" }, Compiler.CurrentScriptTrace)), Compiler.CurrentScriptTrace);
+
 					Constructed = true;
+
 				}
 
 				new Spy(null, $"scoreboard players set {Selector.GetConstant()} {Objective.GetConstant()} {value}", null);
@@ -137,13 +186,16 @@ namespace MCSharp.Variables {
 
 			if(!Constructed) {
 
-				AddAutoProperty(Selector = new VarSelector(Access.Private, Usage.Default, char.ToLower(VarSelector.StaticTypeName[0]) + VarSelector.StaticTypeName.Substring(1), InnerScope));
-				Selector.InvokeOperation(Operation.Set, Constructors[Selector.TypeName](new ArgumentInfo(new Variable[] { (VarString)"var" }, Compiler.CurrentScriptTrace)), Compiler.CurrentScriptTrace);
+				VarSelector sel;
+				AddAutoProperty(Selector = sel = new VarSelector(Access.Private, Usage.Default, char.ToLower(VarSelector.StaticTypeName[0]) + VarSelector.StaticTypeName.Substring(1), InnerScope));
+				sel.InvokeOperation(Operation.Set, Constructors[sel.TypeName](new ArgumentInfo(new Variable[] { (VarString)"var" }, Compiler.CurrentScriptTrace)), Compiler.CurrentScriptTrace);
 #if DEBUG_OUT
 			VarObjective.NextID = $"{name}@{Scope}";
 #endif
-				AddAutoProperty(Objective = new VarObjective(Access.Private, Usage.Default, char.ToLower(VarObjective.StaticTypeName[0]) + VarObjective.StaticTypeName.Substring(1), InnerScope));
-				Objective.InvokeOperation(Operation.Set, Constructors[Objective.TypeName](new ArgumentInfo(new Variable[] { (VarString)"dummy" }, Compiler.CurrentScriptTrace)), Compiler.CurrentScriptTrace);
+				VarObjective obj;
+				AddAutoProperty(Objective = obj = new VarObjective(Access.Private, Usage.Default, char.ToLower(VarObjective.StaticTypeName[0]) + VarObjective.StaticTypeName.Substring(1), InnerScope));
+				obj.InvokeOperation(Operation.Set, Constructors[obj.TypeName](new ArgumentInfo(new Variable[] { (VarString)"dummy" }, Compiler.CurrentScriptTrace)), Compiler.CurrentScriptTrace);
+
 				Constructed = true;
 
 			}

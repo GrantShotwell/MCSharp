@@ -282,7 +282,7 @@ namespace MCSharp {
 							// Special case: "!" operator
 							if(x == null && current.Word == "!") {
 								ParseValue(wilds[i + 1], scope);
-								variable = x.InvokeOperation(new ScriptString("!", "anon"), new ScriptWild[] { });
+								variable = x.InvokeOperation(new ScriptString("!"), new ScriptWild[] { });
 								if(wilds.Length == i + 2) return variable;
 								goto VariableCheck;
 							}
@@ -556,6 +556,13 @@ namespace MCSharp {
 			public Variable DeclaringVariable => declaringVariable ?? Parent?.DeclaringVariable ?? null;
 			public ScriptObject DeclaringType => (DeclaringVariable as VarStruct)?.ScriptClass;
 			public ScriptMethod DeclaringMethod => declaringMethod ?? Parent?.DeclaringMethod ?? null;
+			public ScriptMethod DeclaringRealMethod {
+				get {
+					ScriptMethod method = DeclaringMethod;
+					if(method is null || method.Anonymous) method = Parent?.DeclaringRealMethod;
+					return method;
+				}
+			}
 			public ICollection<Variable> Variables { get; } = new HashSet<Variable>();
 			public IReadOnlyCollection<Scope> Children => children;
 			public Scope Parent {
@@ -620,6 +627,12 @@ namespace MCSharp {
 
 				return new string(chars.ToArray());
 
+			}
+
+			public string GetNextAnonMethodAlias() {
+				ScriptMethod method = DeclaringRealMethod;
+				string alias = $"{method.Alias}\\{ToUnderscoredLowercase(method.Scope.GetNextInnerID())}";
+				return alias;
 			}
 
 		}
