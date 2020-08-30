@@ -29,7 +29,7 @@ namespace MCSharp {
 			}
 		}
 
-		static void Main(string[] args) {
+		public static void Main(string[] args) {
 
 			Console.Title = $"MCSharp {ProgramVersion} - Minecraft {MinecraftVersion}";
 
@@ -113,7 +113,6 @@ namespace MCSharp {
 			}
 
 		}
-
 
 		/// <summary>
 		/// Interacts with the datapacks folder.

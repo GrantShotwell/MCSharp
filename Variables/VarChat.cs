@@ -18,11 +18,11 @@ namespace MCSharp.Variables {
 
 		public VarChat(string name) : base(Access.Public, Usage.Static, name, Compiler.RootScope) {
 
-			ParameterInfo[] SayInfo = new ParameterInfo[] {
+			ParameterInfo[] infoSay = new ParameterInfo[] {
 				new (Type, bool)[] { (typeof(VarString), true) }
 			};
 			Methods.Add("Say", arguments => {
-				(ParameterInfo match, int index) = ParameterInfo.HighestMatch(SayInfo, arguments);
+				(ParameterInfo match, int index) = ParameterInfo.HighestMatch(infoSay, arguments);
 				match.Grab(arguments);
 
 				string text;
@@ -40,11 +40,11 @@ namespace MCSharp.Variables {
 
 			});
 
-			ParameterInfo[] TellrawInfo = new ParameterInfo[] {
+			ParameterInfo[] infoTellraw = new ParameterInfo[] {
 				new (Type, bool)[] { (typeof(VarSelector), true), (typeof(VarJSON), true) }
 			};
 			Methods.Add("Tellraw", arguments => {
-				(ParameterInfo match, int index) = ParameterInfo.HighestMatch(TellrawInfo, arguments);
+				(ParameterInfo match, int index) = ParameterInfo.HighestMatch(infoTellraw, arguments);
 				match.Grab(arguments);
 
 				string selector, json;

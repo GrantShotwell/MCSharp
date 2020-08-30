@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 
 namespace MCSharp.Compilation {
 
@@ -13,7 +14,6 @@ namespace MCSharp.Compilation {
 
 		private readonly ScriptWord? word;
 		private readonly ScriptWild[] wilds;
-		private readonly string str;
 
 		/// <summary>
 		/// 
@@ -31,6 +31,10 @@ namespace MCSharp.Compilation {
 		/// 
 		/// </summary>
 		public bool IsWilds => wilds != null;
+
+		public bool IsEmpty => IsWilds && wilds.Length == 0;
+		public bool IsSpace => IsEmpty && IsSpaced;
+		public bool IsSpaced => IsWord || FullBlockType == " \\ \\ ";
 
 		/// <summary>
 		/// When a <see cref="ScriptWild"/> is just more <see cref="ScriptWild"/>s.
@@ -54,7 +58,7 @@ namespace MCSharp.Compilation {
 		/// Creates a new <see cref="ScriptWild"/> from the given <see cref="Range"/> applied to <see cref="Wilds"/>.
 		/// </summary>
 		/// <exception cref="InvalidOperationException()">Thrown when <see cref="IsWilds"/> is false.</exception>
-		public ScriptWild this[Range range] => new ScriptWild(wilds[range], BlockType, SeparationType.Value);
+		public ScriptWild this[Range range] => new ScriptWild(wilds[range], Block, Separator.Value);
 
 		/// <summary>
 		/// 
@@ -66,9 +70,10 @@ namespace MCSharp.Compilation {
 		/// <summary>
 		/// Format: "[OPEN]\[CLOSE]"
 		/// </summary>
-		public string BlockType { get; }
-		public char? SeparationType { get; }
-		public string FullBlockType => $"{BlockType[0]}\\{SeparationType}\\{BlockType[2]}";
+		public string Block { get; }
+		public char? Separator { get; }
+		public string FullBlockType => IsWilds ? $"{Block[0]}\\{Separator}\\{Block[2]}"
+			: throw new InvalidOperationException($"Cannot get '{nameof(FullBlockType)}' because '{nameof(IsWilds)}' is false!");
 
 		public int Count {
 			get {
@@ -91,97 +96,157 @@ namespace MCSharp.Compilation {
 		public ScriptWild(ScriptWord word) {
 			this.word = word;
 			wilds = null;
-			BlockType = null;
-			SeparationType = null;
-			str = (string)word;
-		}
-
-		public ScriptWild(IReadOnlyList<(char? Separator, string Block, List<ScriptWild> List)> list, string block, char separation) {
-
-			int count = list.Count;
-			var array = new ScriptWild[count];
-			for(int i = 0; i < count; i++) {
-				array[i] = new ScriptWild(list[i].List, list[i].Block, list[i].Separator ?? ' ');
-            }
-
-			ScriptWild value = new ScriptWild(array, " \\ ", ' ');
-
-			word = value.word;
-			wilds = value.wilds;
-			BlockType = value.BlockType;
-			SeparationType = value.SeparationType;
-			str = value.str;
-
+			Block = null;
+			Separator = null;
 		}
 
 		/// <summary>
 		/// Creates a new <see cref="ScriptWild"/> that is just more <see cref="ScriptWild"/>s.
 		/// </summary>
-		public ScriptWild(IReadOnlyList<ScriptWild> list, string block, char separation) {
+		public ScriptWild(IReadOnlyList<ScriptWild> list, string block, char separator) {
 
 			if(list is null)
 				throw new ArgumentNullException(nameof(list));
 			if(string.IsNullOrEmpty(block))
 				throw new ArgumentException("Argument cannot be null or empty.", nameof(block));
 
-			if(list.Count == 1 && block == " \\ " && separation == ' ') {
+			int count = list.Count;
+			bool IsSpaced = block == " \\ " && separator == ' ';
 
-				ScriptWild value;
-				if(list[0].IsWilds) {
-					value = new ScriptWild(list[0].Array, list[0].BlockType, list[0].SeparationType.Value);
-                } else {
-					value = new ScriptWild(list[0].Word);
-                }
+			if(count == 0) {
 
-				word = value.word;
-				wilds = value.wilds;
-				BlockType = value.BlockType;
-				SeparationType = value.SeparationType;
-				str = value.str;
-
-            } else if(list.Count == 0) {
-
+				// Construct empty.
 				word = null;
 				wilds = new ScriptWild[] { };
-				BlockType = block;
-				SeparationType = separation;
-				str = $"{block[0]}{block[2]}";
+				Block = block;
+				Separator = separator;
 
-			} else if(list.Count > 1 || list[0].IsWilds || block != " \\ " || separation != ' ') {
+			} else {
 
-                int count = list.Count;
-                wilds = new ScriptWild[count];
-                for(int i = 0; i < count; i++) wilds[i] = list[i];
-                word = null;
+				if(count == 1) {
 
-                BlockType = block;
-                SeparationType = separation;
+					var item = list[0];
 
-                string str = "";
-                foreach(string wld in list)
-                    str += separation + wld;
-                if(separation == ';') this.str = str.Length > 0 ? $"{block[0]}{str[1..]};{block[2]}" : $"{block[0]};{block[2]}";
-                else this.str = str.Length > 0 ? $"{block[0]}{str[1..]}{block[2]}" : $"{block[0]}{block[2]}";
+					bool needThisBlockInfo = !IsSpaced;
+					bool needItemBlockInfo = !item.IsSpaced;
 
-            } else {
+					if(needThisBlockInfo) {
 
-                word = list[0].Word;
-                wilds = null;
-                BlockType = null;
-                SeparationType = null;
-                str = (string)word;
+						word = null;
+						Block = block;
+						Separator = separator;
 
-            }
+						if(needItemBlockInfo) {
+							wilds = new ScriptWild[] { item };
+						} else {
+							if(item.IsWord) {
+								wilds = new ScriptWild[] { item.Word };
+							} else {
+								wilds = item.Wilds.ToArray();
+							}
+						}
+
+					} else {
+
+						if(item.IsWord) {
+
+							word = item.Word;
+							wilds = null;
+							Block = null;
+							Separator = null;
+
+						} else {
+
+							word = null;
+							wilds = item.Wilds.ToArray();
+							Block = item.Block;
+							Separator = item.Separator;
+
+						}
+
+					}
+
+				} else {
+
+					// Construct normal block.
+					word = null;
+
+					var list2 = new List<ScriptWild>(list);
+					for(int i = 0; i < list2.Count; i++) {
+						var item = list2[i];
+						if(item.IsWilds && item.Block == " \\ " && item.Separator == separator) {
+							list2.RemoveAt(i--);
+							foreach(var itm in item.Wilds) {
+								list2.Add(itm);
+							}
+						}
+					}
+
+					wilds = list2.ToArray();
+					Block = block;
+					Separator = separator;
+
+				}
+
+			}
+
         }
 
 		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 		public IEnumerator<ScriptWild> GetEnumerator()
 			=> IsWord ? ((IEnumerable<ScriptWild>)(new ScriptWild[] { Word })).GetEnumerator() : ((IEnumerable<ScriptWild>)wilds).GetEnumerator();
 
-		public override string ToString() => $"[{ScriptTrace}] {str}";
+		public override string ToString() {
+			return $"[{ScriptTrace}] {(string)this}";
+		}
 
-		public static implicit operator string(ScriptWild wild) => wild.str;
+		public static implicit operator string(ScriptWild wild) {
+			return wild.IsWilds
+				? $"{wild.Block[0]}" +
+				  $"{string.Join((wild.Separator ?? ' ') == ' ' ? " " : $"{wild.Separator.Value} ", new ToStringEnumerable(wild.Array))}" +
+				  $"{wild.Block[2]}"
+				: (string)wild.Word;
+		}
+
 		public static implicit operator ScriptWild(ScriptWord word) => new ScriptWild(word);
+
+		private class ToStringEnumerable : IEnumerable<string> {
+
+			IReadOnlyList<ScriptWild> Array { get; }
+
+			public ToStringEnumerable(IReadOnlyList<ScriptWild> array) {
+				Array = array;
+			}
+
+			public IEnumerator<string> GetEnumerator() => new ToStringEnumerator(Array);
+			IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+		}
+
+		private class ToStringEnumerator : IEnumerator<string> {
+
+			private int Index { get; set; }
+
+			public string Current => (string)Array[Index];
+			object IEnumerator.Current => Current;
+
+			IReadOnlyList<ScriptWild> Array { get; }
+
+			public ToStringEnumerator(IReadOnlyList<ScriptWild> array) {
+				Array = array;
+				Reset();
+			}
+
+			public bool MoveNext() {
+				Index++;
+				return Index < Array.Count;
+			}
+			public void Reset() {
+				Index = -1;
+			}
+			public void Dispose() { }
+
+		}
 
 	}
 

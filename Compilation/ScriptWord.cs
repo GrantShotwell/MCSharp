@@ -18,7 +18,8 @@ namespace MCSharp.Compilation {
 
 
 		public ScriptWord(ScriptString characters, bool ignoreCohesion = false) {
-			if(!ignoreCohesion) {
+			if(ignoreCohesion || (characters.Length >= 2 && characters[0] == '"' && characters[^1] == '"')) {
+			} else {
 				foreach(ScriptChar character in characters) {
 					if(char.IsWhiteSpace((char)character))
 						throw new ArgumentException("Given array is not a cohesive word!", nameof(characters));

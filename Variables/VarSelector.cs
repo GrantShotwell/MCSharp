@@ -12,7 +12,7 @@ namespace MCSharp.Variables {
 		private VarString String { get; set; }
 
 		public override string TypeName => StaticTypeName;
-		public static string StaticTypeName => "Selector";
+		public static string StaticTypeName => "selector";
 
 		public override ICollection<Access> AllowedAccessModifiers => new Access[] { Access.Private, Access.Public };
 		public override ICollection<Usage> AllowedUsageModifiers => new Usage[] { Usage.Default };

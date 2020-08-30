@@ -241,7 +241,7 @@ namespace MCSharp.Variables {
 		}
 
 		public abstract Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace);
-		public abstract Variable Construct(ArgumentInfo passed);
+		public abstract Variable Construct(ArgumentInfo arguments);
 
 		public Variable InvokeOperation(ScriptWord operation, ScriptWild[] args) {
 

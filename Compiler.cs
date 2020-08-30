@@ -318,7 +318,7 @@ namespace MCSharp {
 									else {
 										ScriptWord typeWord = wilds[i + 1].Word;
 										ScriptWild argsWild = wilds[i + 2];
-										if(argsWild.BlockType != "(\\)") throw new SyntaxException("Expected '('.", current.ScriptTrace);
+										if(argsWild.Block != "(\\)") throw new SyntaxException("Expected '('.", current.ScriptTrace);
 										i += 2;
 										Variable[] arguments = new Variable[argsWild.Count];
 										for(int indx = 0; indx < argsWild.Count; indx++)
@@ -396,7 +396,7 @@ namespace MCSharp {
 
 								// We are either on a field/property access name or method access name.
 								// Are we on a method access name?
-								if(i + 1 < wilds.Length && wilds[i + 1].IsWilds && wilds[i + 1].BlockType == "(\\)") {
+								if(i + 1 < wilds.Length && wilds[i + 1].IsWilds && wilds[i + 1].Block == "(\\)") {
 									// Add method name and arguments to chain.
 									chain.AddLast(wilds[i]);
 									chain.AddLast(wilds[++i]);
@@ -478,7 +478,7 @@ namespace MCSharp {
 			return variable != null;
 		}
 
-		private static void Reset() {
+		public static void Reset() {
 
 			//Clear casters.
 			Variable.Casters.Clear();
@@ -603,8 +603,24 @@ namespace MCSharp {
 
 			public static int GetNextScopeID() => nextScopeID++;
 			public string GetNextInnerID() => BaseConverter.Convert(nextInnerID++, 62);
+
 			public override string ToString() => BaseConverter.Convert(ID, 62);
 			public override int GetHashCode() => ID.GetHashCode();
+
+			public static string ToUnderscoredLowercase(string value) {
+
+				LinkedList<char> chars = new LinkedList<char>(value);
+				LinkedListNode<char> current = chars.First;
+
+				while(current != null) {
+					if(char.IsUpper(current.Value)) chars.AddBefore(current, '_');
+					current.Value = char.ToLower(current.Value);
+					current = current.Next;
+				}
+
+				return new string(chars.ToArray());
+
+			}
 
 		}
 

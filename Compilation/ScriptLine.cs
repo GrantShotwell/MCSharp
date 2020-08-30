@@ -78,173 +78,54 @@ namespace MCSharp.Compilation {
 
 
 		public static ScriptWild GetWilds(ScriptString phrase) {
-
 			ScriptString[] split = Separate(phrase);
 
-			var stack = new Stack<(char? Separator, string Block, List<ScriptWild> List)>();
-			stack.Push((null, " \\ ", new List<ScriptWild>()));
+			var stack = new Stack<IncompleteLine>();
+			stack.Push(new IncompleteLine(" \\ ", ' '));
 
-			for(int i = 0; i < split.Length; i++) {
-				ScriptString str = split[i];
+			foreach(ScriptString current in split) {
+                char chr = (char)current[0];
+                IncompleteLine top = stack.Peek();
 
-				if(str.Length == 1) {
+                if(IsBlockCharStart(chr, out string block)) {
 
-					char character = (char)str[0];
+					// Start new block.
+					IncompleteLine line = new IncompleteLine(block, null);
+					stack.Push(line);
 
-					// Is this the start of a new block?
-					if(IsBlockCharStart(character, out string block)) {
-						var current = stack.Peek();
+				} else if(IsBlockCharEnd(chr, out block)) {
 
-                        // Is the current block empty?
-                        if(current.Block == " \\ " && current.List.Count == 0) stack.Pop();
-						// Starting a new block.
-                        stack.Push((null, block, new List<ScriptWild>()));
-						
-						continue;
-
-					}
-					
-					// Is it separation time?
-					if(IsSeparatorChar(character)) {
-						var current = stack.Pop();
-						(char? Separator, string Block, List<ScriptWild> List)? under = stack.Count == 0 ? ((char? Separator, string Block, List<ScriptWild> List)?)null : stack.Peek();
-						stack.Push(current);
-
-						// Does the 'under' block have the same separator?
-						if(under.HasValue && under.Value.Separator == character) {
-
-							// Add 'current' to 'under'.
-							current = stack.Pop();
-							under.Value.List.Add(new ScriptWild(current.List.ToArray(), current.Block, current.Separator ?? ' '));
-							// Start the next item in the separated list by adding an empty item.
-							stack.Push((' ', " \\ ", new List<ScriptWild>()));
-
-							continue;
-
-                        }
-
-						// Does the current block have no separator?
-						if(current.Separator == null) {
-
-							// Set the separator to this one.
-							current = stack.Pop();
-							stack.Push((character, current.Block, current.List));
-							// Start the next item in the separated list by adding an empty item.
-							stack.Push((' ', " \\ ", new List<ScriptWild>()));
-							
-							continue;
-
-                        }
-
-						// The current block is a different separated list.
-                        {
-
-							// Is the current block an item in an unfinished separated block?
-							current = stack.Pop();
-                            if(stack.Count == 0 || stack.Peek().Block != " \\ ") {
-
-								// Combine the current block into it.
-								stack.Push((character, current.Block, new List<ScriptWild>()));
-                                stack.Peek().List.Add(new ScriptWild(current.List.ToArray(), " \\ ", current.Separator ?? ' '));
-								// Start the next item in the separated list by adding an empty item.
-								stack.Push((' ', " \\ ", new List<ScriptWild>()));
-
-								continue;
-                            }
-							stack.Push(current);
-							
-							// Can we set the separator of this block to this separator?
-							if(current.Block == " \\ " && current.List.Count >= 1) {
-
-								// Set the separator of the current block to this separator.
-								current = stack.Pop();
-                                stack.Push((character, current.Block, current.List));
-								// Start the next item in the separated list by adding an empty item.
-								stack.Push((' ', " \\ ", new List<ScriptWild>()));
-
-								continue;
-                            }
-
-							// Is the current block's list combinable into one?
-							if(current.Separator == ' ') {
-
-								// Add 'current' into a new separated block.
-								current = stack.Pop();
-								(char? Separator, string Block, List<ScriptWild> List) next = (character, current.Block, new List<ScriptWild>());
-								next.List.Add(new ScriptWild(current.List.ToArray(), " \\ ", current.Separator ?? ' '));
-								stack.Push(next);
-								// Start the next item in the separated list by adding an empty block.
-								stack.Push((null, " \\ ", new List<ScriptWild>()));
-
-								continue;
-                            }
-
-							throw new Exception();
-
-                        }
-
-
-					}
-					
-					// Is this the end of a block?
-					if(IsBlockCharEnd(character, out block)) {
-
-						// The current block is the next item in the block we are ending.
-						var item = stack.Pop();
-						(char? Separator, string Block, List<ScriptWild> List) list;
-						if(stack.Count == 0) list = (null, " \\ ", new List<ScriptWild>());
-						else list = stack.Pop();
-						list.List.Add(new ScriptWild(item.List.ToArray(), item.Block, item.Separator ?? ' '));
-
-						// Remove empty item, if any.
-						if(list.List.Count > 0) {
-							var last = list.List[^1];
-							if(last.IsWord) {
-								if((string)last.Word == string.Empty)
-									list.List.RemoveAt(list.List.Count - 1);
-                            } else {
-								if(last.Count == 0 && last.FullBlockType == " \\ ")
-									list.List.RemoveAt(list.List.Count - 1);
-                            }
-                        }
-
-						// The current block is the block we are ending. Finished blocks become a ScriptWild.
-						if(stack.Count == 0) stack.Push((null, " \\ ", new List<ScriptWild>()));
-						stack.Peek().List.Add(new ScriptWild(list.List.ToArray(), list.Block, list.Separator ?? ' '));
-
-						continue;
-
-					}
-
-				}
-
-				// 'str' is not a separator character or a block character.
-				{
-
-					// Add 'str' to the current block.
-					var current = stack.Peek();
-					current.List.Add(new ScriptWord(str, true));
-					// If we just made current.List.Count 2, then we know the separator is whitespace.
-					if(current.List.Count == 2) {
-						current = stack.Pop();
-						stack.Push((' ', current.Block, current.List));
+					// Check block type.
+					if(top.Block == block) {
+						// Close top block.
+						ScriptWild complete = top.Complete();
+						stack.Pop();
+						// Add it to next.
+						stack.Peek().Add(complete);
+					} else {
+						// Wrong block closed.
+						throw new Compiler.SyntaxException($"Unexpected '{chr}'.", current.ScriptTrace);
                     }
 
-					continue;
+				} else {
+
+					// Add to top block.
+					top.Add(current);
 
 				}
 
 			}
 
-			; // debug break
-
-			// Combine remaining stack into one.
-			ScriptWild result = new ScriptWild(stack.Reverse().ToArray(), " \\ ", ' ');
-            return result;
+			if(stack.Count != 1) {
+				throw new Compiler.InternalError("GetWilds ended with stack size not equal to 1.");
+			} else {
+				ScriptWild result = stack.Peek().Complete();
+				return result;
+			}
 
 		}
 
-		private static ScriptString[] Separate(ScriptString str) {
+		public static ScriptString[] Separate(ScriptString str) {
 
 			var separated = new List<ScriptString>(str.Length);
 			var characters = new LinkedList<ScriptChar>();
@@ -326,7 +207,7 @@ namespace MCSharp.Compilation {
         public ScriptWild ToWild() => new ScriptWild(wilds, "{\\}", ';');
 
         public static bool IsBlockChar(char chr, out string type)
-			=> IsBlockCharStart(chr, out type) ? true : IsBlockCharEnd(chr, out type);
+			=> IsBlockCharStart(chr, out type) || IsBlockCharEnd(chr, out type);
 
 		public static bool IsBlockCharStart(char chr, out string block) {
 			for(int i = 0; i < BlockTypesStart.Count; i++) {
@@ -365,6 +246,77 @@ namespace MCSharp.Compilation {
 
 		public override string ToString() => $"Line (?):\n{str}";
 
-	}
+		private class IncompleteLine {
 
+            #region Properties
+
+			public string Block { get; set; }
+
+			public char? Separator { get; set; }
+
+			private List<ScriptWild> Items { get; } = new List<ScriptWild>();
+
+			private List<ScriptWild> Subitems { get; } = new List<ScriptWild>();
+
+            #endregion
+
+
+            #region Constuctors
+
+            public IncompleteLine(string block, char? separator) {
+				Block = block;
+				Separator = separator;
+			}
+
+            #endregion
+
+
+            #region Methods
+
+            public void Add(ScriptString item) => Add((ScriptWild)(ScriptWord)item);
+
+			public void Add(ScriptWild item) {
+				char? chr = item.IsWord ? (char?)item.Word[0] : null;
+				if(chr.HasValue && item.Word.Length == 1 && IsSeparatorChar(chr.Value)) {
+					if(Separator.HasValue) {
+						if(Separator.Value == (char)item.Word[0]) {
+							// Complete subitems.
+							ScriptWild subitems = new ScriptWild(Subitems, " \\ ", ' ');
+							Subitems.Clear();
+							// Add to items.
+							Items.Add(subitems);
+						} else {
+							throw new Compiler.SyntaxException("Unexpected separator.", item.ScriptTrace);
+						}
+					} else {
+						// Set separator.
+						Separator = chr.Value;
+						// Complete subitems.
+						ScriptWild subitems = new ScriptWild(Subitems, " \\ ", ' ');
+						Subitems.Clear();
+						// Add to items.
+						Items.Add(subitems);
+					}
+                } else {
+					// Add to subitems.
+					Subitems.Add(item);
+                }
+            }
+
+            public ScriptWild Complete() {
+				// Complete subitems.
+				ScriptWild subitems = new ScriptWild(Subitems, " \\ ", ' ');
+				// Add to items.
+				Items.Add(subitems);
+				// Complete items.
+				ScriptWild items = new ScriptWild(Items, Block, Separator ?? ' ');
+				// Return items.
+				return items;
+			}
+
+            #endregion
+
+        }
+
+    }
 }

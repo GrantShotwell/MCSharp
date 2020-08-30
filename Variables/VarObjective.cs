@@ -26,7 +26,7 @@ namespace MCSharp.Variables {
 
 		public override int Order => base.Order - 10;
 		public override string TypeName => StaticTypeName;
-		public static string StaticTypeName => "Objective";
+		public static string StaticTypeName => "objective";
 		/// <summary>The scoreboard name of this objective in-game.</summary>
 		public string ID { get; private set; }
 		/// <summary>The scoreboard type of this objective in-game.</summary>

@@ -161,7 +161,7 @@ namespace MCSharp.Compilation {
 				ScriptLine[] array = new ScriptLine[wild.Wilds.Count];
 				for(int i = 0; i < wild.Wilds.Count; i++) array[i] = new ScriptLine(wild.Wilds[i]);
 				return array;
-			} else if(wild.SeparationType == ' ') {
+			} else if(wild.Separator == ' ') {
 				return new ScriptLine[] { new ScriptLine(wild.Array) };
 			} else throw new ArgumentException("Block/Separation was not correct, which means there was a parsing error somewhere.", nameof(wild));
 		}

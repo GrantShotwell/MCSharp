@@ -144,7 +144,8 @@ namespace MCSharp.Statements {
                         // Parse the instruction using ScriptLine.GetWilds(...).
                         ScriptWild parsed = ScriptLine.GetWilds(function[start..end]);
 						// Add the instruction to the list.
-						wilds.Add(parsed);
+						wilds.Add(parsed[0]);
+						wilds.Add(parsed[1..]);
 						break;
 
 					} else {
@@ -165,7 +166,7 @@ namespace MCSharp.Statements {
 
 			ScriptWild conditionWild = line[1];
 			ScriptWild statementWild = line[2];
-			ScriptWild? elseWild = line.Length > 3 ? (ScriptWild?)line[3] : null;
+			ScriptWild? elseWild = line.Length > 4 ? (ScriptWild?)line[4] : null;
 			VarBool condition;
 
 			Variable conditionVariable = Compiler.ParseValue(conditionWild, Compiler.CurrentScope);
@@ -175,9 +176,8 @@ namespace MCSharp.Statements {
 			{
 
 				condition = varBool;
-                var statement = new ScriptMethod($"{Compiler.CurrentScope}\\{Compiler.CurrentScope.GetNextInnerID()}",
-                    "void", new Variable[] { }, null, statementWild);
-				statement.DeclaringType = Compiler.CurrentScope.DeclaringType;
+				var statement = new ScriptMethod(Compiler.Scope.ToUnderscoredLowercase($"{Compiler.CurrentScope}\\{Compiler.CurrentScope.GetNextInnerID()}"),
+					"void", new Variable[] { }, null, statementWild) { DeclaringType = Compiler.CurrentScope.DeclaringType };
 				Compiler.WriteFunction<VarVoid>(Compiler.CurrentScope, null, statement);
 				new Spy(null, $"execute if score {condition.Selector.GetConstant()} {condition.Objective.GetConstant()} matches 1.. " +
 					$"run function {statement.GameName}", null);
@@ -186,9 +186,8 @@ namespace MCSharp.Statements {
 
 			if(elseWild.HasValue) {
 
-				var statement = new ScriptMethod($"{Compiler.CurrentScope}\\{Compiler.CurrentScope.GetNextInnerID()}",
-					"void", new Variable[] { }, null, elseWild.Value[1..]);
-				statement.DeclaringType = Compiler.CurrentScope.DeclaringType;
+				var statement = new ScriptMethod(Compiler.Scope.ToUnderscoredLowercase($"{Compiler.CurrentScope}\\{Compiler.CurrentScope.GetNextInnerID()}"),
+					"void", new Variable[] { }, null, elseWild.Value) { DeclaringType = Compiler.CurrentScope.DeclaringType };
 				Compiler.WriteFunction<VarVoid>(Compiler.CurrentScope, null, statement);
 				new Spy(null, $"execute if score {condition.Selector.GetConstant()} {condition.Objective.GetConstant()} matches ..0 " +
 					$"run function {statement.GameName}", null);

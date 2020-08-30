@@ -14,7 +14,7 @@ namespace MCSharp.Compilation {
 
 		#region Properties
 
-		private ScriptChar[] Characters { get; }
+		public ScriptChar[] Characters { get; }
 
 		public ScriptChar this[int index] {
 			get => Characters[index];

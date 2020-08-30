@@ -48,6 +48,9 @@ namespace MCSharp.Variables {
 					return anon;
 				}
 
+				// TODO:  Operation.BooleanOr
+				//  Maybe use the scoreboard '<' operator?
+
 				case Operation.BooleanAnd: {
 					//Create temp variable from this.
 					var anon = new VarBool(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope);
