@@ -54,20 +54,41 @@ namespace MCSharp.Variables {
 				match.Grab(arguments);
 
 				(VarSelector Selector, VarObjective Objective) to, from;
+				int fromConst;
 				switch(index) {
-					case 0:
-						to = (match[0].Value as VarSelector, match[1].Value as VarObjective);
-						from = ((match[2].Value as VarInt).Selector, (match[2].Value as VarInt).Objective);
+					case 0: {
+						var toSel = match[0].Value as VarSelector;
+						var toObj = match[1].Value as VarObjective;
+						to = (toSel, toObj);
+						var fromInt = match[2].Value as VarInt;
+						if(fromInt.Usage == Usage.Constant) {
+							fromConst = fromInt.Constant;
+							goto SetScoreConst;
+						} else {
+							from = (fromInt.Selector, fromInt.Objective);
+							goto SetScore;
+						}
+					}
+					case 1: {
+						var toSel = match[0].Value as VarSelector;
+						var toObj = match[1].Value as VarObjective;
+						to = (toSel, toObj);
+						var fromSel = match[2].Value as VarSelector;
+						var fromObj = match[3].Value as VarObjective;
+						from = (fromSel, fromObj);
 						goto SetScore;
-					case 1:
-						to = (match[0].Value as VarSelector, match[1].Value as VarObjective);
-						from = (match[2].Value as VarSelector, match[3].Value as VarObjective);
-						goto SetScore;
+					}
 
 						SetScore:
 						new Spy(null, $"scoreboard players operation " +
 							$"{to.Selector.GetConstant()} {to.Objective.GetConstant()} = " +
 							$"{from.Selector.GetConstant()} {from.Objective.GetConstant()}", null);
+						return null;
+
+						SetScoreConst:
+						new Spy(null, $"scoreboard players set " +
+							$"{to.Selector.GetConstant()} {to.Objective.GetConstant()} " +
+							$"{fromConst}", null);
 						return null;
 
 					default: throw new MissingOverloadException($"{TypeName}.SetScore", index, arguments);

@@ -100,8 +100,10 @@ namespace MCSharp.Variables {
 			IDictionary<Type, Caster> casters = base.GetCasters_To();
 			casters.Add(typeof(VarBool), value => {
 				var original = value as VarInt;
-				var result = new VarBool(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope);
-				result.SetValue(original.Selector, original.Objective);
+				bool constant = original.Usage == Usage.Constant;
+				var result = new VarBool(Access.Private, constant ? Usage.Constant : Usage.Default, GetNextHiddenID(), Compiler.CurrentScope);
+				if(constant) result.SetValue(original.Constant);
+				else result.SetValue(original.Selector, original.Objective);
 				return result;
 			});
 			return casters;

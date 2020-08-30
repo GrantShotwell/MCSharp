@@ -289,21 +289,21 @@ namespace MCSharp {
 
 							// Special case: strings
 							if(x == null && word.StartsWith('"') && word.EndsWith('"')) {
-								x = new VarString(Access.Private, Usage.Default, GetNextHiddenID(), CurrentScope);
+								x = new VarString(Access.Private, Usage.Constant, GetNextHiddenID(), CurrentScope);
 								((VarString)x).SetValue(word[1..^1]);
 								goto VariableCheck;
 							}
 
 							// Special case: ints
 							if(int.TryParse(current, out int _int)) {
-								x = new VarInt(Access.Private, Usage.Default, GetNextHiddenID(), CurrentScope);
+								x = new VarInt(Access.Private, Usage.Constant, GetNextHiddenID(), CurrentScope);
 								((PrimitiveType)x).SetValue(_int);
 								goto VariableCheck;
 							}
 
 							// Special case: bools
 							if(bool.TryParse(current, out bool _bool)) {
-								x = new VarInt(Access.Private, Usage.Default, GetNextHiddenID(), CurrentScope);
+								x = new VarInt(Access.Private, Usage.Constant, GetNextHiddenID(), CurrentScope);
 								((PrimitiveType)x).SetValue(_bool ? 1 : 0);
 								goto VariableCheck;
 							}

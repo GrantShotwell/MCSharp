@@ -15,7 +15,7 @@ namespace MCSharp.Variables {
 		public static string StaticTypeName => "selector";
 
 		public override ICollection<Access> AllowedAccessModifiers => new Access[] { Access.Private, Access.Public };
-		public override ICollection<Usage> AllowedUsageModifiers => new Usage[] { Usage.Default };
+		public override ICollection<Usage> AllowedUsageModifiers => new Usage[] { Usage.Default, Usage.Constant };
 
 
 		public VarSelector() : base() { }
