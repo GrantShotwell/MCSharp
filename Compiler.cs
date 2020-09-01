@@ -62,8 +62,6 @@ namespace MCSharp {
 			string[] scripts = Directory.GetFiles(scriptsPath);
 
 			var funcDirectory = new DirectoryInfo(functionsPath);
-			//foreach(FileInfo file in funcDirectory.GetFiles()) file.Delete();
-			//foreach(DirectoryInfo d in funcDirectory.GetDirectories()) d.Delete(true);
 
 			Directory.CreateDirectory(functionsPath + "\\mcscript");
 			PrepFunction = File.CreateText(functionsPath + "\\mcscript\\prep.mcfunction");
@@ -631,8 +629,7 @@ namespace MCSharp {
 
 			public string GetNextAnonMethodAlias() {
 				ScriptMethod method = DeclaringRealMethod;
-				string alias = $"{method.Alias}\\{ToUnderscoredLowercase(method.Scope.GetNextInnerID())}";
-				return alias;
+				return $"{method.Alias}\\{ToUnderscoredLowercase(method.Scope.GetNextInnerID())}";
 			}
 
 		}
@@ -640,11 +637,11 @@ namespace MCSharp {
 		public static void Add(this Dictionary<int, Scope> dictionary, Scope scope) => dictionary.Add(scope.ID, scope);
 
 		public class SyntaxException : Exception {
-			public SyntaxException(string message, ScriptTrace at) : base($"[{at}] {message}") { }
+			public SyntaxException(string message, ScriptTrace trace) : base($"[{trace}] {message}") { }
 		}
 
 		public class InternalError : Exception {
-			public InternalError(string message, ScriptTrace at) : base($"[{at}] {message}") { }
+			public InternalError(string message, ScriptTrace trace) : base($"[{trace}] {message}") { }
 			public InternalError(string message) : base(message) { }
 		}
 

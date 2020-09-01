@@ -41,7 +41,7 @@ namespace MCSharp.Variables {
 			});
 
 			ParameterInfo[] infoTellraw = new ParameterInfo[] {
-				new (Type, bool)[] { (typeof(VarSelector), true), (typeof(VarJSON), true) }
+				new (Type, bool)[] { (typeof(VarSelector), true), (typeof(VarJson), true) }
 			};
 			Methods.Add("Tellraw", arguments => {
 				(ParameterInfo match, int index) = ParameterInfo.HighestMatch(infoTellraw, arguments);
@@ -51,7 +51,7 @@ namespace MCSharp.Variables {
 				switch(index) {
 					case 0:
 						selector = match[0].Value.GetConstant();
-						json = match[1].Value.GetJSON();
+						json = match[1].Value.GetRawText().GetJson();
 						goto Tellraw;
 
 						Tellraw:

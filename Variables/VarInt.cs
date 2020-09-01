@@ -1,4 +1,5 @@
 ﻿using MCSharp.Compilation;
+using MCSharp.GameJSON.Text;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -36,6 +37,8 @@ namespace MCSharp.Variables {
 			if(operand is VarInt right || operand.TryCast(out right)) {
 
 				string op;
+				bool thisIsConst = Usage == Usage.Constant;
+				bool thatIsConst = right.Usage == Usage.Constant;
 
 				switch(operation) {
 
@@ -56,12 +59,52 @@ namespace MCSharp.Variables {
 						goto Bitwise;
 
 						Bitwise:
-						var left = operation == Operation.Set ? null : new VarInt(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope);
-						left?.SetValue(Selector, Objective);
-						new Spy(null, $"scoreboard players operation " +
-							$"{left.Selector.GetConstant()} {left.Objective.GetConstant()} {op} " +
-							$"{right.Selector.GetConstant()} {right.Objective.GetConstant()}", null);
-						return left;
+						{
+							VarInt result;
+							if(Usage == Usage.Constant) {
+								result = new VarInt(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope);
+								int val1 = Constant, val2 = right.Constant;
+								if(right.Usage == Usage.Constant) {
+									switch(operation) {
+										case Operation.Add:
+											result.SetValue(val1 + val2);
+											break;
+										case Operation.Subtract:
+											result.SetValue(val1 - val2);
+											break;
+										case Operation.Multiply:
+											result.SetValue(val1 * val2);
+											break;
+										case Operation.Divide:
+											result.SetValue(val1 / val2);
+											break;
+										case Operation.Modulo:
+											result.SetValue(val1 % val2);
+											break;
+										default: throw new Compiler.InternalError("095208302020");
+									}
+								} else {
+									result = new VarInt(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope);
+									result.SetValue(Constant);
+									new Spy(null, $"scoreboard players operation " +
+										$"{result.Selector.GetConstant()} {result.Objective.GetConstant()} {op} " +
+										$"{right.Selector.GetConstant()} {right.Objective.GetConstant()}", null);
+								}
+							} else {
+								result = new VarInt(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope);
+								result.SetValue(Selector, Objective);
+								if(right.Usage == Usage.Constant) {
+									new Spy(null, $"scoreboard players set " +
+										$"{result.Selector.GetConstant()} {result.Objective.GetConstant()} {op} " +
+										$"{right.Constant}", null);
+								} else {
+									new Spy(null, $"scoreboard players operation " +
+										$"{result.Selector.GetConstant()} {result.Objective.GetConstant()} {op} " +
+										$"{right.Selector.GetConstant()} {right.Objective.GetConstant()}", null);
+								}
+							}
+							return result;
+						}
 
 
 					case Operation.GreaterThan:
@@ -81,11 +124,13 @@ namespace MCSharp.Variables {
 						goto Comparison;
 
 						Comparison:
-						var result = new VarBool(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope);
-						result.SetValue(0);
-						new Spy(null, $"execute if score {Selector.GetConstant()} {Objective.GetConstant()} {op} {right.Selector.GetConstant()} {right.Objective.GetConstant()} run " +
-							$"scoreboard players set {result.Selector.GetConstant()} {result.Objective.GetConstant()} 1", null);
-						return result;
+						{
+							var result = new VarBool(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope);
+							result.SetValue(0);
+							new Spy(null, $"execute if score {Selector.GetConstant()} {Objective.GetConstant()} {op} {right.Selector.GetConstant()} {right.Objective.GetConstant()} run " +
+								$"scoreboard players set {result.Selector.GetConstant()} {result.Objective.GetConstant()} 1", null);
+							return result;
+						}
 
 
 					default: return base.InvokeOperation(operation, operand, scriptTrace);
@@ -109,7 +154,15 @@ namespace MCSharp.Variables {
 			return casters;
 		}
 
-		public override string GetJSON() => $"{{\"score\":{{\"name\":\"var\",\"objective\":\"{Objective.ID}\"}}}}";
+		public override RawText GetRawText() => new RawText() {
+			Score = Usage == Usage.Constant ? null
+			: new Score() {
+				Name = Selector.GetConstant(),
+				Objective = Objective.GetConstant()
+			},
+			Text = Usage != Usage.Constant ? null
+			: Constant.ToString()
+		};
 
 	}
 

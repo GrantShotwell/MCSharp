@@ -1,4 +1,5 @@
 ﻿using MCSharp.Compilation;
+using MCSharp.GameJSON.Text;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -29,38 +30,46 @@ namespace MCSharp.Variables {
 				match.Grab(arguments);
 
 				string format = Value;
-				var json = new LinkedList<string>();
 
-                for(int start = -1, end = 0; end < format.Length; end++) {
+				int est = 1;
+				char last = '\0';
+				foreach(char character in format) if(last != character && last == '{') est++;
+				RawTextList json = new RawTextList(est);
+
+				int start, end;
+                for(start = (end = 0) - 1; end < format.Length; end++) {
                     switch(format[end]) {
 
                         case '{': {
 							// Make string into JSON. 
 							string prev = format[(start + 1)..end];
-                            json.AddLast(((VarString)prev).GetJSON());
+							var raw = new RawText() { Text = prev };
+							json.Add(raw);
 							break;
 						}
 
                         case '}': {
                             // Make value into JSON. 
                             string prev = format[(start + 1)..end];
-                            json.AddLast(Compiler.ParseValue(new ScriptLine(new ScriptString(prev)).ToWild(), Compiler.CurrentScope).GetJSON());
+							var value = Compiler.ParseValue(new ScriptLine(new ScriptString(prev)).ToWild(), Compiler.CurrentScope);
+							json.Add(value.GetRawText());
 							break;
 						}
 
 						default: continue;
                     }
 
+					// Skipped if broken out of switch statement.
 					start = end;
+
                 }
 
-                string[] array = new string[json.Count];
-                LinkedListNode<string> node = json.First;
-				for(int i = 0; node != null; i++) {
-					array[i] = node.Value;
-					node = node.Next;
+				if(end - start > 0) {
+					// Add last segment into json (string).
+					json.Add(((VarString)format[(start + 1)..end]).GetRawText());
 				}
-				return (VarJSON)$"[{string.Join(',', array)}]";
+
+				return (VarJson)json.GetJson();
 
 			});
 
@@ -94,7 +103,7 @@ namespace MCSharp.Variables {
 
 		public override string GetConstant() => Value;
 		public override VarString GetString() => this;
-		public override string GetJSON() => $"{{\"text\":\"{Value}\"}}";
+		public override RawText GetRawText() => new RawText() { Text = Value };
 
 		public static explicit operator VarString(string str) => new VarString(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope) { Value = str };
 	}

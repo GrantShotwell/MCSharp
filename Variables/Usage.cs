@@ -5,6 +5,8 @@
 		Default,
 		Abstract,
 		Virtual,
-		Override
+		Override,
+		PassInto,
+		PassAway
 	}
 }

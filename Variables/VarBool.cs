@@ -1,4 +1,5 @@
 ﻿using MCSharp.Compilation;
+using MCSharp.GameJSON.Text;
 using System;
 using System.IO;
 using static MCSharp.Compilation.ScriptObject;
@@ -70,7 +71,15 @@ namespace MCSharp.Variables {
 			}
 		}
 
-		public override string GetJSON() => $"{{\"score\":{{\"name\":\"var\",\"objective\":\"{Objective.ID}\"}}}}";
+		public override RawText GetRawText() => new RawText() {
+			Score = Usage == Usage.Constant ? null
+			: new Score() {
+				Objective = Objective.GetConstant(),
+				Name = Selector.GetConstant()
+			},
+			Text = Usage != Usage.Constant ? null
+			: (Constant >= 1 ? "true" : "false")
+		};
 
 	}
 

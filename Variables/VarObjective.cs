@@ -1,4 +1,5 @@
 ﻿using MCSharp.Compilation;
+using MCSharp.GameJSON.Text;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -122,6 +123,7 @@ namespace MCSharp.Variables {
 		}
 
 		public override string GetConstant() => ID;
+		public override RawText GetRawText() => new RawText() { Text = ID };
 
 		public static void ResetID() {
 			ObjectiveIDs.Clear();

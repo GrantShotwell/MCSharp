@@ -1,4 +1,5 @@
 ﻿using MCSharp.Compilation;
+using MCSharp.GameJSON.Text;
 using System;
 using System.Collections.Generic;
 
@@ -68,7 +69,7 @@ namespace MCSharp.Variables {
 		}
 
 		public override string GetConstant() => String.GetConstant();
-		public override string GetJSON() => String.GetJSON();
+		public override RawText GetRawText() => String.GetRawText();
 		public override VarString GetString() => String;
 
 	}

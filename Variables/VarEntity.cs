@@ -1,4 +1,5 @@
 ﻿using MCSharp.Compilation;
+using MCSharp.GameJSON.Text;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -38,6 +39,10 @@ namespace MCSharp.Variables {
 				default: throw new InvalidArgumentsException("Could not find a constructor overload that matches the given arguments.", Compiler.CurrentScriptTrace);
 			}
 		}
+
+		public override RawText GetRawText() => new RawText() {
+			Entity = Selector.GetConstant()
+		};
 
 	}
 }

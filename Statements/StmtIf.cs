@@ -166,34 +166,47 @@ namespace MCSharp.Statements {
 
 		public override void Write(ScriptLine line) {
 
+			if(line.Length >= 3) throw new Compiler.InternalError("053408302020");
 			ScriptWild conditionWild = line[1];
 			ScriptWild statementWild = line[2];
 			ScriptWild? elseWild = line.Length > 4 ? (ScriptWild?)line[4] : null;
 			VarBool condition;
 
 			Variable conditionVariable = Compiler.ParseValue(conditionWild, Compiler.CurrentScope);
-			if(!(conditionVariable is VarBool varBool) && !conditionVariable.TryCast(out varBool))
-				throw new Variable.InvalidArgumentsException($"Could not cast '{conditionVariable}' as 'bool'.", line.ScriptTrace);
-
+			if(conditionVariable is VarBool varBool || conditionVariable.TryCast(out varBool)) condition = varBool;
+			else throw new Variable.InvalidArgumentsException($"Could not cast '{conditionVariable}' as 'bool'.", line.ScriptTrace);
+			
 			{
 
-				condition = varBool;
-				var statement = new ScriptMethod(Compiler.CurrentScope.GetNextAnonMethodAlias(),
-					"void", new Variable[] { }, null, statementWild) { DeclaringType = Compiler.CurrentScope.DeclaringType, Anonymous = true };
-				Compiler.WriteFunction<VarVoid>(Compiler.CurrentScope, null, statement);
-				new Spy(null, $"execute if score {condition.Selector.GetConstant()} {condition.Objective.GetConstant()} matches 1.. " +
-					$"run function {statement.GameName}", null);
+				var statement = new ScriptMethod(Compiler.CurrentScope.GetNextAnonMethodAlias(), "void", new Variable[] { }, null, statementWild) {
+					DeclaringType = Compiler.CurrentScope.DeclaringType,
+					Anonymous = true
+				};
+
+				if(condition.Usage != Usage.Constant) {
+					Compiler.WriteFunction<VarVoid>(Compiler.CurrentScope, null, statement);
+					new Spy(null, $"execute if score {condition.Selector.GetConstant()} {condition.Objective.GetConstant()} matches 1.. run function {statement.GameName}", null);
+				} else if(condition.Constant >= 1) {
+					Compiler.WriteFunction<VarVoid>(Compiler.CurrentScope, null, statement);
+					new Spy(null, $"function {statement.GameName}", null);
+				}
 
 			}
 
 			if(elseWild.HasValue) {
 
-				var statement = new ScriptMethod(Compiler.CurrentScope.GetNextAnonMethodAlias(),
-					"void", new Variable[] { }, null, elseWild.Value) { DeclaringType = Compiler.CurrentScope.DeclaringType, Anonymous = true };
-				statement.Anonymous = true;
-				Compiler.WriteFunction<VarVoid>(Compiler.CurrentScope, null, statement);
-				new Spy(null, $"execute if score {condition.Selector.GetConstant()} {condition.Objective.GetConstant()} matches ..0 " +
-					$"run function {statement.GameName}", null);
+				var statement = new ScriptMethod(Compiler.CurrentScope.GetNextAnonMethodAlias(), "void", new Variable[] { }, null, elseWild.Value) {
+					DeclaringType = Compiler.CurrentScope.DeclaringType,
+					Anonymous = true
+				};
+
+				if(condition.Usage != Usage.Constant) {
+					Compiler.WriteFunction<VarVoid>(Compiler.CurrentScope, null, statement);
+					new Spy(null, $"execute if score {condition.Selector.GetConstant()} {condition.Objective.GetConstant()} matches 1.. run function {statement.GameName}", null);
+				} else if(condition.Constant < 1) {
+					Compiler.WriteFunction<VarVoid>(Compiler.CurrentScope, null, statement);
+					new Spy(null, $"function {statement.GameName}", null);
+				}
 
 			}
 		}

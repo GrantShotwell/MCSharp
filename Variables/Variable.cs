@@ -1,4 +1,5 @@
 ﻿using MCSharp.Compilation;
+using MCSharp.GameJSON.Text;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -196,8 +197,10 @@ namespace MCSharp.Variables {
 			if(objectName == null) throw new ArgumentNullException(nameof(objectName));
 			if(scope == null) throw new ArgumentNullException(nameof(scope));
 			if(GetType() != typeof(Spy)) {
-				if(!AllowedAccessModifiers.Contains(access)) throw new InvalidModifierException(access.ToString(), TypeName, Compiler.CurrentScriptTrace);
-				if(!AllowedUsageModifiers.Contains(usage)) throw new InvalidModifierException(usage.ToString(), TypeName, Compiler.CurrentScriptTrace);
+				bool anon = access == Access.Anonymous;
+				if(anon || !AllowedAccessModifiers.Contains(access)) throw new InvalidModifierException(access.ToString(), TypeName, Compiler.CurrentScriptTrace);
+				bool pass = usage == Usage.PassInto || usage == Usage.PassAway;
+				if(pass || !AllowedUsageModifiers.Contains(usage)) throw new InvalidModifierException(usage.ToString(), TypeName, Compiler.CurrentScriptTrace);
 			}
 
 			ObjectName = objectName;
@@ -388,9 +391,9 @@ namespace MCSharp.Variables {
 			var casters = new Dictionary<Type, Caster> {
 				//{ GetType(), value => value },
 				{ typeof(VarString), value => value.GetString() },
-				{ typeof(VarJSON), value => {
-					var json = new VarJSON(Access.Private, Usage.Constant, GetNextHiddenID(), value.Scope);
-					json.SetValue(value.GetJSON());
+				{ typeof(VarJson), value => {
+					var json = new VarJson(Access.Private, Usage.Constant, GetNextHiddenID(), value.Scope);
+					json.SetValue(value.GetRawText().GetJson());
 					return json;
 				} }
 			};
@@ -436,7 +439,7 @@ namespace MCSharp.Variables {
 		/// <summary>
 		/// Returns the raw JSON text that will return something useful when used in-game.
 		/// </summary>
-		public virtual string GetJSON() => $"{{\"text\":\"{TypeName}\"}}";
+		public virtual RawText GetRawText() => new RawText() { Text = TypeName };
 
 		/// <summary>
 		/// The equivalent of <see cref="object.ToString()"/>.

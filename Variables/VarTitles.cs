@@ -30,7 +30,7 @@ namespace MCSharp.Variables {
 				throw new InvalidArgumentsException($"Invalid number of arguments for '{TypeName}' method.", Compiler.CurrentScriptTrace);
 			if(!(arguments[0].Value is VarSelector selector) && !arguments[0].Value.TryCast(out selector))
 				throw new InvalidCastException(arguments[0].Value, "Selector", Compiler.CurrentScriptTrace);
-			if(!(arguments[1].Value is VarJSON json) && !arguments[1].Value.TryCast(out json))
+			if(!(arguments[1].Value is VarJson json) && !arguments[1].Value.TryCast(out json))
 				throw new InvalidCastException(arguments[1].Value, "JSON", Compiler.CurrentScriptTrace);
 
 			new Spy(null, new string[] { $"title {selector.GetConstant()} {type} {json.GetConstant()}" }, null);

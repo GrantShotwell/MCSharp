@@ -1,14 +1,16 @@
 ﻿using MCSharp.Compilation;
+using MCSharp.GameJSON.Text;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 
 namespace MCSharp.Variables {
 
-    public class VarJSON : Variable {
+    public class VarJson : Variable {
 
 		public override string TypeName => StaticTypeName;
-		public static string StaticTypeName => "JSON";
+		public static string StaticTypeName => "Json";
 
 		private string Value { get; set; }
 
@@ -16,10 +18,10 @@ namespace MCSharp.Variables {
 		public override ICollection<Usage> AllowedUsageModifiers => new Usage[] { Usage.Default, Usage.Constant };
 
 
-		public VarJSON() : base() { }
-		public VarJSON(Access access, Usage usage, string objectName, Compiler.Scope scope) : base(access, usage, objectName, scope) { }
+		public VarJson() : base() { }
+		public VarJson(Access access, Usage usage, string objectName, Compiler.Scope scope) : base(access, usage, objectName, scope) { }
 
-		public static explicit operator VarJSON(string str) => new VarJSON(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope) { Value = str };
+		public static explicit operator VarJson(string str) => new VarJson(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope) { Value = str };
 
 
 		public override Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) => throw new NotImplementedException();
@@ -40,7 +42,7 @@ namespace MCSharp.Variables {
 					goto Construct;
 
 					Construct:
-					VarJSON json = new VarJSON(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope);
+					VarJson json = new VarJson(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope);
 					json.SetValue(value);
 					return json;
 
@@ -52,9 +54,18 @@ namespace MCSharp.Variables {
         public void SetValue(string value) => Value = value;
 
 		public override string GetConstant() => Value;
-        public override string GetJSON() => Value;
+		public override RawText GetRawText() {
+			if(Value[0] == '[') {
+				var list = RawTextList.FromJson(Value);
+				var raw = new RawText() { Text = "", Extra = list.ToArray() };
+				return raw;
+			} else {
+				var raw = RawText.FromJson(Value);
+				return raw;
+			}
+		}
 
-        public static string EscapeValue(string value, int escapes) {
+		public static string EscapeValue(string value, int escapes) {
 			var original = new LinkedList<char>(value);
 			var escaped = new LinkedList<char>();
 
