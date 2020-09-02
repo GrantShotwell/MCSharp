@@ -6,7 +6,7 @@ using static MCSharp.Compilation.ScriptObject;
 
 namespace MCSharp.Variables {
 
-	public class VarBool : PrimitiveType {
+	public class VarBool : VarPrimitive {
 
 		public override string TypeName => StaticTypeName;
 		public static string StaticTypeName => "bool";

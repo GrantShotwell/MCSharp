@@ -1,6 +1,7 @@
 ﻿using MCSharp.Compilation;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using static MCSharp.Compilation.ScriptObject;
 
@@ -8,18 +9,33 @@ namespace MCSharp.Variables {
 
 	public class VarObject : VarGeneric {
 
+		private static VarObjective objectId;
+		public static VarObjective ObjectIdObjective {
+			get {
+				if(objectId is null) {
+					var objective = new VarObjective(Access.Public, Usage.Static, GetNextHiddenID(), Compiler.RootScope);
+					objective.Construct(new ArgumentInfo(new Variable[] { (VarString)"dummy" }, Compiler.AnonScriptTrace));
+					objectId = objective;
+				}
+				return objectId;
+			}
+		}
+
 		public override ICollection<Access> AllowedAccessModifiers => new Access[] {
 			Access.Public, Access.Private };
 		public override ICollection<Usage> AllowedUsageModifiers => new Usage[] {
 			Usage.Abstract, Usage.Virtual, Usage.Override, Usage.Default, Usage.Static };
 
 		public VarSelector Selector { get; private set; }
+		public VarInt ObjectId { get; private set; }
 
 
-		public VarObject() : base() { }
+		public VarObject() : base() { objectId = null; }
 		public VarObject(ScriptObject script) : base(script) { }
 		public VarObject(Access access, Usage usage, string name, Compiler.Scope scope, ScriptObject script)
-		: base(access, usage, name, scope, script) { }
+		: base(access, usage, name, scope, script) {
+
+		}
 
 
 		public override Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) => new VarObject(access, usage, name, scope, ScriptClass);
@@ -27,13 +43,17 @@ namespace MCSharp.Variables {
 		public override Variable Construct(ArgumentInfo passed) {
 			//TODO: better 'finder' for overflows
 			foreach(Constructor constructor in Constructors) {
+				Variable result;
 				try {
-					return constructor.Invoke(passed);
+					result = constructor.Invoke(passed);
 				} catch(InvalidArgumentsException) {
 					continue;
 				} catch(InvalidCastException) {
 					continue;
 				}
+				ObjectId = new VarInt(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope);
+				Constructed = true;
+				return result;
 			}
 			throw new Compiler.SyntaxException("Could not find a valid overflow for constructor.", Compiler.CurrentScriptTrace);
 		}

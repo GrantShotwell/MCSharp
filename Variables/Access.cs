@@ -2,6 +2,6 @@
 	public enum Access {
 		Public,
 		Private,
-		Anonymous
+		Pass
 	}
 }

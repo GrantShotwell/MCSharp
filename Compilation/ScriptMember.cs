@@ -177,6 +177,7 @@ namespace MCSharp.Compilation {
 	}
 
 	public static class ScriptMemberExtensions {
+		[DebuggerStepThrough]
 		public static void Add(this Dictionary<string, ScriptMember> dictionary, ScriptMember member) => dictionary.Add(member.Alias, member);
 	}
 

@@ -25,13 +25,9 @@ namespace MCSharp.Variables {
 				(ParameterInfo match, int index) = ParameterInfo.HighestMatch(infoSay, arguments);
 				match.Grab(arguments);
 
-				string text;
 				switch(index) {
 					case 0:
-						text = match[0].Value.GetConstant();
-						goto Say;
-
-						Say:
+						string text = match[0].Value.GetConstant();
 						new Spy(null, $"say {text}", null);
 						return null;
 
@@ -47,14 +43,10 @@ namespace MCSharp.Variables {
 				(ParameterInfo match, int index) = ParameterInfo.HighestMatch(infoTellraw, arguments);
 				match.Grab(arguments);
 
-				string selector, json;
 				switch(index) {
 					case 0:
-						selector = match[0].Value.GetConstant();
-						json = match[1].Value.GetRawText().GetJson();
-						goto Tellraw;
-
-						Tellraw:
+						string selector = match[0].Value.GetConstant();
+						string json = match[1].Value.GetRawText().GetJson();
 						new Spy(null, $"tellraw {selector} {json}", null);
 						return null;
 

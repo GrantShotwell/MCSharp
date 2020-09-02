@@ -8,7 +8,7 @@ using static MCSharp.Compilation.ScriptObject;
 
 namespace MCSharp.Variables {
 
-	public class VarInt : PrimitiveType {
+	public class VarInt : VarPrimitive {
 
 		public override string TypeName => StaticTypeName;
 		public static string StaticTypeName => "int";
@@ -37,8 +37,6 @@ namespace MCSharp.Variables {
 			if(operand is VarInt right || operand.TryCast(out right)) {
 
 				string op;
-				bool thisIsConst = Usage == Usage.Constant;
-				bool thatIsConst = right.Usage == Usage.Constant;
 
 				switch(operation) {
 
@@ -94,14 +92,13 @@ namespace MCSharp.Variables {
 								result = new VarInt(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope);
 								result.SetValue(Selector, Objective);
 								if(right.Usage == Usage.Constant) {
-									new Spy(null, $"scoreboard players set " +
-										$"{result.Selector.GetConstant()} {result.Objective.GetConstant()} {op} " +
-										$"{right.Constant}", null);
-								} else {
-									new Spy(null, $"scoreboard players operation " +
-										$"{result.Selector.GetConstant()} {result.Objective.GetConstant()} {op} " +
-										$"{right.Selector.GetConstant()} {right.Objective.GetConstant()}", null);
+									int value = right.Constant;
+									right = new VarInt(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope);
+									right.SetValue(value);
 								}
+								new Spy(null, $"scoreboard players operation " +
+									$"{result.Selector.GetConstant()} {result.Objective.GetConstant()} {op} " +
+									$"{right.Selector.GetConstant()} {right.Objective.GetConstant()}", null);
 							}
 							return result;
 						}

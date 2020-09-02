@@ -197,7 +197,7 @@ namespace MCSharp.Variables {
 			if(objectName == null) throw new ArgumentNullException(nameof(objectName));
 			if(scope == null) throw new ArgumentNullException(nameof(scope));
 			if(GetType() != typeof(Spy)) {
-				bool anon = access == Access.Anonymous;
+				bool anon = access == Access.Pass;
 				if(anon || !AllowedAccessModifiers.Contains(access)) throw new InvalidModifierException(access.ToString(), TypeName, Compiler.CurrentScriptTrace);
 				bool pass = usage == Usage.PassInto || usage == Usage.PassAway;
 				if(pass || !AllowedUsageModifiers.Contains(usage)) throw new InvalidModifierException(usage.ToString(), TypeName, Compiler.CurrentScriptTrace);

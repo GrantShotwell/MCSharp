@@ -12,7 +12,7 @@ namespace MCSharp.Variables {
 		public override string TypeName => StaticTypeName;
 		public static string StaticTypeName => "Json";
 
-		private string Value { get; set; }
+		private RawText RawText { get; set; }
 
 		public override ICollection<Access> AllowedAccessModifiers => new Access[] { Access.Public, Access.Private };
 		public override ICollection<Usage> AllowedUsageModifiers => new Usage[] { Usage.Default, Usage.Constant };
@@ -21,8 +21,12 @@ namespace MCSharp.Variables {
 		public VarJson() : base() { }
 		public VarJson(Access access, Usage usage, string objectName, Compiler.Scope scope) : base(access, usage, objectName, scope) { }
 
-		public static explicit operator VarJson(string str) => new VarJson(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope) { Value = str };
-
+		public static implicit operator VarJson(RawText raw) => new VarJson(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope) {
+			RawText = raw
+		};
+		public static explicit operator VarJson(RawTextList raw) => new VarJson(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope) {
+			RawText = new RawText() { Text = "", Extra = raw.ToArray() }
+		};
 
 		public override Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) => throw new NotImplementedException();
 
@@ -34,14 +38,10 @@ namespace MCSharp.Variables {
             (ParameterInfo match, int index) = ParameterInfo.HighestMatch(description, arguments);
 			match.Grab(arguments);
 			
-			string value;
 			switch(index) {
 
 				case 0:
-					value = (match[0].Value as VarString).GetConstant();
-					goto Construct;
-
-					Construct:
+					string value = (match[0].Value as VarString).GetConstant();
 					VarJson json = new VarJson(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope);
 					json.SetValue(value);
 					return json;
@@ -51,19 +51,9 @@ namespace MCSharp.Variables {
 
         }
 
-        public void SetValue(string value) => Value = value;
+        public void SetValue(string value) => RawText = RawText.FromJson(value);
 
-		public override string GetConstant() => Value;
-		public override RawText GetRawText() {
-			if(Value[0] == '[') {
-				var list = RawTextList.FromJson(Value);
-				var raw = new RawText() { Text = "", Extra = list.ToArray() };
-				return raw;
-			} else {
-				var raw = RawText.FromJson(Value);
-				return raw;
-			}
-		}
+		public override RawText GetRawText() => RawText;
 
 		public static string EscapeValue(string value, int escapes) {
 			var original = new LinkedList<char>(value);

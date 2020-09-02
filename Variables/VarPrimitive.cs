@@ -6,7 +6,7 @@ using System.IO;
 
 namespace MCSharp.Variables {
 
-	public abstract class PrimitiveType : Variable {
+	public abstract class VarPrimitive : Variable {
 
 		private int constant;
 		private VarObjective objective;
@@ -62,17 +62,15 @@ namespace MCSharp.Variables {
 		public override ICollection<Usage> AllowedUsageModifiers => new Usage[] { Usage.Default, Usage.Static, Usage.Constant };
 
 
-		public PrimitiveType() : base() { }
-
-		public PrimitiveType(Access access, Usage usage, string name, Compiler.Scope scope) : base(access, usage, name, scope) {
-		}
+		public VarPrimitive() : base() { }
+		public VarPrimitive(Access access, Usage usage, string name, Compiler.Scope scope) : base(access, usage, name, scope) { }
 
 
 		public override Variable InvokeOperation(Operation operation, Variable operand, ScriptTrace trace) {
 			switch(operation) {
 
 				case Operation.Equal: {
-					if(operand is PrimitiveType right || operand.TryCast(out right)) {
+					if(operand is VarPrimitive right || operand.TryCast(out right)) {
 
 						VarBool result;
 						if(Usage == Usage.Constant) {
@@ -110,7 +108,7 @@ namespace MCSharp.Variables {
 				}
 
 				case Operation.Set: {
-					if(operand is PrimitiveType right || operand.TryCast(out right)) {
+					if(operand is VarPrimitive right || operand.TryCast(out right)) {
 
 						if(Usage == Usage.Constant) {
 							if(right.Usage == Usage.Constant) {

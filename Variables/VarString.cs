@@ -49,17 +49,19 @@ namespace MCSharp.Variables {
 						}
 
                         case '}': {
-                            // Make value into JSON. 
+                            // Make value into JSON.
                             string prev = format[(start + 1)..end];
 							var value = Compiler.ParseValue(new ScriptLine(new ScriptString(prev)).ToWild(), Compiler.CurrentScope);
-							json.Add(value.GetRawText());
+							var copy = Initializers[value.TypeName](Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope, Compiler.CurrentScriptTrace);
+							copy.InvokeOperation(Operation.Set, value, Compiler.CurrentScriptTrace);
+							json.Add(copy.GetRawText());
 							break;
 						}
 
 						default: continue;
                     }
 
-					// Skipped if broken out of switch statement.
+					// Only not skipped if broken out of switch statement.
 					start = end;
 
                 }
@@ -69,7 +71,7 @@ namespace MCSharp.Variables {
 					json.Add(((VarString)format[(start + 1)..end]).GetRawText());
 				}
 
-				return (VarJson)json.GetJson();
+				return (VarJson)json;
 
 			});
 
