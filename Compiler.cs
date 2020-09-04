@@ -16,8 +16,8 @@ namespace MCSharp {
 
 	public static class Compiler {
 
-		private static int highestFunctionStackSize = 0;
 		private static readonly Dictionary<int, Scope> allScopes = new Dictionary<int, Scope>();
+		private static FileStatusTracker FileStatusTracker { get; set; } = null;
 
 		public static ICollection<string> BinaryOperators { get; } = new string[] { "+", "-", "*", "/", "%" };
 		public static ICollection<string> BooleanOperators { get; } = new string[] { "&&", "||" };
@@ -75,22 +75,18 @@ namespace MCSharp {
 				string functionPath = $"{functionsPath}\\{functionName}";
 				if(!scriptPath.EndsWith(".mcsharp")) continue;
 
-				Console.ForegroundColor = ConsoleColor.Gray;
-				Console.WriteLine($"Compiling '{scriptName}'... ");
+				FileStatus file = new FileStatus(scriptPath.Split('\\')[^1], 0);
+				FileStatusTracker.Add(file);
 
 				using(StreamReader reader = File.OpenText(scriptPath)) {
 					new ScriptFile(new ScriptString(reader.ReadToEnd(), scriptPath));
 				}
 
-				Console.CursorTop -= highestFunctionStackSize + 1;
-				Program.ClearCurrentConsoleLine();
-				Console.ForegroundColor = ConsoleColor.Green;
-				Console.WriteLine($"Compiled '{scriptPath.Split('\\')[^1]}'.");
-				Console.CursorTop += highestFunctionStackSize;
-
-				highestFunctionStackSize = 0;
+				FileStatusTracker.Finish(file);
 
 			}
+
+			FileStatusTracker.Goto(FileStatusTracker.Height);
 
 			VariableScopes.TryGetValue(RootScope, out List<Variable> publicVariables);
 			var allVariables = new List<Variable>();
@@ -142,22 +138,19 @@ namespace MCSharp {
 
 		}
 
-		public static Scope WriteFunction<TReturn>(Scope parent, Variable declarer, ScriptMethod method) where TReturn : Variable {
-			return WriteFunction<TReturn>(parent, declarer, method, method.FilePath, method.FileName);
+		public static Scope WriteFunction<TReturn>(Scope parent, Variable declarer, ScriptMethod method, bool inline = false) where TReturn : Variable {
+			return WriteFunction<TReturn>(parent, declarer, method, method.FilePath, method.FileName, inline);
 		}
 
 		/// <summary>
 		/// Compiles a new function file with the given <paramref name="functionPath"/> from the given <paramref name="method"/>.
 		/// </summary>
-		private static Scope WriteFunction<TReturn>(Scope parent, Variable declarer, ScriptMethod method, string path, string name) where TReturn : Variable {
+		private static Scope WriteFunction<TReturn>(Scope parent, Variable declarer, ScriptMethod method, string path, string name, bool inline = false) where TReturn : Variable {
 
-			//string path = method.FilePath;
-			//string name = method.FileName;
 			CurrentScriptTrace = method.ScriptTrace;
 
-			Console.ForegroundColor = ConsoleColor.Gray;
-			Console.Write($" · Writing '{name}'... ");
-			highestFunctionStackSize++;
+			FileStatus file = new FileStatus(name, FileStatusTracker.Recursion);
+			FileStatusTracker.Add(file);
 
 			string[] directorySplit = path.Split('\\')[..^1];
 			string directory = "";
@@ -244,10 +237,7 @@ namespace MCSharp {
 
 			FunctionStack.Pop().Close();
 			Scope outScope = ScopeStack.Pop();
-
-			Program.ClearCurrentConsoleLine();
-			Console.ForegroundColor = ConsoleColor.Green;
-			Console.WriteLine($" · Wrote '{name}'.");
+			FileStatusTracker.Finish(file);
 
 			return outScope;
 
@@ -477,6 +467,9 @@ namespace MCSharp {
 		}
 
 		public static void Reset() {
+
+			//Reset file tracker.
+			FileStatusTracker = new FileStatusTracker();
 
 			//Clear casters.
 			Variable.Casters.Clear();

@@ -166,7 +166,7 @@ namespace MCSharp.Statements {
 
 		public override void Write(ScriptLine line) {
 
-			if(line.Length >= 3) throw new Compiler.InternalError("053408302020");
+			if(line.Length > 5) throw new Compiler.InternalError("053408302020");
 			ScriptWild conditionWild = line[1];
 			ScriptWild statementWild = line[2];
 			ScriptWild? elseWild = line.Length > 4 ? (ScriptWild?)line[4] : null;
