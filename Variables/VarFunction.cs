@@ -45,6 +45,7 @@ namespace MCSharp.Variables {
 
 		public override Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) => throw new NotImplementedException();
 		public override Variable Construct(ArgumentInfo passed) => throw new NotImplementedException();
+		public override void ConstructAsPasser() => throw new NotImplementedException();
 
 		public override void WriteInit(StreamWriter function) {
 			base.WriteInit(function);

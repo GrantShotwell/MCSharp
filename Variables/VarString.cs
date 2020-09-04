@@ -80,6 +80,7 @@ namespace MCSharp.Variables {
 
 		public override Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) => new VarString(access, usage, name, scope);
 		public override Variable Construct(ArgumentInfo passed) => throw new Compiler.SyntaxException($"'{TypeName}' types cannot be constructed.", Compiler.CurrentScriptTrace);
+		public override void ConstructAsPasser() => throw new NotImplementedException();
 
 		public override Variable InvokeOperation(Operation operation, Variable operand, ScriptTrace trace) {
 

@@ -24,11 +24,16 @@ namespace MCSharp.Variables {
 
 		public override Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) => new VarInt(access, usage, name, scope);
 		public override Variable Construct(ArgumentInfo passed) => throw new Compiler.SyntaxException($"'{TypeName}' types cannot be constructed.", Compiler.CurrentScriptTrace);
+		public override void ConstructAsPasser() => SetValue(0);
 
 		public override void WriteCopyTo(StreamWriter function, Variable variable) {
 			if(variable is Pointer<VarInt> pointer) pointer.Variable = this;
 			else if(variable is VarInt varInt || variable.TryCast(out varInt)) {
-				function.WriteLine($"scoreboard players operation var {varInt.Objective.ID} = var {Objective.ID}");
+				if(Usage == Usage.Constant) {
+					function.WriteLine($"scoreboard players set {varInt.Selector.GetConstant()} {varInt.Objective.GetConstant()} {Constant}");
+				} else {
+					function.WriteLine($"scoreboard players operation {varInt.Selector.GetConstant()} {varInt.Objective.GetConstant()} = {Selector.GetConstant()} {Objective.GetConstant()}");
+				}
 			} else throw new InvalidArgumentsException($"Unknown how to interpret '{variable}' as '{TypeName}'.", Compiler.CurrentScriptTrace);
 		}
 

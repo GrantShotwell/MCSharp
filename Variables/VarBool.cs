@@ -19,6 +19,7 @@ namespace MCSharp.Variables {
 
 		public override Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) => new VarBool(access, usage, name, scope);
 		public override Variable Construct(ArgumentInfo passed) => throw new Compiler.SyntaxException($"'{TypeName}' types cannot be constructed.", Compiler.CurrentScriptTrace);
+		public override void ConstructAsPasser() => SetValue(0);
 
 		public override void WriteCopyTo(StreamWriter function, Variable variable) {
 			if(variable is Pointer<VarBool> pointer) pointer.Variable = this;
@@ -42,7 +43,8 @@ namespace MCSharp.Variables {
 					//Write function: 'set anon to the opposite of this'.
 					var function = new ScriptMethod($"{Compiler.CurrentScope}\\{Compiler.CurrentScope.GetNextInnerID()}",
 						"void", new Variable[] { }, Compiler.CurrentScope.DeclaringType,
-						new ScriptString($"if({anon.ObjectName}) {{ {anon.ObjectName} = false; }} else {{ {anon.ObjectName} = true; }}"));
+						new ScriptString($"if({anon.ObjectName}) {{ {anon.ObjectName} = false; }} else {{ {anon.ObjectName} = true; }}"),
+						Compiler.CurrentScope);
 					Compiler.WriteFunction<VarVoid>(Compiler.CurrentScope, null, function);
 					//Write command: 'run that function'.
 					new Spy(null, $"function {function.GameName}", null);
@@ -59,7 +61,8 @@ namespace MCSharp.Variables {
 					//Write function: 'if anon is true, set anon to args'.
 					var function = new ScriptMethod($"{Compiler.CurrentScope}\\{Compiler.CurrentScope.GetNextInnerID()}",
 						"void", new Variable[] { }, Compiler.CurrentScope.DeclaringType,
-						new ScriptString($"if({anon.ObjectName}) {{ {anon.ObjectName} = {right.ObjectName}; }}"));
+						new ScriptString($"if({anon.ObjectName}) {{ {anon.ObjectName} = {right.ObjectName}; }}"),
+						Compiler.CurrentScope);
 					Compiler.WriteFunction<VarVoid>(Compiler.CurrentScope, null, function);
 					//Write command: 'run that function'.
 					new Spy(null, $"function {function.GameName}", null);

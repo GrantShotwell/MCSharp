@@ -153,7 +153,7 @@ namespace MCSharp.Variables {
 					AddAutoProperty(Selector = sel = new VarSelector(Access.Private, Usage.Constant, char.ToLower(VarSelector.StaticTypeName[0]) + VarSelector.StaticTypeName.Substring(1), InnerScope));
 					sel.InvokeOperation(Operation.Set, Constructors[sel.TypeName](new ArgumentInfo(new Variable[] { (VarString)"var" }, Compiler.CurrentScriptTrace)), Compiler.CurrentScriptTrace);
 #if DEBUG_OUT
-					VarObjective.NextID = $"{name}@{Scope}";
+					VarObjective.NextID = $"{ObjectName}@{Scope}";
 #endif
 					VarObjective obj;
 					AddAutoProperty(Objective = obj = new VarObjective(Access.Private, Usage.Constant, char.ToLower(VarObjective.StaticTypeName[0]) + VarObjective.StaticTypeName.Substring(1), InnerScope));
@@ -188,7 +188,7 @@ namespace MCSharp.Variables {
 				AddAutoProperty(Selector = sel = new VarSelector(Access.Private, Usage.Default, char.ToLower(VarSelector.StaticTypeName[0]) + VarSelector.StaticTypeName.Substring(1), InnerScope));
 				sel.InvokeOperation(Operation.Set, Constructors[sel.TypeName](new ArgumentInfo(new Variable[] { (VarString)"var" }, Compiler.CurrentScriptTrace)), Compiler.CurrentScriptTrace);
 #if DEBUG_OUT
-			VarObjective.NextID = $"{name}@{Scope}";
+			VarObjective.NextID = $"{ObjectName}@{Scope}";
 #endif
 				VarObjective obj;
 				AddAutoProperty(Objective = obj = new VarObjective(Access.Private, Usage.Default, char.ToLower(VarObjective.StaticTypeName[0]) + VarObjective.StaticTypeName.Substring(1), InnerScope));

@@ -117,7 +117,7 @@ namespace MCSharp.Compilation {
 			}
 
 			if(stack.Count != 1) {
-				throw new Compiler.InternalError("GetWilds ended with stack size not equal to 1.");
+				throw new Compiler.SyntaxException($"{stack.Count - 1} blocks are left unclosed.", phrase.ScriptTrace);
 			} else {
 				ScriptWild result = stack.Peek().Complete();
 				return result;

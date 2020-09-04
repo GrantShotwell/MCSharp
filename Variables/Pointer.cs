@@ -18,6 +18,7 @@ namespace MCSharp.Variables {
 
 		public override Variable Construct(ArgumentInfo passed) => Variable.Construct(passed);
 		public override Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) => Variable.Initialize(access, usage, name, scope, trace);
+		public override void ConstructAsPasser() => Variable.ConstructAsPasser();
 
 		public override Variable InvokeOperation(Operation operation, Variable operand, ScriptTrace trace) => Variable.InvokeOperation(operation, operand, trace);
 		public override void WriteCopyTo(StreamWriter function, Variable variable) => Variable.WriteCopyTo(function, variable);

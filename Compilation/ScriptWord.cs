@@ -17,6 +17,7 @@ namespace MCSharp.Compilation {
 		int IReadOnlyCollection<ScriptChar>.Count => Length;
 
 
+		[DebuggerStepThrough]
 		public ScriptWord(ScriptString characters, bool ignoreCohesion = false) {
 			if(ignoreCohesion || (characters.Length >= 2 && characters[0] == '"' && characters[^1] == '"')) {
 			} else {
@@ -29,11 +30,14 @@ namespace MCSharp.Compilation {
 		}
 
 
-		public IEnumerator<ScriptChar> GetEnumerator() => ((IEnumerable<ScriptChar>)ScriptString).GetEnumerator();
-		IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable<ScriptChar>)ScriptString).GetEnumerator();
+		public IEnumerator<ScriptChar> GetEnumerator() => ScriptString.GetEnumerator();
+		IEnumerator IEnumerable.GetEnumerator() => ScriptString.GetEnumerator();
 
+		[DebuggerStepThrough]
 		public static implicit operator ScriptString(ScriptWord word) => new ScriptString(word.ScriptString);
+		[DebuggerStepThrough]
 		public static implicit operator ScriptWord(ScriptString str) => new ScriptWord(str);
+		[DebuggerStepThrough]
 		public static explicit operator string(ScriptWord word) => (string)(ScriptString)word;
 
 		public static bool operator ==(ScriptWord left, string right) => (string)left == right;

@@ -81,6 +81,8 @@ namespace MCSharp.Variables {
 			}
 		}
 
+		public override void ConstructAsPasser() => throw new NotImplementedException();
+
 		public override Variable InvokeOperation(Operation operation, Variable operand, ScriptTrace trace) {
 			switch(operation) {
 				case Operation.Set:

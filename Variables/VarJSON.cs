@@ -51,7 +51,9 @@ namespace MCSharp.Variables {
 
         }
 
-        public void SetValue(string value) => RawText = RawText.FromJson(value);
+		public override void ConstructAsPasser() => throw new NotImplementedException();
+
+		public void SetValue(string value) => RawText = RawText.FromJson(value);
 
 		public override RawText GetRawText() => RawText;
 

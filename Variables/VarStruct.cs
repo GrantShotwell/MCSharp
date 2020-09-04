@@ -41,6 +41,12 @@ namespace MCSharp.Variables {
 			throw new Compiler.SyntaxException("Could not find a valid overflow for constructor.", Compiler.CurrentScriptTrace);
 		}
 
+		public override void ConstructAsPasser() {
+			foreach(KeyValuePair<string, Variable> field in Fields) {
+				field.Value.ConstructAsPasser();
+			}
+		}
+
 		public override (GetProperty get, SetProperty set) CompileProperty(ScriptProperty property) {
 			GetProperty get = null;
 			if(!(property.GetFunc is null)) {

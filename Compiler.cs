@@ -550,22 +550,22 @@ namespace MCSharp {
 			private readonly Variable declaringVariable;
 			private readonly ScriptMethod declaringMethod;
 
-			public int ID { get; }
-			public Variable DeclaringVariable => declaringVariable ?? Parent?.DeclaringVariable ?? null;
-			public ScriptObject DeclaringType => (DeclaringVariable as VarStruct)?.ScriptClass;
-			public ScriptMethod DeclaringMethod => declaringMethod ?? Parent?.DeclaringMethod ?? null;
-			public ScriptMethod DeclaringRealMethod {
+			public virtual int ID { get; }
+			public virtual Variable DeclaringVariable => declaringVariable ?? Parent?.DeclaringVariable ?? null;
+			public virtual ScriptObject DeclaringType => (DeclaringVariable as VarStruct)?.ScriptClass;
+			public virtual ScriptMethod DeclaringMethod => declaringMethod ?? Parent?.DeclaringMethod ?? null;
+			public virtual ScriptMethod DeclaringRealMethod {
 				get {
 					ScriptMethod method = DeclaringMethod;
 					if(method is null || method.Anonymous) method = Parent?.DeclaringRealMethod;
 					return method;
 				}
 			}
-			public ICollection<Variable> Variables { get; } = new HashSet<Variable>();
-			public IReadOnlyCollection<Scope> Children => children;
-			public Scope Parent {
+			public virtual ICollection<Variable> Variables { get; } = new HashSet<Variable>();
+			public virtual IReadOnlyCollection<Scope> Children => children;
+			public virtual Scope Parent {
 				get => parent;
-				private set {
+				set {
 					parent?.children.Remove(this);
 					value?.children.Add(this);
 					parent = value;
@@ -580,6 +580,8 @@ namespace MCSharp {
 				Parent = parent;
 				allScopes.Add(this);
 			}
+
+			protected Scope() { }
 
 
 			public bool IsChildOf(Scope scope, out int delta) {

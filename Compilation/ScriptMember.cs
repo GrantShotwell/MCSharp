@@ -93,14 +93,14 @@ namespace MCSharp.Compilation {
 		public virtual Compiler.Scope Scope { get; }
 
 
-		public ScriptMember(string alias, string type, Access access, Usage usage, ScriptObject declarer, ScriptTrace trace) {
+		public ScriptMember(string alias, string type, Access access, Usage usage, ScriptObject declarer, ScriptTrace trace, Compiler.Scope scope) {
 			ScriptTrace = trace ?? throw new ArgumentNullException(nameof(trace));
 			DeclaringType = declarer;
 			TypeName = type;
 			Access = access;
 			Usage = usage;
 			Alias = alias;
-			Scope = Compiler.CurrentScope;
+			Scope = scope;
 		}
 
 		public static ScriptLine[] GetLines(ScriptString function) {

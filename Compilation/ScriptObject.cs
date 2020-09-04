@@ -52,7 +52,7 @@ namespace MCSharp.Compilation {
 		#region Constructors
 
 		public ScriptObject(ScriptString alias, ScriptString dataType, ScriptString scriptClass, Access access = Access.Private, Usage usage = Usage.Default)
-		: this(alias, dataType, GetMembers(alias, scriptClass), scriptClass.ScriptTrace, access, usage) { }
+		: this(alias, dataType, GetMembers(alias, scriptClass, new Compiler.Scope(Compiler.CurrentScope)), scriptClass.ScriptTrace, access, usage) { }
 		private ScriptObject(ScriptString alias, ScriptString dataType, Dictionary<string, ScriptMember> members, ScriptTrace race, Access access, Usage usage) {
 
 			if(DataTypeDictionary.ContainsKey((string)dataType)) Type = DataTypeDictionary[(string)dataType];
@@ -81,235 +81,242 @@ namespace MCSharp.Compilation {
 
 		#region Methods
 
-		public static Dictionary<string, ScriptMember> GetMembers(ScriptString className, ScriptString scriptClass) {
+		public static Dictionary<string, ScriptMember> GetMembers(ScriptString className, ScriptString scriptClass, Compiler.Scope scope) {
 			var members = new Dictionary<string, ScriptMember>();
 
-			var blocks = new Stack<string>();
-			ScriptWild?[] words = new ScriptWild?[3];
-
-			ScriptWord? alias = null, type = null;
-			Variable[] parameters = null;
-			Access? access = null;
-			Usage? usage = null;
-
-			void Rotate() {
-				for(int i = words.Length - 1; i > 0; i--)
-					words[i] = words[i - 1];
-				words[0] = null;
+			bool IsStoppingCharacter(char character) {
+				if(ScriptLine.IsBlockChar(character, out _)) return true;
+				else if(ScriptLine.IsSeparatorChar(character)) return true;
+				else return false;
 			}
 
-			for(int start = 0, end = 0; end < scriptClass.Length; end++) {
+			void GetNextWord(ref int i, out ScriptWord word) {
 
-				ScriptChar current = scriptClass[end];
-				if(char.IsWhiteSpace((char)current) || ScriptLine.IsBlockChar((char)current, out _)) {
-					if(blocks.Count == 0) {
-						if(end - 1 > start) {
-							ScriptString s = scriptClass[start..end];
-							if(!s.ContainsWhitespace()) {
-								words[0] = (ScriptWord)s;
-								Rotate();
-								if(Compiler.AccessModifiers.TryGetValue(words[1] ?? "", out Access accessOut)) {
-									if(access.HasValue) throw new Compiler.SyntaxException("Unexpected second access modifier.", scriptClass[end].ScriptTrace);
-									else access = accessOut;
-								} else if(Compiler.UsageModifiers.TryGetValue(words[1] ?? "", out Usage usageOut)) {
-									if(usage.HasValue) throw new Compiler.SyntaxException("Unexpected second usage modifier.", scriptClass[end].ScriptTrace);
-									else usage = usageOut;
-								} else {
-									if(Initializers.TryGetValue(words[1], out _)) {
-										//if(type.HasValue) throw new Compiler.SyntaxException("Unexpected second type keyword.", scriptClass[end].ScriptTrace);
-										//else type = words[0].Value.Word;
-									} else {
-										//if(alias = )
-									}
-								}
-							}
-						}
-						start = end + 1;
-					}
+				GotoNextChar(ref i);
+
+				int start = i;
+				char current = (char)scriptClass[i];
+				while((!char.IsWhiteSpace(current) && !IsStoppingCharacter(current)) && (i + 1 < scriptClass.Length)) {
+					current = (char)scriptClass[++i];
 				}
 
-				if(!char.IsWhiteSpace((char)current)) {
-					switch((char)current) {
+				word = scriptClass[start..i--];
 
-						case '{': {
-							blocks.Push("{\\}");
-							if(blocks.Count == 1) {
-								start = end + 1;
-								alias = words[1].Value.Word;
-								type = alias.Value == (string)className ? null : (ScriptWord?)words[2].Value.Word;
+			}
+
+			void GetInitValue(ref int i, out ScriptString init) {
+
+				GotoNextChar(ref i);
+
+				int start = i;
+				char current = (char)scriptClass[i];
+				while(current != ';') {
+					if(i + 1 >= scriptClass.Length) throw new Compiler.SyntaxException("Missing semicolon for field declaration.", scriptClass[^1].ScriptTrace);
+					current = (char)scriptClass[++i];
+				}
+
+				init = scriptClass[start..i];
+
+			}
+
+			void GetBlockWilds(ref int i, string type, out ScriptString wilds) {
+
+				GotoNextChar(ref i);
+
+				int start = i;
+				var stack = new Stack<string>();
+				do {
+					char current = (char)scriptClass[i++];
+					if(ScriptLine.IsBlockCharStart(current, out string block)) {
+						stack.Push(block);
+					}
+					if(ScriptLine.IsBlockCharEnd(current, out block)) {
+						if(stack.Pop() != block) throw new Compiler.SyntaxException($"Unexpected '{current}'.", scriptClass[i].ScriptTrace);
+						else if(stack.Count == 0) {
+							if(block == type) break;
+							else throw new Compiler.SyntaxException($"Expected '{type}' block.", scriptClass[i].ScriptTrace);
+						}
+					}
+				} while(stack.Count > 0);
+
+				wilds = scriptClass[start..i--];
+
+			}
+
+			Variable CreateParameter(ScriptWild definition) {
+
+				const string syntaxErrorMessage = "Expected arguments in ([type] [name], ...) format.";
+				if(!definition.IsWilds || definition.Wilds.Count != 2) throw new Compiler.SyntaxException(syntaxErrorMessage, definition.ScriptTrace);
+				IReadOnlyList<ScriptWild> wilds = definition.Wilds;
+				if(!wilds[0].IsWord) throw new Compiler.SyntaxException(syntaxErrorMessage, definition.ScriptTrace);
+				ScriptWord type = wilds[0].Word;
+				if(!wilds[1].IsWord) throw new Compiler.SyntaxException(syntaxErrorMessage, definition.ScriptTrace);
+				ScriptWord name = wilds[1].Word;
+
+				if(Initializers.TryGetValue((string)type, out Initializer initializer)) {
+					Variable parameter = initializer(Access.Pass, Usage.PassInto, (string)name, Compiler.CurrentScope, name.ScriptTrace);
+					parameter.ConstructAsPasser();
+					return parameter;
+				} else throw new Compiler.SyntaxException($"Unknown type '{(string)type}'.", type.ScriptTrace);
+
+			}
+
+			void GetParameters(ref int i, out Variable[] parameters) {
+
+				GetBlockWilds(ref i, "(\\)", out ScriptString content);
+				ScriptWild wilds = ScriptLine.GetWilds(content);
+
+				if(wilds.FullBlockType == "(\\,\\)") {
+					int count = wilds.Wilds.Count;
+					parameters = new Variable[count];
+					for(int j = 0; j < count; j++) parameters[j] = CreateParameter(wilds.Wilds[j]);
+				} else if(wilds.Block == "(\\)") {
+					if(wilds.Wilds.Count == 0) parameters = new Variable[0];
+					else parameters = new Variable[1] { CreateParameter(wilds.Wilds[0]) };
+				} else {
+					throw new Compiler.SyntaxException("Expected method arguments to be in '(\\,\\)' format.", wilds.ScriptTrace);
+				}
+
+			}
+
+			void GetCodeBlock(ref int i, out ScriptString content) {
+
+				GetBlockWilds(ref i, "{\\}", out ScriptString wilds);
+				content = wilds;
+
+			}
+
+			void GotoNextChar(ref int i) {
+				if(i + 1 >= scriptClass.Length) {
+					throw new Compiler.SyntaxException("Last member in type definition is incomplete.", scriptClass[^1].ScriptTrace);
+				} else {
+					char current = (char)scriptClass[++i];
+					while(char.IsWhiteSpace(current) && (i + 1 < scriptClass.Length)) {
+						current = (char)scriptClass[++i];
+					}
+				}
+			}
+
+			ScriptChar PreviewNextChar(int i) {
+				GotoNextChar(ref i);
+				return scriptClass[i];
+			}
+
+			// Looks like it loops through every character, but the function calls makes it a loop through every member.
+			for(int i = 0; i < scriptClass.Length; i++) {
+
+				if((char)PreviewNextChar(i) == ' ') break;
+
+				Access access;
+				Usage usage;
+				ScriptWord type;
+				ScriptWord? name;
+
+				{
+					Access? _access = null;
+					Usage? _usage = null;
+					ScriptWord? _type = null;
+					ScriptWord? _name = null;
+
+					// Get modifiers, type, and name.
+					while(!_access.HasValue || !_usage.HasValue || !_type.HasValue || !_name.HasValue) {
+
+						GetNextWord(ref i, out ScriptWord word);
+						if(!_type.HasValue) {
+							var next = PreviewNextChar(i);
+							if(IsStoppingCharacter((char)next)) {
+								if(!_access.HasValue) _access = Access.Private;
+								if(!_usage.HasValue) _usage = Usage.Default;
+								_type = word;
+								break;
 							}
-							Rotate();
-							break;
 						}
 
-						case '}': {
-							if(blocks.Pop() != "{\\}") throw new Compiler.SyntaxException("Expected '}'.", scriptClass[end].ScriptTrace);
-							if(blocks.Count == 0) {
-								if(parameters == null) {
-									// <<Property>>
-									ScriptString accessors = scriptClass[start..end];
-									//Find get/set methods.
-									ScriptMethod get = null, set = null;
-									ScriptProperty.Accessors? accessor = null;
-									var blks = new Stack<string>();
-									for(int a = 0, b = 0; b < accessors.Length; b++) {
-										var c = accessors[b];
-
-										bool whitespace = char.IsWhiteSpace((char)c);
-										if(blks.Count == 0 && (whitespace || ScriptLine.IsBlockChar((char)c, out _))) {
-
-											if(b - a > 1) {
-												ScriptString word = accessors[a..b];
-												accessor = ((string)word) switch
-												{ //this is certainly a feature that exists
-													"get" => ScriptProperty.Accessors.Get,
-													"set" => ScriptProperty.Accessors.Set,
-													_ => throw new Compiler.SyntaxException(
-													$"Expected 'get' or 'set', but got '{(string)word}'.", word.ScriptTrace),
-												};
-											}
-
-											if(whitespace) {
-												if(blks.Count == 0)
-													a = b + 1;
-												continue;
-											}
-
-										}
-
-										if(ScriptLine.IsBlockCharStart((char)c, out string block)) {
-
-											blks.Push(block);
-											if(blks.Count == 1) {
-												// <<Start of Accessor>>
-												a = b + 1;
-											}
-
-										} else if(ScriptLine.IsBlockCharEnd((char)c, out block)) {
-
-											if(blks.Count == 0) throw new Compiler.SyntaxException($"Unexpected '{block[2]}'.", c.ScriptTrace);
-											string peek = blks.Peek();
-											if(peek != block) throw new Compiler.SyntaxException($"Expected '{peek[2]}' but got '{block[2]}'.", c.ScriptTrace);
-											else blks.Pop();
-											if(blks.Count == 0) {
-												// <<End of Accessor>>
-												switch(accessor ?? throw new Exception("104503102020")) {
-													case ScriptProperty.Accessors.Get: {
-														if(get == null) get = new ScriptMethod($"get_{(string)alias}", (string)type, new Variable[] {
-															// No parameters.
-														}, null, accessors[a..b], Access.Private, usage ?? Usage.Default);
-														else throw new Compiler.SyntaxException("Unexpected second 'get' accessor.", c.ScriptTrace);
-														break;
-													}
-													case ScriptProperty.Accessors.Set: {
-														if(set == null) set = new ScriptMethod($"set_{(string)alias}", (string)type, new Variable[] {
-                                                            // 'value'
-															Initializers[(string)type].Invoke(Access.Private, Usage.Default,
-																GetNextHiddenID(), Compiler.CurrentScope, c.ScriptTrace)
-														}, null, accessors[a..b], Access.Private, usage ?? Usage.Default);
-														else throw new Compiler.SyntaxException("Unexpected second 'set' accessor.", c.ScriptTrace);
-														break;
-													}
-													default: throw new Exception("104303102020");
-												}
-												a = b + 1;
-											}
-
-										}
-
-									}
-									members.Add(new ScriptProperty((string)alias, (string)type, get, set,
-										access ?? Access.Private, usage ?? Usage.Default, null, alias.Value.ScriptTrace));
-								} else {
-									if(type.HasValue) {
-										// <<Method>>
-										members.Add(new ScriptMethod((string)alias, (string)type,
-											parameters, null, scriptClass[start..end],
-											access ?? Access.Private, usage ?? Usage.Default));
-									} else {
-										// <<Constructor>>
-										members.Add(new ScriptConstructor(
-											parameters, (string)className, scriptClass[start..end],
-											access ?? Access.Private, usage ?? Usage.Default));
-									}
-								}
-								parameters = null;
-								alias = null;
-								type = null;
-								access = null;
-								usage = null;
-							}
-							Rotate();
-							break;
+						if(!_access.HasValue && Compiler.AccessModifiers.TryGetValue((string)word, out Access __access)) {
+							_access = __access;
+						} else if(!_usage.HasValue && Compiler.UsageModifiers.TryGetValue((string)word, out Usage __usage)) {
+							_usage = __usage;
+						} else if(!_type.HasValue) {
+							if(!_access.HasValue) _access = Access.Private;
+							if(!_usage.HasValue) _usage = Usage.Default;
+							_type = word;
+						} else {
+							_name = word;
 						}
-
-						case '(': {
-							blocks.Push("(\\)");
-							if(blocks.Count == 1) {
-								// <<Start of Parameters>>
-								start = end + 1;
-							}
-							break;
-						}
-
-						case ')': {
-							if(blocks.Pop() != "(\\)") throw new Compiler.SyntaxException("Expected ')'.", scriptClass[end].ScriptTrace);
-							if(blocks.Count == 0) {
-								// <<End of Parameters>>
-								ScriptWild paramDefs = ScriptLine.GetWilds(scriptClass[(start - 1)..(end + 1)]);
-
-								//Make sense of the parameter definition.
-								if(paramDefs.FullBlockType == "(\\,\\)") {
-									parameters = new Variable[paramDefs.Count];
-								} else if(paramDefs.Count == 0) {
-									parameters = new Variable[0];
-									goto End;
-								} else {
-									parameters = new Variable[1];
-									paramDefs = new ScriptWild(new ScriptWild[] { new ScriptWild(paramDefs.Array, " \\ ", ' ') }, "(\\)", ',');
-								}
-
-								//Create parameter variables.
-								for(int i = 0; i < paramDefs.Wilds.Count; i++) {
-									if(paramDefs.Wilds[i].IsWilds) {
-										ScriptWild paramDef = paramDefs.Wilds[i];
-										if(paramDef.Count != 2 || paramDef[0].IsWilds || paramDef[1].IsWilds)
-											throw new Compiler.SyntaxException("Expected [type] [name].", paramDefs.Wilds[i].ScriptTrace);
-										if(Initializers.TryGetValue(paramDef[0], out var compiler)) {
-											parameters[i] = compiler.Invoke(Access.Private, Usage.Default,
-												paramDef[1], Compiler.CurrentScope, paramDef[1].ScriptTrace);
-										} else throw new Compiler.SyntaxException($"Unknown type '{type}'.", Compiler.CurrentScriptTrace);
-									}
-								}
-
-								End: start = end + 1;
-							}
-							break;
-						}
-
-						case '=':
-						case ';':
-							if(blocks.Count == 0) {
-
-								start = end--;
-								alias = words[1].Value.Word;
-								type = words[2].Value.Word;
-
-								while((current = scriptClass[++end]) != ';' && end < scriptClass.Length) ;
-								var field = new ScriptField((string)alias.Value, (string)type.Value,
-									access ?? Access.Private, usage ?? Usage.Default, null, scriptClass[start..end]);
-								members.Add(field);
-
-								parameters = null;
-								alias = null;
-								type = null;
-								access = null;
-								usage = null;
-
-							}
-							break;
 
 					}
+
+					access = _access.Value;
+					usage = _usage.Value;
+					type = _type.Value;
+					name = _name;
+				}
+
+				GotoNextChar(ref i);
+				switch((char)scriptClass[i--]) {
+
+					// Field (no init)
+					case ';': {
+						members.Add(new ScriptField((string)name.Value, (string)type, access, usage, null, new ScriptString(""), scope));
+						break;
+					}
+					// Field (init)
+					case '=': {
+						GetInitValue(ref i, out ScriptString init);
+						members.Add(new ScriptField((string)name.Value, (string)type, access, usage, null, init, scope));
+						break;
+					}
+
+					// Property
+					case '{': {
+						ScriptMethod get = null, set = null;
+
+						i += 1;
+						while(PreviewNextChar(i) != '}') {
+
+							GetNextWord(ref i, out ScriptWord word);
+							if((string)word == "get") {
+								if(get != null) throw new Compiler.SyntaxException("Cannot have two 'get' accessors in a proptery.", word.ScriptTrace);
+								// Create 'get' accessor.
+								GetCodeBlock(ref i, out ScriptString block);
+								get = new ScriptMethod($"get_{(string)name.Value}", (string)type, new Variable[] { }, null, block[1..^1], new Compiler.Scope(scope), access, usage);
+							} else if((string)word == "set") {
+								if(set != null) throw new Compiler.SyntaxException("Cannot have two 'set' accessors in a proptery.", word.ScriptTrace);
+								// Create 'set' accessor.
+								GetCodeBlock(ref i, out ScriptString block);
+								Variable value = Initializers[(string)type](Access.Pass, Usage.PassInto, "value", new Compiler.Scope(scope), word.ScriptTrace);
+								value.ConstructAsPasser();
+								set = new ScriptMethod($"set_{(string)name.Value}", (string)type, new Variable[] { value }, null, block[1..^1], new Compiler.Scope(scope), access, usage);
+							} else {
+								// Throw error.
+								throw new Compiler.SyntaxException($"Unexpected '{(string)word}' in property definition (expected 'get' or 'set').", word.ScriptTrace);
+							}
+
+						}
+						GotoNextChar(ref i);
+						i += 1;
+						members.Add(new ScriptProperty((string)name.Value, (string)type, get, set, access, usage, null, name.Value.ScriptTrace, scope));
+						break;
+					}
+
+					// Method or Constructor
+					case '(': {
+						if(name.HasValue) {
+							// Method
+							GetParameters(ref i, out Variable[] parameters);
+							GetCodeBlock(ref i, out ScriptString content);
+							members.Add(new ScriptMethod((string)name.Value, (string)type, parameters, null, content[1..^1], new Compiler.Scope(scope), access, usage));
+							break;
+						} else {
+							// Constructor
+							GetParameters(ref i, out Variable[] parameters);
+							GetCodeBlock(ref i, out ScriptString content);
+							members.Add(new ScriptConstructor(parameters, (string)type, content[1..^1], new Compiler.Scope(scope), access, usage));
+							break;
+						}
+					}
+
+					default: throw new Compiler.SyntaxException("There was a problem parsing this type member definition.", scriptClass[i + 1].ScriptTrace);
 				}
 
 			}
@@ -371,11 +378,11 @@ namespace MCSharp.Compilation {
 			/// <summary>The initial value to evaluate this field as when the object is created.</summary>
 			public ScriptWild Init { get; }
 
-			public ScriptField(string alias, string type, Access access, Usage usage, ScriptObject declarer, ScriptString phrase)
-			: this(alias, type, access, usage, declarer, new ScriptWild(ScriptLine.GetWilds(phrase).Array, "(\\)", ' ')) { }
+			public ScriptField(string alias, string type, Access access, Usage usage, ScriptObject declarer, ScriptString phrase, Compiler.Scope scope)
+			: this(alias, type, access, usage, declarer, new ScriptWild(ScriptLine.GetWilds(phrase).Array, "(\\)", ' '), scope) { }
 
-			public ScriptField(string alias, string type, Access access, Usage usage, ScriptObject declarer, ScriptWild init)
-			: base(alias, type, access, usage, declarer, init.ScriptTrace) {
+			public ScriptField(string alias, string type, Access access, Usage usage, ScriptObject declarer, ScriptWild init, Compiler.Scope scope)
+			: base(alias, type, access, usage, declarer, init.ScriptTrace, scope) {
 
 				Init = init;
 
@@ -413,8 +420,8 @@ namespace MCSharp.Compilation {
 			}
 
 			public ScriptProperty(string alias, string type, ScriptMethod get, ScriptMethod set,
-			  Access access, Usage usage, ScriptObject declaringType, ScriptTrace trace)
-			: base(alias, type, access, usage, declaringType, trace) {
+			  Access access, Usage usage, ScriptObject declaringType, ScriptTrace trace, Compiler.Scope scope)
+			: base(alias, type, access, usage, declaringType, trace, scope) {
 
 				bool getNull = get is null, setNull = set is null;
 				if(getNull && setNull) throw new Compiler.SyntaxException("Expected at least one accessor for property.", trace);
@@ -442,12 +449,14 @@ namespace MCSharp.Compilation {
 			private Variable returnValue;
 
 			public override Variable ReturnValue {
-				//[DebuggerStepThrough]
+				[DebuggerStepThrough]
 				get {
 					if(returnValue != null) return returnValue;
-					else if(Initializers.TryGetValue(TypeName, out Initializer initializer))
-						return ReturnValue = initializer.Invoke(Access.Private, Usage.Default, GetNextHiddenID(), Scope, ScriptTrace);
-					else throw new Compiler.SyntaxException($"Type '{TypeName}' could not be found.", ScriptTrace);
+					else if(Initializers.TryGetValue(TypeName, out Initializer initializer)) {
+						ReturnValue = initializer.Invoke(Access.Pass, Usage.PassAway, GetNextHiddenID(), Scope, ScriptTrace);
+						ReturnValue.ConstructAsPasser();
+						return ReturnValue;
+					} else throw new Compiler.SyntaxException($"Type '{TypeName}' could not be found.", ScriptTrace);
 				}
 				[DebuggerStepThrough]
 				protected set {
@@ -465,35 +474,35 @@ namespace MCSharp.Compilation {
 
 
 			[DebuggerStepThrough]
-			public ScriptConstructor(Variable[] parameters, ScriptObject declarer, ScriptString script,
+			public ScriptConstructor(Variable[] parameters, ScriptObject declarer, ScriptString script, Compiler.Scope scope,
 			  Access access = Access.Private, Usage usage = Usage.Default)
-			: this(parameters, declarer, GetLines(script), script.ScriptTrace, access, usage) { }
+			: this(parameters, declarer, GetLines(script), script.ScriptTrace, scope, access, usage) { }
 
 			[DebuggerStepThrough]
-			public ScriptConstructor(Variable[] parameters, ScriptObject declarer, ScriptWild wild,
+			public ScriptConstructor(Variable[] parameters, ScriptObject declarer, ScriptWild wild, Compiler.Scope scope,
 			  Access access = Access.Private, Usage usage = Usage.Default)
-			: this(parameters, declarer, GetLines(wild), wild.ScriptTrace, access, usage) { }
+			: this(parameters, declarer, GetLines(wild), wild.ScriptTrace, scope, access, usage) { }
 
 			[DebuggerStepThrough]
 			private ScriptConstructor(Variable[] parameters, ScriptObject declarer, ScriptLine[] lines,
-			  ScriptTrace trace, Access access, Usage usage)
-			: base(declarer?.Alias, declarer?.Alias, parameters, declarer, lines, access, usage, trace) { }
+			  ScriptTrace trace, Compiler.Scope scope, Access access, Usage usage)
+			: base(declarer?.Alias, declarer?.Alias, parameters, declarer, lines, scope, access, usage, trace) { }
 
 
 			[DebuggerStepThrough]
-			public ScriptConstructor(Variable[] parameters, string type, ScriptString script,
+			public ScriptConstructor(Variable[] parameters, string type, ScriptString script, Compiler.Scope scope,
 			  Access access = Access.Private, Usage usage = Usage.Default)
-			: this(parameters, type, GetLines(script), script.ScriptTrace, access, usage) { }
+			: this(parameters, type, GetLines(script), script.ScriptTrace, scope, access, usage) { }
 
 			[DebuggerStepThrough]
-			public ScriptConstructor(Variable[] parameters, string type, ScriptWild wild,
+			public ScriptConstructor(Variable[] parameters, string type, ScriptWild wild, Compiler.Scope scope,
 			  Access access = Access.Private, Usage usage = Usage.Default)
-			: this(parameters, type, GetLines(wild), wild.ScriptTrace, access, usage) { }
+			: this(parameters, type, GetLines(wild), wild.ScriptTrace, scope, access, usage) { }
 
 			[DebuggerStepThrough]
 			public ScriptConstructor(Variable[] parameters, string type, ScriptLine[] lines,
-			  ScriptTrace trace, Access access = Access.Private, Usage usage = Usage.Default)
-			: base(type, null, parameters, null, lines, access, usage, trace) { }
+			  ScriptTrace trace, Compiler.Scope scope, Access access = Access.Private, Usage usage = Usage.Default)
+			: base(type, null, parameters, null, lines, scope, access, usage, trace) { }
 
 
 		}
@@ -526,18 +535,18 @@ namespace MCSharp.Compilation {
 
 
 			[DebuggerStepThrough]
-			public ScriptMethod(string alias, string type, Variable[] parameters, ScriptObject declaringType, ScriptString script,
+			public ScriptMethod(string alias, string type, Variable[] parameters, ScriptObject declaringType, ScriptString script, Compiler.Scope scope,
 			  Access access = Access.Private, Usage usage = Usage.Default)
-			: this(alias, type, parameters, declaringType, GetLines(script), access, usage, script.ScriptTrace) { }
+			: this(alias, type, parameters, declaringType, GetLines(script), scope, access, usage, script.ScriptTrace) { }
 
 			[DebuggerStepThrough]
-			public ScriptMethod(string alias, string type, Variable[] parameters, ScriptObject declaringType, ScriptWild wild,
+			public ScriptMethod(string alias, string type, Variable[] parameters, ScriptObject declaringType, ScriptWild wild, Compiler.Scope scope,
 			  Access access = Access.Private, Usage usage = Usage.Default)
-			: this(alias, type, parameters, declaringType, GetLines(wild), access, usage, wild.ScriptTrace) { }
+			: this(alias, type, parameters, declaringType, GetLines(wild), scope, access, usage, wild.ScriptTrace) { }
 
-			public ScriptMethod(string alias, string type, Variable[] parameters, ScriptObject declaringType, ScriptLine[] phrases,
+			public ScriptMethod(string alias, string type, Variable[] parameters, ScriptObject declaringType, ScriptLine[] phrases, Compiler.Scope scope,
 			  Access access, Usage usage, ScriptTrace trace)
-			: base(alias, type, access, usage, declaringType, trace) {
+			: base(alias, type, access, usage, declaringType, trace, scope) {
 
 				if(trace is null)
 					throw new ArgumentNullException(nameof(trace));

@@ -58,6 +58,8 @@ namespace MCSharp.Variables {
 			throw new Compiler.SyntaxException("Could not find a valid overflow for constructor.", Compiler.CurrentScriptTrace);
 		}
 
+		public override void ConstructAsPasser() => throw new NotImplementedException();
+
 		public override (GetProperty get, SetProperty set) CompileProperty(ScriptProperty property) {
 			GetProperty get = null;
 			SetProperty set = null;

@@ -59,6 +59,10 @@ namespace MCSharp.Variables {
 				default: throw new InvalidArgumentsException("Could not find a constructor overload that matches the given arguments.", Compiler.CurrentScriptTrace);
 			}
 		}
+		public override void ConstructAsPasser() {
+			Selector.ConstructAsPasser();
+			Constructed = true;
+		}
 
 		public override Variable InvokeOperation(Operation operation, Variable operand, ScriptTrace trace) {
 			switch(operation) {

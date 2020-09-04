@@ -198,9 +198,9 @@ namespace MCSharp.Variables {
 			if(scope == null) throw new ArgumentNullException(nameof(scope));
 			if(GetType() != typeof(Spy)) {
 				bool anon = access == Access.Pass;
-				if(anon || !AllowedAccessModifiers.Contains(access)) throw new InvalidModifierException(access.ToString(), TypeName, Compiler.CurrentScriptTrace);
+				if(!anon && !AllowedAccessModifiers.Contains(access)) throw new InvalidModifierException(access.ToString(), TypeName, Compiler.CurrentScriptTrace);
 				bool pass = usage == Usage.PassInto || usage == Usage.PassAway;
-				if(pass || !AllowedUsageModifiers.Contains(usage)) throw new InvalidModifierException(usage.ToString(), TypeName, Compiler.CurrentScriptTrace);
+				if(!pass && !AllowedUsageModifiers.Contains(usage)) throw new InvalidModifierException(usage.ToString(), TypeName, Compiler.CurrentScriptTrace);
 			}
 
 			ObjectName = objectName;
@@ -215,7 +215,8 @@ namespace MCSharp.Variables {
 				Compiler.VariableNames.Add(ObjectName, scopes);
 			}
 			//Whether we just made it or just found it, add the variable to the dictionary.
-			scopes.Add(Scope, this);
+			if(scopes.TryGetValue(Scope, out _)) throw new Compiler.SyntaxException($"Duplicate variable name '{ObjectName}' at scope '{Scope}'.", Compiler.CurrentScriptTrace);
+			else scopes.Add(Scope, this);
 
 			if(!Compiler.VariableScopes.TryGetValue(Scope, out List<Variable> variables)) {
 				//The item doesn't exist yet. Make it.
@@ -245,6 +246,7 @@ namespace MCSharp.Variables {
 
 		public abstract Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace);
 		public abstract Variable Construct(ArgumentInfo arguments);
+		public abstract void ConstructAsPasser();
 
 		public Variable InvokeOperation(ScriptWord operation, ScriptWild[] args) {
 
@@ -380,7 +382,7 @@ namespace MCSharp.Variables {
 		#endregion
 
 		/// <summary>
-		/// Creates a new <see cref="Spy"/> that will copy the value of this to <paramref name="variable"/>.
+		/// Writes commands into <paramref name="function"/> that will copy the value of this to <paramref name="variable"/>.
 		/// </summary>
 		public virtual void WriteCopyTo(StreamWriter function, Variable variable) {
 			if(variable is Pointer<Variable> pointer) pointer.Variable = this;
@@ -454,6 +456,7 @@ namespace MCSharp.Variables {
 		#endregion
 
 		#region Exceptions
+
 		public class InvalidModifierException : Exception {
 			public InvalidModifierException(string modifier, string type, ScriptTrace at)
 				: base($"[{at}] The modifier '{modifier}' is not valid for the type '{type}'.") { }

@@ -23,7 +23,8 @@ namespace MCSharp.Variables {
 		}
 
 		public override Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) => throw new Compiler.SyntaxException("Cannot make an instance of a static class.", trace);
-		public override Variable Construct(ArgumentInfo passed) => throw new Compiler.SyntaxException($"{TypeName} cannot be constructed.", Compiler.CurrentScriptTrace);
+		public override Variable Construct(ArgumentInfo passed) => throw new Compiler.SyntaxException("Cannot make an instance of a static class.", passed.ScriptTrace);
+		public override void ConstructAsPasser() => throw new Compiler.SyntaxException("Cannot make an instance of a static class.", Compiler.CurrentScriptTrace);
 
 		private Variable Show(string type, ArgumentInfo arguments) {
 			if(arguments.Count != 2)

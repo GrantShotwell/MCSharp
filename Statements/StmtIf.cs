@@ -178,7 +178,7 @@ namespace MCSharp.Statements {
 			
 			{
 
-				var statement = new ScriptMethod(Compiler.CurrentScope.GetNextAnonMethodAlias(), "void", new Variable[] { }, null, statementWild) {
+				var statement = new ScriptMethod(Compiler.CurrentScope.GetNextAnonMethodAlias(), "void", new Variable[] { }, null, statementWild, Compiler.CurrentScope) {
 					DeclaringType = Compiler.CurrentScope.DeclaringType,
 					Anonymous = true
 				};
@@ -195,7 +195,7 @@ namespace MCSharp.Statements {
 
 			if(elseWild.HasValue) {
 
-				var statement = new ScriptMethod(Compiler.CurrentScope.GetNextAnonMethodAlias(), "void", new Variable[] { }, null, elseWild.Value) {
+				var statement = new ScriptMethod(Compiler.CurrentScope.GetNextAnonMethodAlias(), "void", new Variable[] { }, null, elseWild.Value, Compiler.CurrentScope) {
 					DeclaringType = Compiler.CurrentScope.DeclaringType,
 					Anonymous = true
 				};
