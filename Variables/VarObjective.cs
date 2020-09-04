@@ -44,41 +44,51 @@ namespace MCSharp.Variables {
 		public override Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) => new VarObjective(access, usage, name, scope);
 
 		private static readonly ParameterInfo[] ConstructorOverloads = new ParameterInfo[] {
-			new (Type Type, bool Reference)[] { },
-			new (Type Type, bool Reference)[] { (typeof(VarString), true) }
+			new (Type, bool)[] { },
+			new (Type, bool)[] { (typeof(VarString), true) },
+			new (Type, bool)[] { (typeof(VarString), true), (typeof(VarString), true) }
 		};
 		public override Variable Construct(ArgumentInfo arguments) {
 			(ParameterInfo match, int index) = ParameterInfo.HighestMatch(ConstructorOverloads, arguments);
 			match.Grab(arguments);
 
-			string type;
+			string name, type;
 			switch(index) {
 
 				case 1:
+					name = GetNextID();
 					type = "dummy";
 					goto Construct;
 				case 2:
+					name = GetNextID();
 					type = (match[0].Value as VarString).GetConstant();
 					goto Construct;
-
+				case 3:
+					name = (match[0].Value as VarString).GetConstant();
+					type = (match[1].Value as VarString).GetConstant();
+					goto Construct;
 
 					Construct:
-					var value = new VarObjective(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope);
-					value.Type = type;
-#if DEBUG_OUT
-					if(NextID == null) throw new Compiler.InternalError($"{nameof(NextID)} was not set.");
-					else { value.ID = NextID; NextID = null; }
-#else
-					value.ID = $"mcs.{BaseConverter.Convert(NextID++, 62)}";
-#endif
+					var value = new VarObjective(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope) { Type = type, ID = name };
 					if(ObjectiveIDs.ContainsKey(value.ID)) throw new Compiler.InternalError($"Duplicate {nameof(VarObjective)} created.");
 					else ObjectiveIDs.Add(value.ID, this);
 					value.Constructed = true;
 					return value;
 
-
 				default: throw new MissingOverloadException("Objective constructor", index, arguments);
 			}
+
+			static string GetNextID() {
+				string id;
+#if DEBUG_OUT
+				if(NextID == null) throw new Compiler.InternalError($"{nameof(NextID)} was not set.");
+				else { id = NextID; NextID = null; }
+#else
+				id = $"mcs.{BaseConverter.Convert(NextID++, 62)}";
+#endif
+				return id;
+			}
+
 		}
 
 		public override void ConstructAsPasser() => throw new NotImplementedException();
