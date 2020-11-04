@@ -6,7 +6,7 @@
 		Abstract,
 		Virtual,
 		Override,
-		PassInto,
-		PassAway
+		Parameter,
+		Return
 	}
 }

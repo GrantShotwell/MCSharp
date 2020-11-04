@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace MCSharp.GameJSON.Text {
+namespace MCSharp.GameSerialization.Text {
 
 	public class ClickEvent {
 

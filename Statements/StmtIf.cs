@@ -173,12 +173,12 @@ namespace MCSharp.Statements {
 			VarBool condition;
 
 			Variable conditionVariable = Compiler.ParseValue(conditionWild, Compiler.CurrentScope);
-			if(conditionVariable is VarBool varBool || conditionVariable.TryCast(out varBool)) condition = varBool;
+			if(conditionVariable is VarBool varBool || conditionVariable.TryCast(VarBool.StaticTypeName, out varBool)) condition = varBool;
 			else throw new Variable.InvalidArgumentsException($"Could not cast '{conditionVariable}' as 'bool'.", line.ScriptTrace);
 			
 			{
 
-				var statement = new ScriptMethod(Compiler.CurrentScope.GetNextAnonMethodAlias(), "void", new Variable[] { }, null, statementWild, Compiler.CurrentScope) {
+				var statement = new ScriptMethod(Compiler.CurrentScope.GetNextAnonMethodAlias(), "void", new ParameterInfo(), null, statementWild, Compiler.CurrentScope) {
 					DeclaringType = Compiler.CurrentScope.DeclaringType,
 					Anonymous = true
 				};
@@ -195,7 +195,7 @@ namespace MCSharp.Statements {
 
 			if(elseWild.HasValue) {
 
-				var statement = new ScriptMethod(Compiler.CurrentScope.GetNextAnonMethodAlias(), "void", new Variable[] { }, null, elseWild.Value, Compiler.CurrentScope) {
+				var statement = new ScriptMethod(Compiler.CurrentScope.GetNextAnonMethodAlias(), "void", new ParameterInfo(), null, elseWild.Value, Compiler.CurrentScope) {
 					DeclaringType = Compiler.CurrentScope.DeclaringType,
 					Anonymous = true
 				};

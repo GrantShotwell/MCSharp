@@ -1,5 +1,5 @@
 ﻿using MCSharp.Compilation;
-using MCSharp.GameJSON.Text;
+using MCSharp.GameSerialization.Text;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -22,8 +22,8 @@ namespace MCSharp.Variables {
 
 		public override Variable InvokeOperation(Operation operation, Variable operand, ScriptTrace trace) => Variable.InvokeOperation(operation, operand, trace);
 		public override void WriteCopyTo(StreamWriter function, Variable variable) => Variable.WriteCopyTo(function, variable);
-		public override IDictionary<Type, Caster> GetCasters_From() => Variable.GetCasters_From();
-		public override IDictionary<Type, Caster> GetCasters_To() => Variable.GetCasters_To();
+		public override IDictionary<string, Caster> GetCasters_From() => Variable.GetCasters_From();
+		public override IDictionary<string, Caster> GetCasters_To() => Variable.GetCasters_To();
 
 		public override void WritePrep(StreamWriter function) => Variable.WritePrep(function);
 		public override void WriteInit(StreamWriter function) => Variable.WriteInit(function);

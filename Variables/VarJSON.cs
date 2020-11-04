@@ -1,5 +1,5 @@
 ﻿using MCSharp.Compilation;
-using MCSharp.GameJSON.Text;
+using MCSharp.GameSerialization.Text;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -30,12 +30,14 @@ namespace MCSharp.Variables {
 
 		public override Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) => throw new NotImplementedException();
 
+		private Compiler.Scope[] ConstructorScopes;
+		private ParameterInfo[] ConstructorOverloads;
         public override Variable Construct(ArgumentInfo arguments) {
-			ParameterInfo[] description = new ParameterInfo[] {
-				new (Type, bool)[] { (typeof(VarString), true) }
+			if(ConstructorScopes is null) ConstructorScopes = InnerScope.CreateChildren(1);
+			if(ConstructorOverloads is null) ConstructorOverloads = new ParameterInfo[] {
+				new ParameterInfo((true, VarString.StaticTypeName, "json", ConstructorScopes[0]))
 			};
-
-            (ParameterInfo match, int index) = ParameterInfo.HighestMatch(description, arguments);
+            (ParameterInfo match, int index) = ParameterInfo.HighestMatch(ConstructorOverloads, arguments);
 			match.Grab(arguments);
 			
 			switch(index) {

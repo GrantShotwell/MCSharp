@@ -15,7 +15,6 @@ namespace MCSharp.Compilation {
 		protected string alias;
 		protected string typeName;
 		protected ScriptObject declaringType;
-		private Compiler.Scope scope;
 
 		/// <summary>The in-code keyword for this member.</summary>
 		public virtual string Alias {
@@ -95,11 +94,11 @@ namespace MCSharp.Compilation {
 
 		public ScriptMember(string alias, string type, Access access, Usage usage, ScriptObject declarer, ScriptTrace trace, Compiler.Scope scope) {
 			ScriptTrace = trace ?? throw new ArgumentNullException(nameof(trace));
+			Alias = alias;
 			DeclaringType = declarer;
 			TypeName = type;
 			Access = access;
 			Usage = usage;
-			Alias = alias;
 			Scope = scope;
 		}
 

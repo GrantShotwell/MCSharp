@@ -17,7 +17,7 @@ namespace MCSharp.Variables {
 		public string FolderPath { get; }
 		public string GamePath { get; }
 		public List<string> Commands { get; } = new List<string>();
-		public IReadOnlyList<Variable> Parameters => ScriptMethod.Parameters;
+		public ParameterInfo Parameters => ScriptMethod.Parameters;
 		public ScriptMethod ScriptMethod { get; }
 
 		public override ICollection<Access> AllowedAccessModifiers => new Access[] { Access.Private, Access.Public };
@@ -32,10 +32,9 @@ namespace MCSharp.Variables {
 			FolderPath = $"{Program.Datapack.Name}:{function.FullAlias}.mcfunction";
 			ScriptMethod = function;
 			Methods.Add("Invoke", (arguments) => {
-				if(arguments.Count != Parameters.Count)
-					throw new InvalidArgumentsException($"Wrong number of arguments for '{this}'.Invoke(_).", Compiler.CurrentScriptTrace);
+				Parameters.Grab(arguments);
 				new Spy(null, (function) => {
-					for(int i = 0; i < arguments.Count; i++) arguments[i].Value.WriteCopyTo(Compiler.FunctionStack.Peek(), Parameters[i]);
+					//for(int i = 0; i < arguments.Count; i++) arguments[i].Value.WriteCopyTo(Compiler.FunctionStack.Peek(), Parameters[i].Value);
 					function.WriteLine($"function {GamePath}");
 				}, null);
 				return null;

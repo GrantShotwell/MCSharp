@@ -1,5 +1,5 @@
 ﻿using MCSharp.Compilation;
-using MCSharp.GameJSON.Text;
+using MCSharp.GameSerialization.Text;
 using System;
 using System.Collections.Generic;
 
@@ -28,11 +28,12 @@ namespace MCSharp.Variables {
 
 		public override Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) => new VarSelector(access, usage, name, scope);
 
-		private static readonly ParameterInfo[] ConstructorOverloads = new ParameterInfo[] {
-			new (Type Type, bool Reference)[] { (typeof(VarString), true) }
-		};
+		private Compiler.Scope[] ConstructorScopes;
 		public override Variable Construct(ArgumentInfo arguments) {
-			(ParameterInfo match, int index) = ParameterInfo.HighestMatch(ConstructorOverloads, arguments);
+			if(ConstructorScopes is null) ConstructorScopes = InnerScope.CreateChildren(1);
+			(ParameterInfo match, int index) = ParameterInfo.HighestMatch(new ParameterInfo[] {
+				new (bool, string, string, Compiler.Scope)[] { (true, VarString.StaticTypeName, "value", ConstructorScopes[0]) }
+			}, arguments);
 			match.Grab(arguments);
 
 			switch(index) {
@@ -52,18 +53,18 @@ namespace MCSharp.Variables {
 			switch(operation) {
 
 				case Operation.Set:
-					if(operand is VarString varString || operand.TryCast(out varString)) {
+					if(operand is VarString varString || operand.TryCast(VarString.StaticTypeName, out varString)) {
 						String = varString;
 						return this;
-					} else throw new InvalidCastException(operand, TypeName, trace);
+					} else throw new InvalidCastException(operand, VarString.StaticTypeName, trace);
 
 				default: return base.InvokeOperation(operation, operand, trace);
 			}
 		}
 
-		public override IDictionary<Type, Caster> GetCasters_From() {
-			IDictionary<Type, Caster> casters = base.GetCasters_From();
-			casters.Add(typeof(VarString), value => {
+		public override IDictionary<string, Caster> GetCasters_From() {
+			IDictionary<string, Caster> casters = base.GetCasters_From();
+			casters.Add(VarString.StaticTypeName, value => {
 				var result = new VarSelector(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope);
 				return Constructors[result.TypeName](new ArgumentInfo(new Variable[] { value }, Compiler.CurrentScriptTrace));
 			});

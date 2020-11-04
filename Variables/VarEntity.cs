@@ -1,5 +1,5 @@
 ﻿using MCSharp.Compilation;
-using MCSharp.GameJSON.Text;
+using MCSharp.GameSerialization.Text;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -19,11 +19,16 @@ namespace MCSharp.Variables {
 
 			AddAutoProperty(Selector = new VarSelector(Access.Public, Usage.Default, NamingStyleConverter.FromSingleToCamel(VarSelector.StaticTypeName), InnerScope));
 
-			ParameterInfo[] MergeDataInfo = new ParameterInfo[] {
-				new (Type, bool)[] { (typeof(VarString), true), (typeof(VarString), true) }
+			Compiler.Scope[] scopesMergeData = new Compiler.Scope[1];
+			for(int i = 0; i < scopesMergeData.Length; i++) scopesMergeData[i] = new Compiler.Scope(InnerScope);
+			ParameterInfo[] infoMergeData = new ParameterInfo[] {
+				new ParameterInfo(
+					(true, VarString.StaticTypeName, "name", scopesMergeData[0]),
+					(true, VarString.StaticTypeName, "data", scopesMergeData[0])
+				)
 			};
 			Methods.Add("MergeData", (arguments) => {
-				(ParameterInfo match, int index) = ParameterInfo.HighestMatch(MergeDataInfo, arguments);
+				(ParameterInfo match, int index) = ParameterInfo.HighestMatch(infoMergeData, arguments);
 				match.Grab(arguments);
 
 				switch(index) {
@@ -43,12 +48,16 @@ namespace MCSharp.Variables {
 
 		public override Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) => new VarEntity(access, usage, name, scope);
 
-		private static readonly ParameterInfo[] ConstructorOverloads = new ParameterInfo[] {
-			new (Type Type, bool Reference)[] { (typeof(VarSelector), true) }
-		};
+		private static Compiler.Scope[] ConstructorScopes;
+		private static ParameterInfo[] ConstructorOverloads;
 		public override Variable Construct(ArgumentInfo passed) {
+			if(ConstructorScopes is null) ConstructorScopes = InnerScope.CreateChildren(1);
+			if(ConstructorOverloads is null) ConstructorOverloads = new ParameterInfo[] {
+				new ParameterInfo((true, VarSelector.StaticTypeName, "selector", ConstructorScopes[0]))
+			};
 			(ParameterInfo match, int index) = ParameterInfo.HighestMatch(ConstructorOverloads, passed);
 			match.Grab(passed);
+
 			switch(index) {
 				case 0:
 					var value = new VarEntity(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope);
@@ -68,7 +77,7 @@ namespace MCSharp.Variables {
 			switch(operation) {
 
 				case Operation.Set: {
-					if(operand is VarEntity entity || operand.TryCast(out entity)) {
+					if(operand is VarEntity entity || operand.TryCast(TypeName, out entity)) {
 						Selector = entity.Selector;
 						Constructed = true;
 						return this;

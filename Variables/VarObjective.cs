@@ -1,11 +1,8 @@
 ﻿using MCSharp.Compilation;
-using MCSharp.GameJSON.Text;
+using MCSharp.GameSerialization.Text;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
-using System.Text.RegularExpressions;
 
 namespace MCSharp.Variables {
 
@@ -43,12 +40,15 @@ namespace MCSharp.Variables {
 
 		public override Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) => new VarObjective(access, usage, name, scope);
 
-		private static readonly ParameterInfo[] ConstructorOverloads = new ParameterInfo[] {
-			new (Type, bool)[] { },
-			new (Type, bool)[] { (typeof(VarString), true) },
-			new (Type, bool)[] { (typeof(VarString), true), (typeof(VarString), true) }
-		};
+		private Compiler.Scope[] ConstructorScopes;
+		private ParameterInfo[] ConstructorOverloads;
 		public override Variable Construct(ArgumentInfo arguments) {
+			if(ConstructorScopes is null) ConstructorScopes = InnerScope.CreateChildren(3);
+			if(ConstructorOverloads is null) ConstructorOverloads = new ParameterInfo[] {
+				new ParameterInfo(),
+				new ParameterInfo((true, VarString.StaticTypeName, "type", ConstructorScopes[0])),
+				new ParameterInfo((true, VarString.StaticTypeName, "type", ConstructorScopes[1]), (true, VarString.StaticTypeName, "name", ConstructorScopes[1])),
+			};
 			(ParameterInfo match, int index) = ParameterInfo.HighestMatch(ConstructorOverloads, arguments);
 			match.Grab(arguments);
 
@@ -61,16 +61,16 @@ namespace MCSharp.Variables {
 					goto Construct;
 				case 2:
 					name = GetNextID();
-					type = (match[0].Value as VarString).GetConstant();
+					type = (match["type"].Value as VarString).GetConstant();
 					goto Construct;
 				case 3:
-					name = (match[0].Value as VarString).GetConstant();
-					type = (match[1].Value as VarString).GetConstant();
+					name = (match["name"].Value as VarString).GetConstant();
+					type = (match["type"].Value as VarString).GetConstant();
 					goto Construct;
 
 					Construct:
 					var value = new VarObjective(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope) { Type = type, ID = name };
-					if(ObjectiveIDs.ContainsKey(value.ID)) throw new Compiler.InternalError($"Duplicate {nameof(VarObjective)} created.");
+					if(ObjectiveIDs.ContainsKey(value.ID)) throw new Compiler.InternalError($"Duplicate {StaticTypeName} ID created.", arguments.ScriptTrace);
 					else ObjectiveIDs.Add(value.ID, this);
 					value.Constructed = true;
 					return value;
@@ -96,7 +96,7 @@ namespace MCSharp.Variables {
 		public override Variable InvokeOperation(Operation operation, Variable operand, ScriptTrace trace) {
 			switch(operation) {
 				case Operation.Set:
-					if(operand is VarObjective right || operand.TryCast(out right)) {
+					if(operand is VarObjective right || operand.TryCast(TypeName, out right)) {
 						if(ID == null && Type == null) {
 							ID = right.ID;
 							Type = right.Type;
@@ -109,14 +109,14 @@ namespace MCSharp.Variables {
 			}
 		}
 
-		public override IDictionary<Type, Caster> GetCasters_To() {
-			IDictionary<Type, Caster> casters = base.GetCasters_To();
-			casters.Add(GetType(), value => {
+		public override IDictionary<string, Caster> GetCasters_To() {
+			IDictionary<string, Caster> casters = base.GetCasters_To();
+			casters.Add(TypeName, value => {
 				var result = new VarInt(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope);
 				result.SetValue((VarSelector)"@e", this);
 				return result;
 			});
-			casters.Add(typeof(VarBool), value => {
+			casters.Add(VarBool.StaticTypeName, value => {
 				var result = new VarBool(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope);
 				result.SetValue((VarSelector)"@e", this);
 				return result;

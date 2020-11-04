@@ -70,7 +70,7 @@ namespace MCSharp.Variables {
 			switch(operation) {
 
 				case Operation.Equal: {
-					if(operand is VarPrimitive right || operand.TryCast(out right)) {
+					if(operand is VarPrimitive right || operand.TryCast(TypeName, out right)) {
 
 						VarBool result;
 						if(Usage == Usage.Constant) {
@@ -108,7 +108,7 @@ namespace MCSharp.Variables {
 				}
 
 				case Operation.Set: {
-					if(operand is VarPrimitive right || operand.TryCast(out right)) {
+					if(operand is VarPrimitive right || operand.TryCast(TypeName, out right)) {
 
 						if(Usage == Usage.Constant) {
 							if(right.Usage == Usage.Constant) {

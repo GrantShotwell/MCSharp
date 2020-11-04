@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace MCSharp.GameJSON.Text {
+namespace MCSharp.GameSerialization.Text {
 	public class HoverContents {
 
 		/// <summary>Another raw JSON text component. Can be any valid text component type: string, array, or object.

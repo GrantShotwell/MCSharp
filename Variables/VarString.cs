@@ -1,5 +1,5 @@
 ﻿using MCSharp.Compilation;
-using MCSharp.GameJSON.Text;
+using MCSharp.GameSerialization.Text;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -22,11 +22,11 @@ namespace MCSharp.Variables {
 		public VarString() : base() { }
 		public VarString(Access access, Usage usage, string name, Compiler.Scope scope) : base(access, usage, name, scope) {
 
-			ParameterInfo[] FormatInfo = new ParameterInfo[] {
-				new (Type, bool)[] { }
+			ParameterInfo[] infoFormat = new ParameterInfo[] {
+				new ParameterInfo()
 			};
             Methods.Add("Format", arguments => {
-				(ParameterInfo match, int index) = ParameterInfo.HighestMatch(FormatInfo, arguments);
+				(ParameterInfo match, int index) = ParameterInfo.HighestMatch(infoFormat, arguments);
 				match.Grab(arguments);
 
 				string format = Value;
@@ -87,16 +87,16 @@ namespace MCSharp.Variables {
 			switch(operation) {
 
 				case Operation.Set:
-					if(operand is VarString varString1 || operand.TryCast(out varString1)) {
+					if(operand is VarString varString1 || operand.TryCast(TypeName, out varString1)) {
 						Value = varString1.Value;
 						return this;
-					} else throw new InvalidCastException(operand, StaticTypeName, trace);
+					} else throw new InvalidCastException(operand, TypeName, trace);
 
 				case Operation.Add:
-					if(operand is VarString varString2 || operand.TryCast(out varString2)) {
+					if(operand is VarString varString2 || operand.TryCast(TypeName, out varString2)) {
 						Value += varString2.Value;
 						return this;
-					} else throw new InvalidCastException(operand, StaticTypeName, trace);
+					} else throw new InvalidCastException(operand, TypeName, trace);
 
 				default: return base.InvokeOperation(operation, operand, trace);
 			}

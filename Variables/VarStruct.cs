@@ -27,18 +27,11 @@ namespace MCSharp.Variables {
 
 		public override Variable Initialize(Access access, Usage usage, string name, Compiler.Scope scope, ScriptTrace trace) => new VarStruct(access, usage, name, scope, ScriptClass);
 
-		public override Variable Construct(ArgumentInfo passed) {
-			//TODO: better 'finder' for overflows
-			foreach(Constructor constructor in Constructors) {
-				try {
-					return constructor.Invoke(passed);
-				} catch(InvalidArgumentsException) {
-					continue;
-				} catch(InvalidCastException) {
-					continue;
-				}
-			}
-			throw new Compiler.SyntaxException("Could not find a valid overflow for constructor.", Compiler.CurrentScriptTrace);
+		public override Variable Construct(ArgumentInfo arguments) {
+			ParameterInfo[] overloads = new ParameterInfo[Constructors.Count];
+			for(int i = 0; i < overloads.Length; i++) overloads[i] = Constructors[i].Parameters;
+			(ParameterInfo match, int index) = ParameterInfo.HighestMatch(overloads, arguments);
+			return Constructors[index].Constructor(arguments);
 		}
 
 		public override void ConstructAsPasser() {
@@ -47,97 +40,39 @@ namespace MCSharp.Variables {
 			}
 		}
 
-		public override (GetProperty get, SetProperty set) CompileProperty(ScriptProperty property) {
-			GetProperty get = null;
-			if(!(property.GetFunc is null)) {
-				Compiler.WriteFunction<Variable>(Scope, this, property.GetMethod);
-				get = property.GetFunc;
-			}
-			SetProperty set = null;
-			if(!(property.SetFunc is null)) {
-				Compiler.WriteFunction<Variable>(Scope, this, property.SetMethod);
-				set = property.SetFunc;
-			}
-			return (get, set);
+		public override void AddField(ScriptField field) {
+			Variable value = Initializers[field.TypeName](field.Access, field.Usage, field.Alias, InnerScope, field.ScriptTrace);
+			value.InvokeOperation(Operation.Set, Compiler.ParseValue(field.Init, field.Scope), field.ScriptTrace);
+			Fields.Add(value.ObjectName, value);
 		}
 
-		public override MethodDelegate CompileMethod(ScriptMethod method) {
-
-			// Write function.
-			Compiler.WriteFunction<Variable>(method.Scope, this, method);
-
-			// Make delegate.
-			return (arguments) => {
-				// Check number of arguments.
-				if(arguments.Count != method.Parameters.Length)
-					throw new InvalidArgumentsException($"Wrong number of arguments for '{method.Alias}'.Invoke(_).", Compiler.CurrentScriptTrace);
-				new Spy(null, (function) => {
-					// Copy arguments to parameters.
-					for(int i = 0; i < arguments.Count; i++) arguments[i].Value.WriteCopyTo(Compiler.FunctionStack.Peek(), method.Parameters[i]);
-					// Call the function.
-					function.WriteLine($"function {method.GameName}");
-				}, null);
-				// Give return value of method.
-				return method.ReturnValue;
-			};
-
+		public override void AddProperty(ScriptProperty property) {
+			var get = property.GetMethod;
+			get = new ScriptMethod(get.Alias, get.TypeName, get.Parameters.Copy(), get.DeclaringType, get.ScriptLines, InnerScope, true, get.Access, get.Usage, get.ScriptTrace);
+			var set = property.SetMethod;
+			set = new ScriptMethod(set.Alias, set.TypeName, set.Parameters.Copy(), set.DeclaringType, set.ScriptLines, InnerScope, true, set.Access, set.Usage, set.ScriptTrace);
+			property = new ScriptProperty(property.Alias, property.TypeName, get, set, property.Access, property.Usage, property.DeclaringType, property.ScriptTrace, InnerScope);
+			Properties.Add(property.Alias, (property.GetFunc, property.SetFunc));
 		}
 
-		public override Variable CompileField(ScriptField field) {
-			if(field is null) throw new ArgumentNullException(nameof(field));
-			ScriptWild init = field.Init;
-			Variable fieldVariable = Initializers[field.TypeName].Invoke(field.Access, field.Usage, $"{field.Alias}@{ObjectName}", InnerScope, field.ScriptTrace);
-			if(init.Array.Length > 0) {
-				if(init.IsWord || !(init.Wilds[0] == "=")) throw new Compiler.SyntaxException("Expected '='.", init.ScriptTrace);
-				if(init.Wilds.Count < 2) throw new Compiler.SyntaxException("Expected value.", init.ScriptTrace);
-				Variable value = Compiler.ParseValue(new ScriptWild(init[1..].Array, "(\\)", ' '), Compiler.CurrentScope);
-				fieldVariable.InvokeOperation(Operation.Set, value, init.ScriptTrace);
-			}
-			return fieldVariable;
+		public override void AddConstructor(ScriptConstructor constructor) {
+			//Constructors.Add(constructor.Delegate);
 		}
 
-		public override Constructor CompileConstructor(ScriptConstructor constructor) {
-
-			// Check if function has already been written.
-			if(!CompiledConstructors.Contains(constructor)) {
-				// Record the function has been written.
-				CompiledConstructors.Add(constructor);
-				// Write function.
-				Compiler.WriteFunction<VarStruct>(constructor.Scope, constructor.ReturnValue, constructor);
-			}
-
-			// Make delegate.
-			return (arguments) => {
-
-				// Check that the number of given arguments is correct.
-				if(arguments.Count != constructor.Parameters.Length)
-					throw new InvalidArgumentsException($"Wrong number of arguments for '{constructor.Alias}'.Invoke(_).", Compiler.CurrentScriptTrace);
-
-				// Reset metadata.
-				Variable reset = Initializers[TypeName].Invoke(Access.Private, Usage.Default, GetNextHiddenID(), constructor.Scope, Compiler.CurrentScriptTrace);
-
-				// Call the constructor.
-				new Spy(null, function => {
-					// Reset metadata.
-					reset.WriteCopyTo(function, constructor.ReturnValue);
-					// Copy arguments to parameters.
-					for(int i = 0; i < arguments.Count; i++) arguments[i].Value.WriteCopyTo(Compiler.FunctionStack.Peek(), constructor.Parameters[i]);
-					// Call the constructor function.
-					function.WriteLine($"function {constructor.GameName}");
-				}, null);
-
-				// Give the return value.
-				return constructor.ReturnValue;
-
-			};
-
+		public override void AddMethod(ScriptMethod method) {
+			Methods.Add(method.Alias, method.Delegate);
 		}
 
 		public override Variable InvokeOperation(Operation operation, Variable operand, ScriptTrace trace) {
+
+
 			switch(operation) {
 
 				case Operation.Set: {
-					if((operand is VarStruct varStruct || operand.TryCast(out varStruct))
+#if DEBUG_OUT
+					new Spy(null, $"# OP # {this}@{Scope} := {operand}@{operand.Scope}", null);
+#endif
+					if((operand is VarStruct varStruct || operand.TryCast(TypeName, out varStruct))
 					&& varStruct.TypeName == TypeName /* || [TODO:  user-defined casts] */) {
 						foreach((string field, Variable value) in varStruct.Fields)
 							Fields[field].InvokeOperation(Operation.Set, value, trace);

@@ -115,7 +115,7 @@ namespace MCSharp.Compilation {
 					current = (char)scriptClass[++i];
 				}
 
-				init = scriptClass[start..i];
+				init = scriptClass[(start + 1)..i];
 
 			}
 
@@ -143,36 +143,15 @@ namespace MCSharp.Compilation {
 
 			}
 
-			Variable CreateParameter(ScriptWild definition) {
-
-				const string syntaxErrorMessage = "Expected arguments in ([type] [name], ...) format.";
-				if(!definition.IsWilds || definition.Wilds.Count != 2) throw new Compiler.SyntaxException(syntaxErrorMessage, definition.ScriptTrace);
-				IReadOnlyList<ScriptWild> wilds = definition.Wilds;
-				if(!wilds[0].IsWord) throw new Compiler.SyntaxException(syntaxErrorMessage, definition.ScriptTrace);
-				ScriptWord type = wilds[0].Word;
-				if(!wilds[1].IsWord) throw new Compiler.SyntaxException(syntaxErrorMessage, definition.ScriptTrace);
-				ScriptWord name = wilds[1].Word;
-
-				if(Initializers.TryGetValue((string)type, out Initializer initializer)) {
-					Variable parameter = initializer(Access.Pass, Usage.PassInto, (string)name, Compiler.CurrentScope, name.ScriptTrace);
-					parameter.ConstructAsPasser();
-					return parameter;
-				} else throw new Compiler.SyntaxException($"Unknown type '{(string)type}'.", type.ScriptTrace);
-
-			}
-
-			void GetParameters(ref int i, out Variable[] parameters) {
+			void GetParameters(ref int i, Compiler.Scope scope, out ParameterInfo parameters) {
 
 				GetBlockWilds(ref i, "(\\)", out ScriptString content);
 				ScriptWild wilds = ScriptLine.GetWilds(content);
 
 				if(wilds.FullBlockType == "(\\,\\)") {
-					int count = wilds.Wilds.Count;
-					parameters = new Variable[count];
-					for(int j = 0; j < count; j++) parameters[j] = CreateParameter(wilds.Wilds[j]);
+					parameters = ParameterInfo.CreateFromWilds(wilds, scope);
 				} else if(wilds.Block == "(\\)") {
-					if(wilds.Wilds.Count == 0) parameters = new Variable[0];
-					else parameters = new Variable[1] { CreateParameter(wilds.Wilds[0]) };
+					parameters = ParameterInfo.CreateFromWilds(new ScriptWild(wilds.Wilds, "(\\)", ','), scope);
 				} else {
 					throw new Compiler.SyntaxException("Expected method arguments to be in '(\\,\\)' format.", wilds.ScriptTrace);
 				}
@@ -279,14 +258,18 @@ namespace MCSharp.Compilation {
 								if(get != null) throw new Compiler.SyntaxException("Cannot have two 'get' accessors in a proptery.", word.ScriptTrace);
 								// Create 'get' accessor.
 								GetCodeBlock(ref i, out ScriptString block);
-								get = new ScriptMethod($"get_{(string)name.Value}", (string)type, new Variable[] { }, null, block[1..^1], new Compiler.Scope(scope), access, usage);
+								Compiler.Scope _scope = new Compiler.Scope(scope);
+								get = new ScriptMethod($"get_{(string)name.Value}", (string)type, ParameterInfo.CreateForGetAccessor(type, _scope), null, block[1..^1], _scope, true, access, usage);
+								_scope.DeclaringMethod = get;
 							} else if((string)word == "set") {
 								if(set != null) throw new Compiler.SyntaxException("Cannot have two 'set' accessors in a proptery.", word.ScriptTrace);
 								// Create 'set' accessor.
 								GetCodeBlock(ref i, out ScriptString block);
-								Variable value = Initializers[(string)type](Access.Pass, Usage.PassInto, "value", new Compiler.Scope(scope), word.ScriptTrace);
+								Variable value = Initializers[(string)type](Access.Pass, Usage.Parameter, "value", new Compiler.Scope(scope), word.ScriptTrace);
 								value.ConstructAsPasser();
-								set = new ScriptMethod($"set_{(string)name.Value}", (string)type, new Variable[] { value }, null, block[1..^1], new Compiler.Scope(scope), access, usage);
+								Compiler.Scope _scope = new Compiler.Scope(scope);
+								set = new ScriptMethod($"set_{(string)name.Value}", (string)type, ParameterInfo.CreateForSetAccessor(type, _scope), null, block[1..^1], _scope, true, access, usage);
+								_scope.DeclaringMethod = set;
 							} else {
 								// Throw error.
 								throw new Compiler.SyntaxException($"Unexpected '{(string)word}' in property definition (expected 'get' or 'set').", word.ScriptTrace);
@@ -303,15 +286,21 @@ namespace MCSharp.Compilation {
 					case '(': {
 						if(name.HasValue) {
 							// Method
-							GetParameters(ref i, out Variable[] parameters);
+							Compiler.Scope _scope = new Compiler.Scope(scope);
+							GetParameters(ref i, _scope, out ParameterInfo parameters);
 							GetCodeBlock(ref i, out ScriptString content);
-							members.Add(new ScriptMethod((string)name.Value, (string)type, parameters, null, content[1..^1], new Compiler.Scope(scope), access, usage));
+							var method = new ScriptMethod((string)name.Value, (string)type, parameters, null, content[1..^1], _scope, false, access, usage);
+							_scope.DeclaringMethod = method;
+							members.Add(method);
 							break;
 						} else {
 							// Constructor
-							GetParameters(ref i, out Variable[] parameters);
+							Compiler.Scope _scope = new Compiler.Scope(scope);
+							GetParameters(ref i, _scope, out ParameterInfo parameters);
 							GetCodeBlock(ref i, out ScriptString content);
-							members.Add(new ScriptConstructor(parameters, (string)type, content[1..^1], new Compiler.Scope(scope), access, usage));
+							var constructor = new ScriptConstructor(parameters, (string)type, content[1..^1], _scope, access, usage);
+							_scope.DeclaringMethod = constructor;
+							members.Add(constructor);
 							break;
 						}
 					}
@@ -425,13 +414,15 @@ namespace MCSharp.Compilation {
 
 				bool getNull = get is null, setNull = set is null;
 				if(getNull && setNull) throw new Compiler.SyntaxException("Expected at least one accessor for property.", trace);
-				if(!getNull && get.Parameters.Length != 0) throw new Exception("034503232020a"); //Get method should have no parameters.
-				if(!setNull && set.Parameters.Length != 1) throw new Exception("034503232020b"); //Set method should have one parameter.
+				if(!getNull && get.Parameters.Count != 0) throw new Exception("034503232020a"); //Get method should have no parameters.
+				if(!setNull && set.Parameters.Count != 1) throw new Exception("034503232020b"); //Set method should have one parameter.
 
 				GetMethod = get;
-				GetFunc = getNull ? (GetProperty)null : () => get.Delegate.Invoke(new ArgumentInfo(new Variable[] { }, trace));
+				GetFunc = getNull ? (GetProperty)null : () => 
+				get.Delegate.Invoke(new ArgumentInfo(new Variable[] { }, trace));
 				SetMethod = set;
-				SetFunc = setNull ? (SetProperty)null : (x) => set.Delegate.Invoke(new ArgumentInfo(new Variable[] { x }, trace));
+				SetFunc = setNull ? (SetProperty)null : (x) => 
+				set.Delegate.Invoke(new ArgumentInfo(new Variable[] { x }, trace));
 
 				if(!getNull) GetMethod.DeclaringType = declaringType;
 				if(!setNull) SetMethod.DeclaringType = declaringType;
@@ -453,7 +444,7 @@ namespace MCSharp.Compilation {
 				get {
 					if(returnValue != null) return returnValue;
 					else if(Initializers.TryGetValue(TypeName, out Initializer initializer)) {
-						ReturnValue = initializer.Invoke(Access.Pass, Usage.PassAway, GetNextHiddenID(), Scope, ScriptTrace);
+						ReturnValue = initializer.Invoke(Access.Pass, Usage.Return, GetNextHiddenID(), Scope, ScriptTrace);
 						ReturnValue.ConstructAsPasser();
 						return ReturnValue;
 					} else throw new Compiler.SyntaxException($"Type '{TypeName}' could not be found.", ScriptTrace);
@@ -474,35 +465,35 @@ namespace MCSharp.Compilation {
 
 
 			[DebuggerStepThrough]
-			public ScriptConstructor(Variable[] parameters, ScriptObject declarer, ScriptString script, Compiler.Scope scope,
+			public ScriptConstructor(ParameterInfo parameters, ScriptObject declarer, ScriptString script, Compiler.Scope scope,
 			  Access access = Access.Private, Usage usage = Usage.Default)
 			: this(parameters, declarer, GetLines(script), script.ScriptTrace, scope, access, usage) { }
 
 			[DebuggerStepThrough]
-			public ScriptConstructor(Variable[] parameters, ScriptObject declarer, ScriptWild wild, Compiler.Scope scope,
+			public ScriptConstructor(ParameterInfo parameters, ScriptObject declarer, ScriptWild wild, Compiler.Scope scope,
 			  Access access = Access.Private, Usage usage = Usage.Default)
 			: this(parameters, declarer, GetLines(wild), wild.ScriptTrace, scope, access, usage) { }
 
 			[DebuggerStepThrough]
-			private ScriptConstructor(Variable[] parameters, ScriptObject declarer, ScriptLine[] lines,
+			private ScriptConstructor(ParameterInfo parameters, ScriptObject declarer, ScriptLine[] lines,
 			  ScriptTrace trace, Compiler.Scope scope, Access access, Usage usage)
-			: base(declarer?.Alias, declarer?.Alias, parameters, declarer, lines, scope, access, usage, trace) { }
+			: base(declarer?.Alias, declarer?.Alias, parameters, declarer, lines, scope, true, access, usage, trace) { }
 
 
 			[DebuggerStepThrough]
-			public ScriptConstructor(Variable[] parameters, string type, ScriptString script, Compiler.Scope scope,
+			public ScriptConstructor(ParameterInfo parameters, string type, ScriptString script, Compiler.Scope scope,
 			  Access access = Access.Private, Usage usage = Usage.Default)
 			: this(parameters, type, GetLines(script), script.ScriptTrace, scope, access, usage) { }
 
 			[DebuggerStepThrough]
-			public ScriptConstructor(Variable[] parameters, string type, ScriptWild wild, Compiler.Scope scope,
+			public ScriptConstructor(ParameterInfo parameters, string type, ScriptWild wild, Compiler.Scope scope,
 			  Access access = Access.Private, Usage usage = Usage.Default)
 			: this(parameters, type, GetLines(wild), wild.ScriptTrace, scope, access, usage) { }
 
 			[DebuggerStepThrough]
-			public ScriptConstructor(Variable[] parameters, string type, ScriptLine[] lines,
+			public ScriptConstructor(ParameterInfo parameters, string type, ScriptLine[] lines,
 			  ScriptTrace trace, Compiler.Scope scope, Access access = Access.Private, Usage usage = Usage.Default)
-			: base(type, null, parameters, null, lines, scope, access, usage, trace) { }
+			: base(type, null, parameters, null, lines, scope, true, access, usage, trace) { }
 
 
 		}
@@ -513,12 +504,13 @@ namespace MCSharp.Compilation {
 		[DebuggerDisplay("{Access.ToString().ToLower(),nq} {Usage.ToString().ToLower(),nq} {TypeName,nq} {FullAlias,nq}(params = {Parameters.Length,nq})")]
 		public class ScriptMethod : ScriptMember, IReadOnlyList<ScriptLine> {
 
-			protected ScriptLine[] ScriptLines { get; }
+			public ScriptLine[] ScriptLines { get; }
 			public ScriptLine this[int index] => ScriptLines[index];
 			public MethodDelegate Delegate { get; }
 			public virtual Variable ReturnValue { get; protected set; }
-			public Variable[] Parameters { get; }
+			public ParameterInfo Parameters { get; }
 			public int Length => ScriptLines.Length;
+			public bool Written { get; set; } = false;
 
 			public override ScriptObject DeclaringType {
 				[DebuggerStepThrough]
@@ -535,17 +527,17 @@ namespace MCSharp.Compilation {
 
 
 			[DebuggerStepThrough]
-			public ScriptMethod(string alias, string type, Variable[] parameters, ScriptObject declaringType, ScriptString script, Compiler.Scope scope,
-			  Access access = Access.Private, Usage usage = Usage.Default)
-			: this(alias, type, parameters, declaringType, GetLines(script), scope, access, usage, script.ScriptTrace) { }
+			public ScriptMethod(string alias, string type, ParameterInfo parameters, ScriptObject declaringType, ScriptString script, Compiler.Scope scope,
+			  bool inline = false, Access access = Access.Private, Usage usage = Usage.Default)
+			: this(alias, type, parameters, declaringType, GetLines(script), scope, inline, access, usage, script.ScriptTrace) { }
 
 			[DebuggerStepThrough]
-			public ScriptMethod(string alias, string type, Variable[] parameters, ScriptObject declaringType, ScriptWild wild, Compiler.Scope scope,
-			  Access access = Access.Private, Usage usage = Usage.Default)
-			: this(alias, type, parameters, declaringType, GetLines(wild), scope, access, usage, wild.ScriptTrace) { }
+			public ScriptMethod(string alias, string type, ParameterInfo parameters, ScriptObject declaringType, ScriptWild wild, Compiler.Scope scope,
+			  bool inline = false, Access access = Access.Private, Usage usage = Usage.Default)
+			: this(alias, type, parameters, declaringType, GetLines(wild), scope, inline, access, usage, wild.ScriptTrace) { }
 
-			public ScriptMethod(string alias, string type, Variable[] parameters, ScriptObject declaringType, ScriptLine[] phrases, Compiler.Scope scope,
-			  Access access, Usage usage, ScriptTrace trace)
+			public ScriptMethod(string alias, string type, ParameterInfo parameters, ScriptObject declaringType, ScriptLine[] phrases, Compiler.Scope scope,
+			  bool inline, Access access, Usage usage, ScriptTrace trace)
 			: base(alias, type, access, usage, declaringType, trace, scope) {
 
 				if(trace is null)
@@ -560,16 +552,20 @@ namespace MCSharp.Compilation {
 					else throw new Compiler.SyntaxException($"Type '{type}' does not exist.", phrases[0].ScriptTrace);
 				}
 
-				Delegate = (arguments) => {
-					for(int i = 0; i < arguments.Count; i++) {
-						Variable argument = arguments[i].Value, parameter = Parameters[i];
-						if(argument.GetType().IsAssignableFrom(parameter.GetType()) || argument.TryCast(parameter.GetType(), out argument)) {
-							parameter.InvokeOperation(Operation.Set, argument, Compiler.AnonScriptTrace);
-						} else throw new Variable.InvalidCastException(argument, parameter.TypeName, trace);
-					}
-					new Spy(null, $"function {GameName}", null);
-					return ReturnValue;
-				};
+				if(inline) {
+					Delegate = (arguments) => {
+						Parameters.Grab(arguments);
+						Compiler.WriteFunction<Variable>(Scope.Parent, Scope.Parent.DeclaringVariable, this, true);
+						return ReturnValue;
+					};
+				} else {
+					Delegate = (arguments) => {
+						if(Written = !Written) Compiler.WriteFunction<Variable>(Scope.Parent, Scope.Parent.DeclaringVariable, this, false);
+						Parameters.Grab(arguments);
+						new Spy(null, $"function {GameName}", null);
+						return ReturnValue;
+					};
+				}
 
 			}
 

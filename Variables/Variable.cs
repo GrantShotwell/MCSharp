@@ -1,5 +1,5 @@
 ﻿using MCSharp.Compilation;
-using MCSharp.GameJSON.Text;
+using MCSharp.GameSerialization.Text;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -25,7 +25,7 @@ namespace MCSharp.Variables {
 		/// </summary>
 		public static Dictionary<string, Constructor> Constructors { get; } = new Dictionary<string, Constructor>();
 
-		public static Dictionary<(Type from, Type to), Caster[]> Casters { get; } = new Dictionary<(Type from, Type to), Caster[]>();
+		public static Dictionary<(string from, string to), Caster[]> Casters { get; } = new Dictionary<(string from, string to), Caster[]>();
 
 		/// <summary>
 		/// Tries to cast <paramref name="value"/> into another type.
@@ -170,22 +170,22 @@ namespace MCSharp.Variables {
 				if(cnstInfo.GetBaseDefinition().DeclaringType != cnstInfo.DeclaringType) Constructors.Add(TypeName, Construct);
 
 				// Add casters 'to'.
-				IDictionary<Type, Caster> castersTo = GetCasters_To();
-				foreach(KeyValuePair<Type, Caster> pair in castersTo) {
-					(Type type, Type key) key = (type, pair.Key);
+				IDictionary<string, Caster> castersTo = GetCasters_To();
+				foreach(KeyValuePair<string, Caster> pair in castersTo) {
+					(string From, string To) key = (TypeName, pair.Key);
 					Caster[] array;
-					if(!Casters.ContainsKey(key)) Casters.Add(key, array = new Caster[2]);
-					else array = Casters[key];
+					if(Casters.ContainsKey(key)) array = Casters[key];
+					else Casters.Add(key, array = new Caster[2]);
 					array[0] = pair.Value;
 				}
 
 				// Add casters 'from'.
-				IDictionary<Type, Caster> castersFrom = GetCasters_From();
-				foreach(KeyValuePair<Type, Caster> pair in castersFrom) {
-					(Type type, Type key) key = (pair.Key, type);
+				IDictionary<string, Caster> castersFrom = GetCasters_From();
+				foreach(KeyValuePair<string, Caster> pair in castersFrom) {
+					(string From, string To) key = (pair.Key, TypeName);
 					Caster[] array;
-					if(!Casters.ContainsKey(key)) Casters.Add(key, array = new Caster[2]);
-					else array = Casters[key];
+					if(Casters.ContainsKey(key)) array = Casters[key];
+					else Casters.Add(key, array = new Caster[2]);
 					array[1] = pair.Value;
 				}
 
@@ -199,7 +199,7 @@ namespace MCSharp.Variables {
 			if(GetType() != typeof(Spy)) {
 				bool anon = access == Access.Pass;
 				if(!anon && !AllowedAccessModifiers.Contains(access)) throw new InvalidModifierException(access.ToString(), TypeName, Compiler.CurrentScriptTrace);
-				bool pass = usage == Usage.PassInto || usage == Usage.PassAway;
+				bool pass = usage == Usage.Parameter || usage == Usage.Return;
 				if(!pass && !AllowedUsageModifiers.Contains(usage)) throw new InvalidModifierException(usage.ToString(), TypeName, Compiler.CurrentScriptTrace);
 			}
 
@@ -389,11 +389,11 @@ namespace MCSharp.Variables {
 			else throw new Compiler.SyntaxException($"This type can only be passed to {nameof(Pointer<Variable>)}.", Compiler.CurrentScriptTrace);
 		}
 
-		public virtual IDictionary<Type, Caster> GetCasters_To() {
-			var casters = new Dictionary<Type, Caster> {
+		public virtual IDictionary<string, Caster> GetCasters_To() {
+			var casters = new Dictionary<string, Caster> {
 				//{ GetType(), value => value },
-				{ typeof(VarString), value => value.GetString() },
-				{ typeof(VarJson), value => {
+				{ VarString.StaticTypeName, value => value.GetString() },
+				{ VarJson.StaticTypeName, value => {
 					var json = new VarJson(Access.Private, Usage.Constant, GetNextHiddenID(), value.Scope);
 					json.SetValue(value.GetRawText().GetJson());
 					return json;
@@ -402,13 +402,13 @@ namespace MCSharp.Variables {
 			return casters;
 		}
 
-		public virtual IDictionary<Type, Caster> GetCasters_From() {
-			var casters = new Dictionary<Type, Caster> { };
+		public virtual IDictionary<string, Caster> GetCasters_From() {
+			var casters = new Dictionary<string, Caster> { };
 			return casters;
 		}
 
-		public bool TryCast<TVariable>([NotNullWhen(true)] out TVariable result) where TVariable : Variable {
-			(Type from, Type to) castInfo = (GetType(), typeof(TVariable));
+		public bool TryCast<TVariable>(string type, [NotNullWhen(true)] out TVariable result) where TVariable : Variable {
+			(string From, string To) castInfo = (TypeName, type);
 			if(!Casters.ContainsKey(castInfo)) {
 				result = null;
 				return false;
@@ -419,8 +419,8 @@ namespace MCSharp.Variables {
 			}
 		}
 
-		public bool TryCast(Type type, out Variable result) {
-			(Type from, Type to) castInfo = (GetType(), type);
+		public bool TryCast(string type, out Variable result) {
+			(string From, string To) castInfo = (TypeName, type);
 			if(!Casters.ContainsKey(castInfo)) {
 				result = null;
 				return false;

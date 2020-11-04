@@ -79,7 +79,15 @@ namespace MCSharp {
 				FileStatusTracker.Add(file);
 
 				using(StreamReader reader = File.OpenText(scriptPath)) {
-					new ScriptFile(new ScriptString(reader.ReadToEnd(), scriptPath));
+					foreach(ScriptObject typeDef in new ScriptFile(new ScriptString(reader.ReadToEnd(), scriptPath))) {
+						if(typeDef.Alias == "Program") {
+							foreach(KeyValuePair<string, ScriptMember> pair in typeDef) {
+								if(pair.Key == "Main" || pair.Key == "Load") {
+									WriteFunction<VarVoid>(typeDef.StaticObject.InnerScope, typeDef.StaticObject, pair.Value as ScriptMethod, false);
+								}
+							}
+						}
+					}
 				}
 
 				FileStatusTracker.Finish(file);
@@ -148,18 +156,34 @@ namespace MCSharp {
 		private static Scope WriteFunction<TReturn>(Scope parent, Variable declarer, ScriptMethod method, string path, string name, bool inline = false) where TReturn : Variable {
 
 			CurrentScriptTrace = method.ScriptTrace;
+			FileStatus file;
+			StreamWriter writer;
+			bool endWriter;
 
-			FileStatus file = new FileStatus(name, FileStatusTracker.Recursion);
-			FileStatusTracker.Add(file);
+			if(inline) {
 
-			string[] directorySplit = path.Split('\\')[..^1];
-			string directory = "";
-			foreach(string part in directorySplit) directory += '\\' + part;
-			Directory.CreateDirectory(directory[1..]);
-			StreamWriter writer = File.CreateText(path.Split("(", 2)[0]);
+				file = null;
+				if(FunctionStack.Count == 0) throw new InvalidOperationException("Cannot write an inline function when there is no function to write into.");
+				else writer = FunctionStack.Peek();
+				endWriter = false;
+
+			} else {
+
+				file = new FileStatus(name, FileStatusTracker.Recursion);
+				FileStatusTracker.Add(file);
+
+				string[] directorySplit = path.Split('\\')[..^1];
+				string directory = "";
+				foreach(string part in directorySplit) directory += '\\' + part;
+				Directory.CreateDirectory(directory[1..]);
+				writer = File.CreateText(path.Split("(", 2)[0]);
+				endWriter = true;
+
+			}
 
 			FunctionStack.Push(writer);
-			ScopeStack.Push(new Scope(parent, declarer, method));
+			//ScopeStack.Push(new Scope(parent, declarer, method));
+			ScopeStack.Push(method.Scope);
 
 #if DEBUG_OUT
 			writer.Write($"# {method.FullAlias}@{CurrentScope.ID}\n");
@@ -229,17 +253,24 @@ namespace MCSharp {
 
 			}
 
-			if(VariableScopes.TryGetValue(CurrentScope, out List<Variable> variables)) {
-				for(int i = 0; i < variables.Count; i++) variables[i].WriteInit(FunctionStack.Peek());
-				for(int i = 0; i < variables.Count; i++) variables[i].WriteDele(FunctionStack.Peek());
+			List<Variable> variables = VariableScopes[CurrentScope];
+			void WriteVariables(StreamWriter writer) {
+				for(int i = 0; i < variables.Count; i++) variables[i].WriteInit(writer);
+				for(int i = 0; i < variables.Count; i++) variables[i].WriteDele(writer);
 			}
 
+			if(inline) {
+				Scope pop = ScopeStack.Pop();
+				new Spy(null, WriteVariables, null);
+				ScopeStack.Push(pop);
+			} else {
+				WriteVariables(FunctionStack.Peek());
+			}
 
-			FunctionStack.Pop().Close();
-			Scope outScope = ScopeStack.Pop();
-			FileStatusTracker.Finish(file);
-
-			return outScope;
+			if(endWriter) FunctionStack.Pop().Close();
+			else FunctionStack.Pop();
+			if(file != null) FileStatusTracker.Finish(file);
+			return ScopeStack.Pop();
 
 		}
 
@@ -331,7 +362,7 @@ namespace MCSharp {
 								// Compile an operation.
 								ScriptWord opWord = op.Value;
 								if(BooleanOperators.Contains((string)opWord)) {
-									if(variable is VarBool varBool || variable.TryCast(out varBool))
+									if(variable is VarBool varBool || variable.TryCast(VarBool.StaticTypeName, out varBool))
 										variable = varBool.InvokeOperation(opWord, wild.Array[i..]);
 									else throw new SyntaxException(
 										$"Cannot cast '{variable}' into 'bool' for use in boolean operator '{(string)opWord}'.", opWord.ScriptTrace);
@@ -540,23 +571,30 @@ namespace MCSharp {
 			private int nextInnerID = 0;
 			private Scope parent;
 			private readonly List<Scope> children = new List<Scope>();
-			private readonly Variable declaringVariable;
-			private readonly ScriptMethod declaringMethod;
+			private Variable declaringVariable;
+			private ScriptMethod declaringMethod;
 
-			public virtual int ID { get; }
-			public virtual Variable DeclaringVariable => declaringVariable ?? Parent?.DeclaringVariable ?? null;
-			public virtual ScriptObject DeclaringType => (DeclaringVariable as VarStruct)?.ScriptClass;
-			public virtual ScriptMethod DeclaringMethod => declaringMethod ?? Parent?.DeclaringMethod ?? null;
-			public virtual ScriptMethod DeclaringRealMethod {
+			public int ID { get; }
+			public Variable DeclaringVariable {
+				get => declaringVariable ?? Parent?.DeclaringVariable ?? null;
+				set => declaringVariable = value;
+			}
+			public ScriptObject DeclaringType => (DeclaringVariable as VarStruct)?.ScriptClass;
+			public ScriptMethod DeclaringMethod {
+				get => declaringMethod ?? Parent?.DeclaringMethod ?? null;
+				set => declaringMethod = value;
+			}
+
+			public ScriptMethod DeclaringRealMethod {
 				get {
 					ScriptMethod method = DeclaringMethod;
 					if(method is null || method.Anonymous) method = Parent?.DeclaringRealMethod;
 					return method;
 				}
 			}
-			public virtual ICollection<Variable> Variables { get; } = new HashSet<Variable>();
-			public virtual IReadOnlyCollection<Scope> Children => children;
-			public virtual Scope Parent {
+			public ICollection<Variable> Variables { get; } = new HashSet<Variable>();
+			public IReadOnlyCollection<Scope> Children => children;
+			public Scope Parent {
 				get => parent;
 				set {
 					parent?.children.Remove(this);
@@ -620,6 +658,12 @@ namespace MCSharp {
 
 				return new string(chars.ToArray());
 
+			}
+
+			public Scope[] CreateChildren(int count) {
+				var children = new Scope[count];
+				for(int i = 0; i < count; i++) children[i] = new Scope(this);
+				return children;
 			}
 
 			public string GetNextAnonMethodAlias() {

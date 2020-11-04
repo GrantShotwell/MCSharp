@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 
-namespace MCSharp.GameJSON.Text {
+namespace MCSharp.GameSerialization.Text {
 
 	public class RawTextList : IList<RawText> {
 

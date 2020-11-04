@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace MCSharp.GameJSON.Text {
+namespace MCSharp.GameSerialization.Text {
 
-	public class Score {
+	public class ScoreData {
 
 		/// <summary>The name of the score holder whose score should be displayed. This can be a selector like @p or an explicit name.
 		/// If the text is a selector, the selector must be guaranteed to never select more than one entity, possibly by adding limit=1.

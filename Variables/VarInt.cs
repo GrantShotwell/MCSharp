@@ -1,5 +1,5 @@
 ﻿using MCSharp.Compilation;
-using MCSharp.GameJSON.Text;
+using MCSharp.GameSerialization.Text;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -28,7 +28,7 @@ namespace MCSharp.Variables {
 
 		public override void WriteCopyTo(StreamWriter function, Variable variable) {
 			if(variable is Pointer<VarInt> pointer) pointer.Variable = this;
-			else if(variable is VarInt varInt || variable.TryCast(out varInt)) {
+			else if(variable is VarInt varInt || variable.TryCast(StaticTypeName, out varInt)) {
 				if(Usage == Usage.Constant) {
 					function.WriteLine($"scoreboard players set {varInt.Selector.GetConstant()} {varInt.Objective.GetConstant()} {Constant}");
 				} else {
@@ -39,7 +39,7 @@ namespace MCSharp.Variables {
 
 		public override Variable InvokeOperation(Operation operation, Variable operand, ScriptTrace scriptTrace) {
 
-			if(operand is VarInt right || operand.TryCast(out right)) {
+			if(operand is VarInt right || operand.TryCast(StaticTypeName, out right)) {
 
 				string op;
 
@@ -143,9 +143,9 @@ namespace MCSharp.Variables {
 
 		}
 
-		public override IDictionary<Type, Caster> GetCasters_To() {
-			IDictionary<Type, Caster> casters = base.GetCasters_To();
-			casters.Add(typeof(VarBool), value => {
+		public override IDictionary<string, Caster> GetCasters_To() {
+			IDictionary<string, Caster> casters = base.GetCasters_To();
+			casters.Add(VarBool.StaticTypeName, value => {
 				var original = value as VarInt;
 				bool constant = original.Usage == Usage.Constant;
 				var result = new VarBool(Access.Private, constant ? Usage.Constant : Usage.Default, GetNextHiddenID(), Compiler.CurrentScope);
@@ -158,7 +158,7 @@ namespace MCSharp.Variables {
 
 		public override RawText GetRawText() => new RawText() {
 			Score = Usage == Usage.Constant ? null
-			: new Score() {
+			: new ScoreData() {
 				Name = Selector.GetConstant(),
 				Objective = Objective.GetConstant()
 			},

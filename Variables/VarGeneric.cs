@@ -11,7 +11,7 @@ namespace MCSharp.Variables {
 
 		public ScriptObject ScriptClass { get; }
 		public override string TypeName => ScriptClass.Alias;
-		public new IList<Constructor> Constructors { get; } = new List<Constructor>();
+		public new IList<(Constructor Constructor, ParameterInfo Parameters)> Constructors { get; } = new List<(Constructor Constructor, ParameterInfo Parameters)>();
 		public static HashSet<ScriptConstructor> CompiledConstructors { get; } = new HashSet<ScriptConstructor>();
 
 
@@ -49,25 +49,25 @@ namespace MCSharp.Variables {
 		public void AddMember(ScriptMember member) {
 			switch(member) {
 				case ScriptProperty property:
-					Properties.Add(property.Alias, CompileProperty(property));
+					AddProperty(property);
 					break;
 				case ScriptConstructor constructor:
-					Constructors.Add(CompileConstructor(constructor));
+					AddConstructor(constructor);
 					break;
 				case ScriptMethod function:
-					Methods.Add(function.Alias, CompileMethod(function));
+					AddMethod(function);
 					break;
 				case ScriptField field:
-					Fields.Add(field.Alias, CompileField(field));
+					AddField(field);
 					break;
 				default: throw new Compiler.InternalError($"VarGeneric has not implemented member type '{member.GetType().Name}'.");
 			}
 		}
 
-		public abstract (GetProperty get, SetProperty set) CompileProperty(ScriptProperty property);
-		public abstract MethodDelegate CompileMethod(ScriptMethod function);
-		public abstract Variable CompileField(ScriptField field);
-		public abstract Constructor CompileConstructor(ScriptConstructor constructor);
+		public abstract void AddField(ScriptField field);
+		public abstract void AddProperty(ScriptProperty property);
+		public abstract void AddConstructor(ScriptConstructor constructor);
+		public abstract void AddMethod(ScriptMethod method);
 
 	}
 

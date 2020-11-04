@@ -2,7 +2,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace MCSharp.GameJSON.Text {
+namespace MCSharp.GameSerialization.Text {
 
 	public class RawText {
 
@@ -19,7 +19,7 @@ namespace MCSharp.GameJSON.Text {
 		#region Scoreboard Value
 		/// <summary>Displays a score holder's current score in an objective.
 		/// Displays nothing if the given score holder or the given objective do not exist, or if the score holder is not tracked in the objective.</summary>
-		public Score Score { get; set; }
+		public ScoreData Score { get; set; }
 		#endregion
 		#region Entity Names
 		/// <summary>A string containing a selector. Displayed as the name of the player or entity found by the selector.

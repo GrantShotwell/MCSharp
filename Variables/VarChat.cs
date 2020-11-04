@@ -18,8 +18,12 @@ namespace MCSharp.Variables {
 
 		public VarChat(string name) : base(Access.Public, Usage.Static, name, Compiler.RootScope) {
 
+			Compiler.Scope[] scopeSay = new Compiler.Scope[1];
+			for(int i = 0; i < scopeSay.Length; i++) scopeSay[i] = new Compiler.Scope(InnerScope);
 			ParameterInfo[] infoSay = new ParameterInfo[] {
-				new (Type, bool)[] { (typeof(VarString), true) }
+				new ParameterInfo(
+					(true, VarString.StaticTypeName, "text", scopeSay[0])
+				)
 			};
 			Methods.Add("Say", arguments => {
 				(ParameterInfo match, int index) = ParameterInfo.HighestMatch(infoSay, arguments);
@@ -27,7 +31,7 @@ namespace MCSharp.Variables {
 
 				switch(index) {
 					case 0:
-						string text = match[0].Value.GetConstant();
+						string text = match["text"].Value.GetConstant();
 						new Spy(null, $"say {text}", null);
 						return null;
 
@@ -36,8 +40,13 @@ namespace MCSharp.Variables {
 
 			});
 
+			Compiler.Scope[] scopeTellraw = new Compiler.Scope[1];
+			for(int i = 0; i < scopeTellraw.Length; i++) scopeTellraw[i] = new Compiler.Scope(InnerScope);
 			ParameterInfo[] infoTellraw = new ParameterInfo[] {
-				new (Type, bool)[] { (typeof(VarSelector), true), (typeof(VarJson), true) }
+				new ParameterInfo(
+					(true, VarSelector.StaticTypeName, "targets", scopeTellraw[0]),
+					(true, VarJson.StaticTypeName, "json", scopeTellraw[0])
+				)
 			};
 			Methods.Add("Tellraw", arguments => {
 				(ParameterInfo match, int index) = ParameterInfo.HighestMatch(infoTellraw, arguments);
@@ -45,8 +54,8 @@ namespace MCSharp.Variables {
 
 				switch(index) {
 					case 0:
-						string selector = match[0].Value.GetConstant();
-						string json = match[1].Value.GetRawText().GetJson();
+						string selector = match["selector"].Value.GetConstant();
+						string json = match["json"].Value.GetRawText().GetJson();
 						new Spy(null, $"tellraw {selector} {json}", null);
 						return null;
 

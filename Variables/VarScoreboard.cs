@@ -19,11 +19,15 @@ namespace MCSharp.Variables {
 
 		public VarScoreboard(string name) : base(Access.Public, Usage.Static, name, Compiler.RootScope) {
 
-			ParameterInfo[] GetScoreInfo = new ParameterInfo[] {
-				new (Type, bool)[] { (typeof(VarSelector), true), (typeof(VarObjective), true) }
+			Compiler.Scope[] scopesGetScore = InnerScope.CreateChildren(1);
+			ParameterInfo[] infoGetScore = new ParameterInfo[] {
+				new ParameterInfo(
+					(true, VarSelector.StaticTypeName, "selection", scopesGetScore[0]),
+					(true, VarObjective.StaticTypeName, "from", scopesGetScore[0])
+				)
 			};
 			Methods.Add("GetScore", arguments => {
-				(ParameterInfo match, int index) = ParameterInfo.HighestMatch(GetScoreInfo, arguments);
+				(ParameterInfo match, int index) = ParameterInfo.HighestMatch(infoGetScore, arguments);
 				match.Grab(arguments);
 
 				VarInt value = new VarInt(Access.Private, Usage.Default, GetNextHiddenID(), Compiler.CurrentScope);
@@ -45,12 +49,22 @@ namespace MCSharp.Variables {
 
 			});
 
-			ParameterInfo[] SetScoreInfo = new ParameterInfo[] {
-				new (Type, bool)[] { (typeof(VarSelector), true), (typeof(VarObjective), true), (typeof(VarInt), true) },
-				new (Type, bool)[] { (typeof(VarSelector), true), (typeof(VarObjective), true), (typeof(VarSelector), true), (typeof(VarObjective), true) }
+			Compiler.Scope[] scopesSetScore = InnerScope.CreateChildren(2);
+			ParameterInfo[] infoSetScore = new ParameterInfo[] {
+				new ParameterInfo(
+					(true, VarSelector.StaticTypeName, "targets", scopesSetScore[0]),
+					(true, VarObjective.StaticTypeName, "storage", scopesSetScore[0]),
+					(true, VarInt.StaticTypeName, "from", scopesSetScore[0])
+				),
+				new ParameterInfo(
+					(true, VarSelector.StaticTypeName, "targets", scopesSetScore[1]),
+					(true, VarObjective.StaticTypeName, "storage", scopesSetScore[1]),
+					(true, VarSelector.StaticTypeName, "selection", scopesSetScore[1]),
+					(true, VarObjective.StaticTypeName, "from", scopesSetScore[1])
+				)
 			};
 			Methods.Add("SetScore", arguments => {
-				(ParameterInfo match, int index) = ParameterInfo.HighestMatch(SetScoreInfo, arguments);
+				(ParameterInfo match, int index) = ParameterInfo.HighestMatch(infoSetScore, arguments);
 				match.Grab(arguments);
 
 				(VarSelector Selector, VarObjective Objective) to, from;
@@ -97,23 +111,29 @@ namespace MCSharp.Variables {
 
 			});
 
-			ParameterInfo[] SetDisplayInfo = new ParameterInfo[] {
-				new (Type, bool)[] { (typeof(VarString), true) },
-				new (Type, bool)[] { (typeof(VarString), true), (typeof(VarObjective), true) }
+			Compiler.Scope[] scopesSetDisplay = InnerScope.CreateChildren(2);
+			ParameterInfo[] infoSetDisplay = new ParameterInfo[] {
+				new ParameterInfo(
+					(true, VarString.StaticTypeName, "display", scopesSetDisplay[0])
+				),
+				new ParameterInfo(
+					(true, VarString.StaticTypeName, "display", scopesSetDisplay[1]),
+					(true, VarObjective.StaticTypeName, "target", scopesSetDisplay[1])
+				)
 			};
 			Methods.Add("SetDisplay", arguments => {
-                (ParameterInfo match, int index) = ParameterInfo.HighestMatch(SetDisplayInfo, arguments);
+                (ParameterInfo match, int index) = ParameterInfo.HighestMatch(infoSetDisplay, arguments);
 				match.Grab(arguments);
 
 				string display, objective;
 				switch(index) {
 					case 0:
-						display = match[0].Value.GetConstant();
+						display = match["display"].Value.GetConstant();
 						objective = string.Empty;
 						goto SetDisplay;
 					case 1:
-						display = match[0].Value.GetConstant();
-						objective = match[1].Value.GetConstant();
+						display = match["display"].Value.GetConstant();
+						objective = match["target"].Value.GetConstant();
 						goto SetDisplay;
 
 						SetDisplay:
