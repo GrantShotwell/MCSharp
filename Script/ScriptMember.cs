@@ -55,7 +55,7 @@ namespace MCSharp.Script {
 
 			// (field_def|property_def|method_def)
 			MemberType memberType;
-			TokenList definition = null;
+			TokenList definition;
 			{
 
 				TokenReader branch = reader.Branch();
@@ -887,7 +887,7 @@ namespace MCSharp.Script {
 		/// </summary>
 		public static bool ReadExpression(ref TokenReader reader, out string message, out TokenList result) {
 
-			bool assignment = false;
+			bool assignment;
 			{
 				TokenReader lookahead = reader.Branch();
 				bool move1 = lookahead.MoveNext();
@@ -1141,7 +1141,7 @@ namespace MCSharp.Script {
 
 				TokenReader branch = reader.Branch();
 
-				if(!ReadLiteral(ref branch, out message, out TokenList literal)) goto Break0;
+				if(!ReadLiteral(ref branch, out _, out TokenList literal)) goto Break0;
 				else result.AddLast(literal);
 
 				reader = branch;
@@ -1158,7 +1158,7 @@ namespace MCSharp.Script {
 
 				TokenReader branch = reader.Branch();
 
-				if(!ReadIdentifier(ref branch, out message, out TokenList identifier)) goto Break1;
+				if(!ReadIdentifier(ref branch, out _, out TokenList identifier)) goto Break1;
 				else result.AddLast(identifier);
 
 				reader = branch;
@@ -1304,7 +1304,7 @@ namespace MCSharp.Script {
 
 				TokenReader branch = reader.Branch();
 
-				if(!ReadPrimaryExpression(ref branch, out message, out TokenList primary_expression)) goto Break0;
+				if(!ReadPrimaryExpression(ref branch, out _, out TokenList primary_expression)) goto Break0;
 				else result.AddLast(primary_expression);
 
 				reader = branch;
