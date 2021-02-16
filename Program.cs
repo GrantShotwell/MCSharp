@@ -1,278 +1,381 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
+using System.Text.RegularExpressions;
 
 namespace MCSharp {
 
 	public static class Program {
 
-		public static string MinecraftVersion => "1.15";
-		public static string ProgramVersion => "0.0.0";
+		public static ConsoleColor DefaultForegroundColor { get; } = ConsoleColor.Gray;
+		private static Regex SettingsRegex { get; } = new Regex(@"(?'Setting'\w+)\s*=\s*(?'Value'.+)");
 
-		public static string Directory { get; private set; }
-		public static Datapack Datapack { get; private set; }
+		private static string DatapackFolder { get; set; }
+		private static string DatapackName { get; set; }
 
-		public static string ScriptsFolder => $"{Directory}\\{Datapack.Name}\\data\\{Datapack.Name}\\scripts\\";
-		public static string FunctionsFolder => $"{Directory}\\{Datapack.Name}\\data\\{Datapack.Name}\\functions\\";
+		public static void Main() {
 
-		public static string LoadMCScriptDefault {
-			get {
-				using StreamReader template = File.OpenText("load_template.mcscript");
-				return template.ReadToEnd();
-			}
-		}
-
-		public static string MainMCScriptDefault {
-			get {
-				using StreamReader template = File.OpenText("main_template.mcscript");
-				return template.ReadToEnd();
-			}
-		}
-
-		public static void Main(string[] args) {
-
-			Console.Title = $"MCSharp {ProgramVersion} - Minecraft {MinecraftVersion}";
-
-			var commands = new Dictionary<string, Action<string>>() {
-				{ "folder", Folder },
-				{ "pack", Pack },
-				{ "create", Create },
-				{ "compile", Compile },
-				{ "c", Compile },
-				{ "exit", Exit }
-			};
-			commands.Add("help", (arguments) => {
-				if(arguments == "") {
-					string keys = "";
-					foreach(string key in commands.Keys) keys += key + " ";
-					Console.ForegroundColor = ConsoleColor.Gray;
-					Console.WriteLine(string.Format("There are {0} commands: {1}", commands.Keys.Count, keys));
-				} else {
-					if(arguments == null) {
-						Console.ForegroundColor = ConsoleColor.Gray;
-						Console.WriteLine("help\n\t=> Lists all commands for this console.\n" +
-										  "help {command}\n\t=> Details the given command.");
-					} else if(commands.TryGetValue(arguments, out Action<string> cmdValue)) {
-						cmdValue.Invoke(null);
-					}
+			// Find all commands through reflection.
+			foreach(MethodInfo method in typeof(Program).GetMethods()) {
+				if(method.GetCustomAttribute(typeof(CommandAttribute), true) is CommandAttribute attribute) {
+					var command = new Command(attribute, Delegate.CreateDelegate(typeof(CommandAction), method) as CommandAction);
+					AddCommand(command);
 				}
-			});
-
-			try {
-				using StreamReader settings = File.OpenText("settings.txt");
-				string line;
-				while((line = settings.ReadLine()) != null) {
-					string[] split = line.Split('=');
-					if(split.Length < 2) continue;
-					string setting = split[0].Trim();
-					string argument = split[1].Trim();
-					switch(setting) {
-						case "default_datapacks_folder":
-							Folder(argument);
-							break;
-						case "default_datapack_name":
-							Pack(argument);
-							break;
-					}
-				}
-			} catch(FileNotFoundException) {
-				Console.ForegroundColor = ConsoleColor.Yellow;
-				Console.WriteLine("Could not find the settings file, 'settings.txt'. Folder and pack will need to be set manually.");
 			}
 
+			// Open and read settings.
+			if(File.Exists("settings.txt")) {
+				try {
+					StreamReader reader = File.OpenText("settings.txt");
+					string line;
+					while((line = reader.ReadLine()) != null) {
+						line = line.Trim();
+						if(line.StartsWith("//")) continue;
+						Match match = SettingsRegex.Match(line);
+						if(match.Success) {
+							string setting = match.Groups["Setting"].Value;
+							string value = match.Groups["Value"].Value;
+							string success = $"Applied '{setting}' setting.";
+							switch(setting) {
+								case "default_datapacks_folder":  DatapackFolder = value;  PrintSuccess(success);  break;
+								case "default_datapack_name":     DatapackName = value;    PrintSuccess(success);  break;
+								default: PrintWarning($"Skipped unknown setting '{setting}'."); break;
+							}
+						}
+					}
+				} catch(Exception e) {
+					PrintError(e);
+				}
+			}
+
+			// User input loop.
 			while(true) {
+				ExecuteInputFromUser(out bool exit);
+				if(exit) break;
+			}
 
-				Console.ForegroundColor = ConsoleColor.White;
-				Console.Write("\n> ");
+		}
 
-				string[] cmdSplit = Console.ReadLine().Split(' ', 2);
-				if(cmdSplit.Length == 0) continue;
-				string cmdKey = cmdSplit[0];
+		private static void ExecuteInputFromUser(out bool exit) {
 
-				if(commands.TryGetValue(cmdKey, out Action<string> cmdValue)) {
+			var input = PrintPrompt();
+			if(!CommandDictionary.ContainsKey(input.Command)) {
+
+				PrintError($"Command '{input.Command}' does not exist.");
+				exit = false;
+
+			} else {
+
+				CommandAction command = CommandDictionary[input.Command].Action;
+
 #if DEBUG
-					//Debug: no error catching brings VS to the line in code.
-					if(cmdSplit.Length >= 2) cmdValue.Invoke(cmdSplit[1]);
-					else cmdValue.Invoke("");
+				command(input, out exit);
 #else
-                    try {
-                        if(cmdSplit.Length >= 2) cmdValue.Invoke(cmdSplit[1]);
-                        else cmdValue.Invoke("");
-                    } catch(Exception e) {
-                        Console.ForegroundColor = ConsoleColor.Red;
-                        Console.WriteLine($"{e.GetType()}: {e.Message}");
-                    }
+				try {
+					command(input, out exit);
+				} catch(Exception e) {
+					PrintError(e);
+					exit = false;
+				}
 #endif
-				} else if(cmdKey == "") {
-					// Do nothing.
-				} else {
-					Console.ForegroundColor = ConsoleColor.Red;
-					Console.WriteLine("Command not found.");
-				}
 
 			}
 
 		}
 
-		/// <summary>
-		/// Interacts with the datapacks folder.
-		/// </summary>
-		public static void Folder(string arguments) {
-			if(arguments == null) { //help
-				Console.ForegroundColor = ConsoleColor.Gray;
-				Console.WriteLine("folder {path}\n\t=> Sets the location of the 'datapacks' folder. (eg. 'folder C:\\Users\\___\\AppData\\Roaming\\.minecraft\\saves\\___\\datapacks')\n" +
-								  "folder ?\n\t=> Gets the location of the 'datapacks' folder.");
-			} else if(arguments == "") { //no arguments
-				Console.ForegroundColor = ConsoleColor.Yellow;
-				Console.WriteLine("Enter a 'datapacks' folder location. (eg. 'C:\\Users\\___\\AppData\\Roaming\\.minecraft\\saves\\___\\datapacks')");
-			} else if(arguments == "?") {
-				Console.ForegroundColor = ConsoleColor.Gray;
-				Console.WriteLine(string.Format("The datapacks folder is currently set as '{0}'.", Directory));
-			} else if(System.IO.Directory.Exists(arguments)) {
-				Console.ForegroundColor = ConsoleColor.Green;
-				Console.WriteLine(string.Format("Datapack folder now set as '{0}'.", Directory = arguments));
+		private static bool GetDatapack(out Datapack datapack) {
+			
+			bool setfolder = DatapackFolder is null;
+			bool setname = DatapackName is null;
+			if(setfolder || setname) {
+				if(setfolder) PrintError("The datapack location has not been set. Use 'setfolder' to set the datapack location.");
+				if(setname) PrintError("The datapack name has not been set. Use 'setname' to set the datapack name.");
+				datapack = null;
+				return false;
 			} else {
-				Console.ForegroundColor = ConsoleColor.Red;
-				Console.WriteLine("Could not find the specified folder.");
+				datapack = new Datapack($"{DatapackFolder}\\{DatapackName}", DatapackName);
+				return true;
+			}
+
+		}
+
+#region Console Helpers
+
+		public static void PrintText(string text) {
+			Console.ForegroundColor = ConsoleColor.Gray;
+			Console.WriteLine(text);
+			Console.ForegroundColor = DefaultForegroundColor;
+		}
+
+		public static void PrintError(string message) {
+			Console.ForegroundColor = ConsoleColor.Red;
+			Console.WriteLine(message);
+			Console.ForegroundColor = DefaultForegroundColor;
+		}
+
+		public static void PrintError(Exception e) {
+			Console.ForegroundColor = ConsoleColor.Red;
+			Console.WriteLine("An exception occured within the program.");
+			Console.WriteLine($"{e.GetType().Name}: {e.Message}");
+			Console.WriteLine(e.StackTrace);
+			Console.ForegroundColor = DefaultForegroundColor;
+		}
+
+		public static void PrintWarning(string message) {
+			Console.ForegroundColor = ConsoleColor.Yellow;
+			Console.WriteLine(message);
+			Console.ForegroundColor = DefaultForegroundColor;
+		}
+
+		public static void PrintSuccess(string message) {
+			Console.ForegroundColor = ConsoleColor.Green;
+			Console.WriteLine(message);
+			Console.ForegroundColor = DefaultForegroundColor;
+		}
+
+		public static Input PrintPrompt() {
+			Console.ForegroundColor = ConsoleColor.White;
+			Console.Write("\n> ");
+			Input input = new Input(Console.ReadLine());
+			Console.ForegroundColor = DefaultForegroundColor;
+			return input;
+		}
+
+		public static bool PrintYN(string message = "") {
+			Console.ForegroundColor = ConsoleColor.White;
+			Console.Write(message);
+			string prompt = "Y/N: ";
+			Console.Write(prompt);
+			while(true) {
+				switch(Console.ReadKey(true).Key) {
+					case ConsoleKey.Y:
+						Console.CursorLeft -= prompt.Length;
+						Console.ForegroundColor = ConsoleColor.Green;
+						Console.Write('Y');
+						Console.ForegroundColor = ConsoleColor.White;
+						Console.Write('/');
+						Console.ForegroundColor = ConsoleColor.White;
+						Console.Write('N');
+						Console.ForegroundColor = DefaultForegroundColor;
+						for(int n = 3; n < prompt.Length; n++) Console.Write(' ');
+						Console.WriteLine();
+						return true;
+					case ConsoleKey.N:
+						Console.CursorLeft -= prompt.Length;
+						Console.ForegroundColor = ConsoleColor.White;
+						Console.Write('Y');
+						Console.ForegroundColor = ConsoleColor.White;
+						Console.Write('/');
+						Console.ForegroundColor = ConsoleColor.Red;
+						Console.Write('N');
+						Console.ForegroundColor = DefaultForegroundColor;
+						for(int n = 3; n < prompt.Length; n++) Console.Write(' ');
+						Console.WriteLine();
+						return false;
+					default: continue;
+				}
 			}
 		}
 
-		/// <summary>
-		/// Interacts with the datapack name.
-		/// </summary>
-		public static void Pack(string arguments) {
-			if(arguments == null) { //help
-				Console.ForegroundColor = ConsoleColor.Gray;
-				Console.WriteLine("pack {name}\n\t=> Specifies which datapack name you are working in.\n" +
-								  "pack ?\n\t=> Gets the datapack name you are working in.");
-			} else if(arguments == "") { //no arguments
-				Console.ForegroundColor = ConsoleColor.Yellow;
-				Console.WriteLine("Enter a datapack name. (eg. 'my-datapack')");
-			} else if(arguments == "?") { //query
-				Console.ForegroundColor = ConsoleColor.Gray;
-				Console.WriteLine(string.Format("The datapack name is currently set as '{0}'.", Datapack?.Name ?? "null"));
+		public static void PrintCommandName(string alias) {
+			if(alias is null) throw new ArgumentNullException(nameof(alias));
+			if(!CommandDictionary.ContainsKey(alias)) PrintText($"A command with the alias '{alias}' does not exist.");
+			Command command = CommandDictionary[alias];
+			PrintCommandName(command);
+		}
+
+		private static void PrintCommandName(Command command) {
+			if(command is null) throw new ArgumentNullException(nameof(command));
+			CommandAttribute attribute = command.Attribute;
+			if(attribute.Aliases.Length == 0) PrintText($"This command has no name.");
+			else PrintText(attribute.Aliases[0]);
+		}
+
+		public static void PrintCommandDescription(string alias) {
+			if(alias is null) throw new ArgumentNullException(nameof(alias));
+			if(!CommandDictionary.ContainsKey(alias)) PrintText($"A command with the alias '{alias}' does not exist.");
+			Command command = CommandDictionary[alias];
+			PrintCommandDescription(command);
+		}
+
+		private static void PrintCommandDescription(Command command) {
+			if(command is null) throw new ArgumentNullException(nameof(command));
+			CommandAttribute attribute = command.Attribute;
+			PrintText(attribute.Description);
+		}
+
+		public static void PrintCommandAliases(string alias) {
+			if(alias is null) throw new ArgumentNullException(nameof(alias));
+			if(!CommandDictionary.ContainsKey(alias)) PrintText($"A command with the alias '{alias}' does not exist.");
+			Command command = CommandDictionary[alias];
+			PrintCommandAliases(command);
+		}
+
+		private static void PrintCommandAliases(Command command) {
+			if(command is null) throw new ArgumentNullException(nameof(command));
+			CommandAttribute attribute = command.Attribute;
+			if(attribute.Aliases.Length == 0) PrintText("This command has no aliases.");
+			else PrintText(string.Join(", ", attribute.Aliases));
+		}
+
+#endregion
+
+#region Commands
+
+		private static void AddCommand(Command command) {
+
+			foreach(string alias in command.Attribute.Aliases) {
+				CommandDictionary.Add(alias, command);
+			}
+
+		}
+
+		public delegate void CommandAction(Input input, out bool exit);
+		private static Dictionary<string, Command> CommandDictionary { get; } = new Dictionary<string, Command>();
+
+		[Command("Provides information about commands.", "help", "h")]
+		public static void Command_Help(Input input, out bool exit) {
+			
+			if(input.Arguments != string.Empty) {
+
+				// Display help for given command.
+				PrintCommandDescription(input.Arguments);
+				PrintCommandAliases(input.Arguments);
+
+				exit = false;
+
 			} else {
-				if(Datapack == null) Datapack = new Datapack();
-				Console.ForegroundColor = ConsoleColor.Green;
-				Console.WriteLine(string.Format("Datapack folder now set as '{0}'. Please make sure that it is a valid name.", Datapack.Name = arguments));
+
+				// Display all commands.
+				HashSet<Command> commands = new HashSet<Command>();
+				foreach(var pair in CommandDictionary) if(!commands.Contains(pair.Value)) commands.Add(pair.Value);
+				foreach(var command in commands) PrintCommandName(command);
+
+				exit = false;
+
 			}
+
 		}
 
-		/// <summary>
-		/// Creates the datapack.
-		/// </summary>
-		public static void Create(string arguments) {
-			if(arguments == null) { //help
-				Console.ForegroundColor = ConsoleColor.Gray;
-				Console.WriteLine("create\n\t=> Creates the datapack. If the datapack already exists, data may be overridden.");
-			} else if(arguments == "") { //no arguments
-				Console.ForegroundColor = ConsoleColor.Yellow;
-				Console.WriteLine("If the pack already exists, data may be overriden. Continue?");
-				string answr = "_";
-				while(answr != "y" && answr != "n") {
-					Console.ForegroundColor = ConsoleColor.White;
-					Console.Write("Y/N> ");
-					answr = Console.ReadLine().ToLower();
-				}
-				if(answr == "n") return;
+		[Command("Sets the location of datapacks to save/edit.", "setfolder")]
+		public static void Command_SetFolder(Input input, out bool exit) {
 
-				#region Create
+			DatapackFolder = input.Arguments;
+			PrintSuccess($"Set current datapack folder to '{input.Arguments}'.");
+			exit = false;
 
-				Console.ForegroundColor = ConsoleColor.Gray;
-				Console.Write("Creating datapack directories... ");
+		}
 
-				//Create directories.
-				System.IO.Directory.CreateDirectory(Datapack.Path);
-				System.IO.Directory.CreateDirectory(Datapack.Path + "\\data");
-				System.IO.Directory.CreateDirectory(Datapack.Path + "\\data\\minecraft");
-				System.IO.Directory.CreateDirectory(Datapack.Path + "\\data\\minecraft\\tags");
-				System.IO.Directory.CreateDirectory(Datapack.Path + "\\data\\minecraft\\tags\\functions");
-				System.IO.Directory.CreateDirectory(Datapack.Path + "\\data\\" + Datapack.Name);
-				System.IO.Directory.CreateDirectory(Datapack.Path + "\\data\\" + Datapack.Name + "\\functions");
-				System.IO.Directory.CreateDirectory(Datapack.Path + "\\data\\" + Datapack.Name + "\\scripts");
+		[Command("Sets the name of the datapack to be edited.", "setname")]
+		public static void Command_SetName(Input input, out bool exit) {
 
-				ClearCurrentConsoleLine();
-				Console.ForegroundColor = ConsoleColor.Green;
-				Console.WriteLine("Created datapack directories.");
+			DatapackName = input.Arguments;
+			PrintSuccess($"Set current datapack to '{input.Arguments}'.");
+			exit = false;
 
-				Console.ForegroundColor = ConsoleColor.Gray;
-				Console.Write("Creating datapack files... ");
+		}
 
-				//Create files.
-				using(StreamWriter loadJSON_writer = File.CreateText(Datapack.Path + "\\data\\minecraft\\tags\\functions\\load.json")) {
-					loadJSON_writer.WriteLine("{\n\t\"values\": [\n\t\t\"" + Datapack.Load.FolderPath + "\"\n\t]\n}");
-				}
-				using(StreamWriter tickJSON_writer = File.CreateText(Datapack.Path + "\\data\\minecraft\\tags\\functions\\tick.json")) {
-					tickJSON_writer.WriteLine("{\n\t\"values\": [\n\t\t\"" + Datapack.Main.FolderPath + "\"\n\t]\n}");
-				}
-				using(StreamWriter loadMCS_writer = File.CreateText(Datapack.Path + "\\data\\" + Datapack.Name + "\\scripts\\load.mcsharp")) {
-					loadMCS_writer.WriteLine(LoadMCScriptDefault);
-				}
-				using(StreamWriter mainMCS_writer = File.CreateText(Datapack.Path + "\\data\\" + Datapack.Name + "\\scripts\\main.mcsharp")) {
-					mainMCS_writer.WriteLine(MainMCScriptDefault);
-				}
+		[Command("Creates a datapack file structure located at the current save with the current name.", "create")]
+		public static void Command_Create(Input input, out bool exit) {
+			
+			if(!GetDatapack(out Datapack datapack)) {
+				exit = false;
+				return;
+			}
+			PrintText($"Files will be created within '{datapack.RootDirectory}'.\nSome data may be overwritten.");
+			if(!PrintYN("Continue? ")) {
+				exit = false;
+				return;
+			}
 
-				ClearCurrentConsoleLine();
-				Console.ForegroundColor = ConsoleColor.Green;
-				Console.WriteLine("Created datapack files.");
+			Directory.CreateDirectory($"{datapack.RootDirectory}");
+			Directory.CreateDirectory($"{datapack.RootDirectory}\\data");
+			Directory.CreateDirectory($"{datapack.RootDirectory}\\data\\minecraft");
+			Directory.CreateDirectory($"{datapack.RootDirectory}\\data\\minecraft\\tags");
+			Directory.CreateDirectory($"{datapack.RootDirectory}\\data\\minecraft\\tags\\functions");
+			Directory.CreateDirectory($"{datapack.RootDirectory}\\data\\{datapack.Name}");
+			Directory.CreateDirectory($"{datapack.RootDirectory}\\data\\{datapack.Name}\\functions");
+			Directory.CreateDirectory($"{datapack.RootDirectory}\\data\\{datapack.Name}\\scripts");
 
-				//Done!
+			using(StreamWriter loadJSON_writer = File.CreateText(datapack.LoadJsonFile)) {
+				loadJSON_writer.WriteLine($"{{\n\t\"values\": [\n\t\t\"{datapack.Name}:program/tick\"\n\t]\n}}");
+			}
+			using(StreamWriter tickJSON_writer = File.CreateText(datapack.TickJsonFile)) {
+				tickJSON_writer.WriteLine($"{{\n\t\"values\": [\n\t\t\"{datapack.Name}:program/tick\"\n\t]\n}}");
+			}
+			using(StreamWriter progMCS_writer = File.CreateText(datapack.ProgramScriptFile)) {
+				progMCS_writer.WriteLine("public static struct Program {\n\tpublic static void Load() { }\n\tpublic static void Tick() { }\n}");
+			}
 
-				#endregion
+			PrintSuccess("Created template datapack.");
+			exit = false;
 
+		}
+
+		[Command("Attempts to compile the current datapack.", "compile", "c")]
+		public static void Command_Compile(Input input, out bool exit) {
+
+			if(!GetDatapack(out Datapack datapack)) {
+				exit = false;
+				return;
+			}
+			PrintText($"Files will be edited within '{datapack.RootDirectory}'.\nSome data may be overwritten.");
+			
+			if(!PrintYN("Continue? ")) {
+				exit = false;
+				return;
+			}
+
+			Compiler compiler = new Compiler(new Settings(datapack));
+			if(compiler.Compile(out string message)) {
+				PrintSuccess(message);
 			} else {
-				Console.ForegroundColor = ConsoleColor.Red;
-				Console.WriteLine("This command does not take any arguments.");
+				PrintError(message);
+			}
+
+
+			exit = false;
+
+		}
+
+		[Command("Exits the program.", "exit", "e")]
+		public static void Command_Exit(Input input, out bool exit) {
+
+			if(input.Arguments != string.Empty) PrintError("This command takes no arguments.");
+			exit = true;
+
+		}
+
+#endregion
+
+		public struct Input {
+			private static Regex Regex { get; } = new Regex(@"(?'Command'[\x21-\x7E]+)[\s]*(?'Arguments'([\s]*[\x21-\x7E]+)*)[\s]*");
+			public string Command { get; }
+			public string Arguments { get; }
+			public Input(string input) {
+				Match match = Regex.Match(input);
+				Command = match.Groups["Command"].Value;
+				Arguments = match.Groups["Arguments"].Value;
 			}
 		}
 
-		/// <summary>
-		/// Compiles the datapack.
-		/// </summary>
-		public static void Compile(string arguments) {
-			if(arguments == null) { //help
-				Console.ForegroundColor = ConsoleColor.Gray;
-				Console.WriteLine("compile\n\t=> Compiles the datapack.");
-			} else if(arguments == "") { //no arguments
-
-				#region Compile
-
-				Compiler.Compile(Datapack.Path + "\\data\\" + Datapack.Name);
-
-				#endregion
-
-			} else { //any arguments
-				Console.ForegroundColor = ConsoleColor.Red;
-				Console.WriteLine("This command does not take any arguments.");
+		public class Command {
+			public CommandAttribute Attribute { get; }
+			public CommandAction Action { get; }
+			public Command(CommandAttribute attribute, CommandAction action) {
+				Attribute = attribute ?? throw new ArgumentNullException(nameof(attribute));
+				Action = action ?? throw new ArgumentNullException(nameof(action));
 			}
 		}
 
-		/// <summary>
-		/// Closes the console.
-		/// </summary>
-		public static void Exit(string arguments) {
-			if(arguments == null) { //help
-				Console.ForegroundColor = ConsoleColor.Gray;
-				Console.WriteLine("exit\n\t=> Closes this console.");
-			} else if(arguments == "") { //no arguments
-				Console.ForegroundColor = ConsoleColor.Magenta;
-				Console.WriteLine("Goodbye!");
-				Environment.Exit(001);
-			} else { //any arguments
-				Console.ForegroundColor = ConsoleColor.Red;
-				Console.WriteLine("This command does not take any arguments.");
+		public class CommandAttribute : Attribute {
+			public string Description { get; }
+			public string[] Aliases { get; }
+			public CommandAttribute(string description, params string[] aliases) {
+				Description = description ?? throw new ArgumentNullException(nameof(description));
+				Aliases = aliases ?? throw new ArgumentNullException(nameof(aliases));
 			}
-		}
-
-		/// <summary>
-		/// https://stackoverflow.com/questions/5027301/c-sharp-clear-console-last-item-and-replace-new-console-animation
-		/// </summary>
-		public static void ClearCurrentConsoleLine() {
-			int currentLineCursor = Console.CursorTop;
-			Console.SetCursorPosition(0, Console.CursorTop);
-			for(int i = 0; i < Console.WindowWidth; i++)
-				Console.Write(" ");
-			Console.SetCursorPosition(0, currentLineCursor);
 		}
 
 	}
