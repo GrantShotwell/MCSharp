@@ -1,11 +1,39 @@
 {
   "version": 3,
   "targets": {
-    ".NETCoreApp,Version=v3.1": {}
+    ".NETCoreApp,Version=v3.1": {
+      "Antlr4.Runtime.Standard/4.9.1": {
+        "type": "package",
+        "compile": {
+          "lib/netstandard2.1/Antlr4.Runtime.Standard.dll": {}
+        },
+        "runtime": {
+          "lib/netstandard2.1/Antlr4.Runtime.Standard.dll": {}
+        }
+      }
+    }
   },
-  "libraries": {},
+  "libraries": {
+    "Antlr4.Runtime.Standard/4.9.1": {
+      "sha512": "2b6SrwXRa3lgJ7nQyG+EZFJHGDWRW0Bb8KfqdXaAVL3QoGOuXkFRLBxTIbRt1lNUop9k++SG2kid/pl1Q49UGw==",
+      "type": "package",
+      "path": "antlr4.runtime.standard/4.9.1",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "antlr4.runtime.standard.4.9.1.nupkg.sha512",
+        "antlr4.runtime.standard.nuspec",
+        "lib/netstandard2.0/Antlr4.Runtime.Standard.dll",
+        "lib/netstandard2.0/Antlr4.Runtime.Standard.xml",
+        "lib/netstandard2.1/Antlr4.Runtime.Standard.dll",
+        "lib/netstandard2.1/Antlr4.Runtime.Standard.xml"
+      ]
+    }
+  },
   "projectFileDependencyGroups": {
-    ".NETCoreApp,Version=v3.1": []
+    ".NETCoreApp,Version=v3.1": [
+      "Antlr4.Runtime.Standard >= 4.9.1"
+    ]
   },
   "packageFolders": {
     "C:\\Users\\Grant Shotwell\\.nuget\\packages\\": {}
@@ -43,6 +71,12 @@
     },
     "frameworks": {
       "netcoreapp3.1": {
+        "dependencies": {
+          "Antlr4.Runtime.Standard": {
+            "target": "Package",
+            "version": "[4.9.1, )"
+          }
+        },
         "imports": [
           "net461",
           "net462",

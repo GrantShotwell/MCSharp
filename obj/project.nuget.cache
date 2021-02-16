@@ -1,8 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "a0gqFYG/oPl3i3DpqMCmQd5DfFJxlBOneZTkWO1LKW8ga66WWxr+JInsS/nUuJAKRSiSdvBqJMY7RuLNopA01w==",
+  "dgSpecHash": "twXZBRMnPuzjfGqhBow99YYzc+74xKTJrmVnxuhdxXRJYuXf0J0VXWdoVtaK8hgo/09s140gvK7I+lgVXojitg==",
   "success": true,
   "projectFilePath": "C:\\Projects\\MCSharp\\MCSharp\\MCSharp.csproj",
-  "expectedPackageFiles": [],
+  "expectedPackageFiles": [
+    "C:\\Users\\Grant Shotwell\\.nuget\\packages\\antlr4.runtime.standard\\4.9.1\\antlr4.runtime.standard.4.9.1.nupkg.sha512"
+  ],
   "logs": []
 }

@@ -11,5 +11,4 @@ C:\Projects\MCSharp\MCSharp\obj\Debug\netcoreapp3.1\MCSharp.dll
 C:\Projects\MCSharp\MCSharp\obj\Debug\netcoreapp3.1\MCSharp.pdb
 C:\Projects\MCSharp\MCSharp\obj\Debug\netcoreapp3.1\MCSharp.Properties.Resources.resources
 C:\Projects\MCSharp\MCSharp\obj\Debug\netcoreapp3.1\MCSharp.csproj.GenerateResource.cache
-C:\Projects\MCSharp\MCSharp\obj\Debug\netcoreapp3.1\MCSharp.csproj.CoreCompileInputs.cache
 C:\Projects\MCSharp\MCSharp\obj\Debug\netcoreapp3.1\MCSharp.genruntimeconfig.cache
