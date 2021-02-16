@@ -1006,30 +1006,47 @@ namespace MCSharp.Script {
 		public static bool ReadUnaryExpression(ref TokenReader reader, out string message, out TokenList result) {
 			result = new TokenList();
 
-			// primary_expression
-			{
-
-				if(!ReadPrimaryExpression(ref reader, out message, out TokenList primary_expression)) return false;
-				else result.AddLast(primary_expression);
-
-			}
-
-			// |OR|
-
 			// ("+"|"-"|"!"|"~"|"++"|"--"|"*"|"&" unary_expression)
-			{
+			string[] unary_operators = new string[] { "+" , "-" , "!" , "~" , "++" , "--" , "*" , "&" };
+			if(reader.LookAhead(unary_operators)) {
+
+				// "+"|"-"|"!"|"~"|"++"|"--"|"*"|"&"
+				if(!reader.ReadNextToken(unary_operators, "unary operator", out message, out ScriptToken? unary_operator)) return false;
+				else result.AddLast(unary_operator.Value);
+
+				// unary_expression
+				if(!ReadUnaryExpression(ref reader, out message, out TokenList unary_expression)) return false;
+				else result.AddLast(unary_expression);
+
+				message = Compiler.DefaultSuccess;
+				return true;
 
 			}
 
 			// |OR|
 
 			// cast_expression
-			{
+			else {
+
+				goto PrimaryExpression;
+
+				message = Compiler.DefaultSuccess;
+				return true;
 
 			}
 
-			message = Compiler.DefaultSuccess;
-			return true;
+			// |OR|
+
+			// primary_expression
+			PrimaryExpression: {
+
+				if(!ReadPrimaryExpression(ref reader, out message, out TokenList primary_expression)) return false;
+				else result.AddLast(primary_expression);
+
+				message = Compiler.DefaultSuccess;
+				return true;
+
+			}
 
 		}
 
