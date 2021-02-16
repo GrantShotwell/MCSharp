@@ -41,7 +41,7 @@ namespace MCSharp.Script {
 		/// </summary>
 		public static bool ReadMember(ref TokenReader reader, out string message, out ScriptMember? result) {
 
-			// modifiers
+			// prefixes
 			if(!ReadPrefixes(ref reader, out message, out TokenList prefixes, out ScriptToken? returnType)) {
 				result = null;
 				return false;
@@ -57,46 +57,45 @@ namespace MCSharp.Script {
 			MemberType memberType;
 			TokenList definition = null;
 			{
-				string[] messages = new string[3];
 
-				// field_def
-				{
-					TokenReader branch = reader.Branch();
-					memberType = MemberType.Field;
-					if(ReadFieldDefinition(ref branch, out messages[0], out TokenList field_def)) {
-						definition = field_def;
-						reader = branch;
-					}
-				}
-
-				// |OR|
-
-				// property_def
-				if(definition == null) {
-					TokenReader branch = reader.Branch();
-					memberType = MemberType.Property;
-					if(ReadPropertyDefinition(ref branch, out messages[1], out TokenList property_def)) {
-						definition = property_def;
-						reader = branch;
-					}
-				}
-
-				// |OR|
-
-				// method_def
-				if(definition == null) {
-					TokenReader branch = reader.Branch();
-					memberType = MemberType.Method;
-					if(ReadMethodDefinition(ref branch, out messages[2], out TokenList method_def)) {
-						definition = method_def;
-						reader = branch;
-					}
-				}
-
-				if(definition == null) {
-					message = string.Join("\nOR\n", messages);
+				TokenReader branch = reader.Branch();
+				if(!branch.ReadAnyNextToken("first token after member name definition", out string noFirstToken, out ScriptToken? first)) {
 					result = null;
+					message = noFirstToken;
 					return false;
+				}
+				string firstToken = (string)first.Value;
+
+				if(firstToken == ";" || firstToken == "=") {
+
+					memberType = MemberType.Field;
+					if(!ReadFieldDefinition(ref reader, out message, out definition)) {
+						result = null;
+						return false;
+					}
+
+				} else if(firstToken == "(") {
+
+					memberType = MemberType.Method;
+					if(!ReadMethodDefinition(ref reader, out message, out definition)) {
+						result = null;
+						return false;
+					}
+
+				} else if(firstToken == "{" || firstToken == "=>") {
+
+					memberType = MemberType.Property;
+					if(!ReadPropertyDefinition(ref reader, out message, out definition)) {
+						result = null;
+						return false;
+					}
+
+				} else {
+
+					result = null;
+					message = $"Expected first token in member definition, found '{firstToken}'.";
+					return false;
+
 				}
 
 			}
