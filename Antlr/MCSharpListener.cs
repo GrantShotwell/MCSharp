@@ -31,6 +31,16 @@ using IToken = Antlr4.Runtime.IToken;
 [System.CLSCompliant(false)]
 public interface IMCSharpListener : IParseTreeListener {
 	/// <summary>
+	/// Enter a parse tree produced by <see cref="MCSharpParser.script"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterScript([NotNull] MCSharpParser.ScriptContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="MCSharpParser.script"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitScript([NotNull] MCSharpParser.ScriptContext context);
+	/// <summary>
 	/// Enter a parse tree produced by <see cref="MCSharpParser.generic_parameter"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
@@ -211,6 +221,36 @@ public interface IMCSharpListener : IParseTreeListener {
 	/// <param name="context">The parse tree.</param>
 	void ExitAnonymous_object_initializer([NotNull] MCSharpParser.Anonymous_object_initializerContext context);
 	/// <summary>
+	/// Enter a parse tree produced by <see cref="MCSharpParser.modifier"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterModifier([NotNull] MCSharpParser.ModifierContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="MCSharpParser.modifier"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitModifier([NotNull] MCSharpParser.ModifierContext context);
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="MCSharpParser.parameter_modifier"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterParameter_modifier([NotNull] MCSharpParser.Parameter_modifierContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="MCSharpParser.parameter_modifier"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitParameter_modifier([NotNull] MCSharpParser.Parameter_modifierContext context);
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="MCSharpParser.class_type"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterClass_type([NotNull] MCSharpParser.Class_typeContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="MCSharpParser.class_type"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitClass_type([NotNull] MCSharpParser.Class_typeContext context);
+	/// <summary>
 	/// Enter a parse tree produced by <see cref="MCSharpParser.type_definition"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
@@ -241,16 +281,6 @@ public interface IMCSharpListener : IParseTreeListener {
 	/// <param name="context">The parse tree.</param>
 	void ExitField_definition([NotNull] MCSharpParser.Field_definitionContext context);
 	/// <summary>
-	/// Enter a parse tree produced by <see cref="MCSharpParser.field_definition_end"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	void EnterField_definition_end([NotNull] MCSharpParser.Field_definition_endContext context);
-	/// <summary>
-	/// Exit a parse tree produced by <see cref="MCSharpParser.field_definition_end"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	void ExitField_definition_end([NotNull] MCSharpParser.Field_definition_endContext context);
-	/// <summary>
 	/// Enter a parse tree produced by <see cref="MCSharpParser.property_definition"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
@@ -260,16 +290,6 @@ public interface IMCSharpListener : IParseTreeListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	void ExitProperty_definition([NotNull] MCSharpParser.Property_definitionContext context);
-	/// <summary>
-	/// Enter a parse tree produced by <see cref="MCSharpParser.property_definition_end"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	void EnterProperty_definition_end([NotNull] MCSharpParser.Property_definition_endContext context);
-	/// <summary>
-	/// Exit a parse tree produced by <see cref="MCSharpParser.property_definition_end"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	void ExitProperty_definition_end([NotNull] MCSharpParser.Property_definition_endContext context);
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="MCSharpParser.property_get_definition"/>.
 	/// </summary>
@@ -300,16 +320,6 @@ public interface IMCSharpListener : IParseTreeListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	void ExitMethod_definition([NotNull] MCSharpParser.Method_definitionContext context);
-	/// <summary>
-	/// Enter a parse tree produced by <see cref="MCSharpParser.method_definition_end"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	void EnterMethod_definition_end([NotNull] MCSharpParser.Method_definition_endContext context);
-	/// <summary>
-	/// Exit a parse tree produced by <see cref="MCSharpParser.method_definition_end"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	void ExitMethod_definition_end([NotNull] MCSharpParser.Method_definition_endContext context);
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="MCSharpParser.literal"/>.
 	/// </summary>
@@ -350,6 +360,106 @@ public interface IMCSharpListener : IParseTreeListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	void ExitCode_block([NotNull] MCSharpParser.Code_blockContext context);
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="MCSharpParser.additive_operator"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterAdditive_operator([NotNull] MCSharpParser.Additive_operatorContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="MCSharpParser.additive_operator"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitAdditive_operator([NotNull] MCSharpParser.Additive_operatorContext context);
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="MCSharpParser.multiplicative_operator"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterMultiplicative_operator([NotNull] MCSharpParser.Multiplicative_operatorContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="MCSharpParser.multiplicative_operator"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitMultiplicative_operator([NotNull] MCSharpParser.Multiplicative_operatorContext context);
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="MCSharpParser.step_operator"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterStep_operator([NotNull] MCSharpParser.Step_operatorContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="MCSharpParser.step_operator"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitStep_operator([NotNull] MCSharpParser.Step_operatorContext context);
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="MCSharpParser.bitwise_operator"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterBitwise_operator([NotNull] MCSharpParser.Bitwise_operatorContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="MCSharpParser.bitwise_operator"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitBitwise_operator([NotNull] MCSharpParser.Bitwise_operatorContext context);
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="MCSharpParser.boolean_operator"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterBoolean_operator([NotNull] MCSharpParser.Boolean_operatorContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="MCSharpParser.boolean_operator"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitBoolean_operator([NotNull] MCSharpParser.Boolean_operatorContext context);
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="MCSharpParser.shift_operator"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterShift_operator([NotNull] MCSharpParser.Shift_operatorContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="MCSharpParser.shift_operator"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitShift_operator([NotNull] MCSharpParser.Shift_operatorContext context);
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="MCSharpParser.equality_operator"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterEquality_operator([NotNull] MCSharpParser.Equality_operatorContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="MCSharpParser.equality_operator"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitEquality_operator([NotNull] MCSharpParser.Equality_operatorContext context);
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="MCSharpParser.relation_operator"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterRelation_operator([NotNull] MCSharpParser.Relation_operatorContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="MCSharpParser.relation_operator"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitRelation_operator([NotNull] MCSharpParser.Relation_operatorContext context);
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="MCSharpParser.assignment_operator"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterAssignment_operator([NotNull] MCSharpParser.Assignment_operatorContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="MCSharpParser.assignment_operator"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitAssignment_operator([NotNull] MCSharpParser.Assignment_operatorContext context);
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="MCSharpParser.range_operator"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterRange_operator([NotNull] MCSharpParser.Range_operatorContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="MCSharpParser.range_operator"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitRange_operator([NotNull] MCSharpParser.Range_operatorContext context);
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="MCSharpParser.language_function"/>.
 	/// </summary>

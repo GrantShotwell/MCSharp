@@ -35,6 +35,18 @@ using ParserRuleContext = Antlr4.Runtime.ParserRuleContext;
 [System.CLSCompliant(false)]
 public partial class MCSharpBaseListener : IMCSharpListener {
 	/// <summary>
+	/// Enter a parse tree produced by <see cref="MCSharpParser.script"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterScript([NotNull] MCSharpParser.ScriptContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="MCSharpParser.script"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitScript([NotNull] MCSharpParser.ScriptContext context) { }
+	/// <summary>
 	/// Enter a parse tree produced by <see cref="MCSharpParser.generic_parameter"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>
@@ -251,6 +263,42 @@ public partial class MCSharpBaseListener : IMCSharpListener {
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitAnonymous_object_initializer([NotNull] MCSharpParser.Anonymous_object_initializerContext context) { }
 	/// <summary>
+	/// Enter a parse tree produced by <see cref="MCSharpParser.modifier"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterModifier([NotNull] MCSharpParser.ModifierContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="MCSharpParser.modifier"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitModifier([NotNull] MCSharpParser.ModifierContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="MCSharpParser.parameter_modifier"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterParameter_modifier([NotNull] MCSharpParser.Parameter_modifierContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="MCSharpParser.parameter_modifier"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitParameter_modifier([NotNull] MCSharpParser.Parameter_modifierContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="MCSharpParser.class_type"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterClass_type([NotNull] MCSharpParser.Class_typeContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="MCSharpParser.class_type"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitClass_type([NotNull] MCSharpParser.Class_typeContext context) { }
+	/// <summary>
 	/// Enter a parse tree produced by <see cref="MCSharpParser.type_definition"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>
@@ -287,18 +335,6 @@ public partial class MCSharpBaseListener : IMCSharpListener {
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitField_definition([NotNull] MCSharpParser.Field_definitionContext context) { }
 	/// <summary>
-	/// Enter a parse tree produced by <see cref="MCSharpParser.field_definition_end"/>.
-	/// <para>The default implementation does nothing.</para>
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	public virtual void EnterField_definition_end([NotNull] MCSharpParser.Field_definition_endContext context) { }
-	/// <summary>
-	/// Exit a parse tree produced by <see cref="MCSharpParser.field_definition_end"/>.
-	/// <para>The default implementation does nothing.</para>
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	public virtual void ExitField_definition_end([NotNull] MCSharpParser.Field_definition_endContext context) { }
-	/// <summary>
 	/// Enter a parse tree produced by <see cref="MCSharpParser.property_definition"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>
@@ -310,18 +346,6 @@ public partial class MCSharpBaseListener : IMCSharpListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitProperty_definition([NotNull] MCSharpParser.Property_definitionContext context) { }
-	/// <summary>
-	/// Enter a parse tree produced by <see cref="MCSharpParser.property_definition_end"/>.
-	/// <para>The default implementation does nothing.</para>
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	public virtual void EnterProperty_definition_end([NotNull] MCSharpParser.Property_definition_endContext context) { }
-	/// <summary>
-	/// Exit a parse tree produced by <see cref="MCSharpParser.property_definition_end"/>.
-	/// <para>The default implementation does nothing.</para>
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	public virtual void ExitProperty_definition_end([NotNull] MCSharpParser.Property_definition_endContext context) { }
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="MCSharpParser.property_get_definition"/>.
 	/// <para>The default implementation does nothing.</para>
@@ -358,18 +382,6 @@ public partial class MCSharpBaseListener : IMCSharpListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitMethod_definition([NotNull] MCSharpParser.Method_definitionContext context) { }
-	/// <summary>
-	/// Enter a parse tree produced by <see cref="MCSharpParser.method_definition_end"/>.
-	/// <para>The default implementation does nothing.</para>
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	public virtual void EnterMethod_definition_end([NotNull] MCSharpParser.Method_definition_endContext context) { }
-	/// <summary>
-	/// Exit a parse tree produced by <see cref="MCSharpParser.method_definition_end"/>.
-	/// <para>The default implementation does nothing.</para>
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	public virtual void ExitMethod_definition_end([NotNull] MCSharpParser.Method_definition_endContext context) { }
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="MCSharpParser.literal"/>.
 	/// <para>The default implementation does nothing.</para>
@@ -418,6 +430,126 @@ public partial class MCSharpBaseListener : IMCSharpListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitCode_block([NotNull] MCSharpParser.Code_blockContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="MCSharpParser.additive_operator"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterAdditive_operator([NotNull] MCSharpParser.Additive_operatorContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="MCSharpParser.additive_operator"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitAdditive_operator([NotNull] MCSharpParser.Additive_operatorContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="MCSharpParser.multiplicative_operator"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterMultiplicative_operator([NotNull] MCSharpParser.Multiplicative_operatorContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="MCSharpParser.multiplicative_operator"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitMultiplicative_operator([NotNull] MCSharpParser.Multiplicative_operatorContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="MCSharpParser.step_operator"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterStep_operator([NotNull] MCSharpParser.Step_operatorContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="MCSharpParser.step_operator"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitStep_operator([NotNull] MCSharpParser.Step_operatorContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="MCSharpParser.bitwise_operator"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterBitwise_operator([NotNull] MCSharpParser.Bitwise_operatorContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="MCSharpParser.bitwise_operator"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitBitwise_operator([NotNull] MCSharpParser.Bitwise_operatorContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="MCSharpParser.boolean_operator"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterBoolean_operator([NotNull] MCSharpParser.Boolean_operatorContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="MCSharpParser.boolean_operator"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitBoolean_operator([NotNull] MCSharpParser.Boolean_operatorContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="MCSharpParser.shift_operator"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterShift_operator([NotNull] MCSharpParser.Shift_operatorContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="MCSharpParser.shift_operator"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitShift_operator([NotNull] MCSharpParser.Shift_operatorContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="MCSharpParser.equality_operator"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterEquality_operator([NotNull] MCSharpParser.Equality_operatorContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="MCSharpParser.equality_operator"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitEquality_operator([NotNull] MCSharpParser.Equality_operatorContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="MCSharpParser.relation_operator"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterRelation_operator([NotNull] MCSharpParser.Relation_operatorContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="MCSharpParser.relation_operator"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitRelation_operator([NotNull] MCSharpParser.Relation_operatorContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="MCSharpParser.assignment_operator"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterAssignment_operator([NotNull] MCSharpParser.Assignment_operatorContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="MCSharpParser.assignment_operator"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitAssignment_operator([NotNull] MCSharpParser.Assignment_operatorContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="MCSharpParser.range_operator"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterRange_operator([NotNull] MCSharpParser.Range_operatorContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="MCSharpParser.range_operator"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitRange_operator([NotNull] MCSharpParser.Range_operatorContext context) { }
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="MCSharpParser.language_function"/>.
 	/// <para>The default implementation does nothing.</para>

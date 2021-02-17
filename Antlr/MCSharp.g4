@@ -5,114 +5,108 @@ grammar MCSharp;
  *   Grammar Rules
  */
 
-
-
 /*
  *   Parser Rules
  */
 
+// Script
+script
+	: type_definition* EOF
+	;
+
 // Parameters
 generic_parameter
-	: TYPE_NAME
+	: NAME
 	;
 generic_parameter_list
-	: generic_parameter ( ',' generic_parameter )*
+	: generic_parameter ( COMMA generic_parameter )*
 	;
 generic_parameters
-	: '<' generic_parameter_list '>'
+	: LESS_THAN generic_parameter_list GREATER_THAN
 	;
 method_parameter
-	: PARAMETER_MODIFIER? TYPE_NAME VARIABLE_NAME
+	: parameter_modifier? NAME NAME
 	;
 method_parameter_list
-	: method_parameter ( ',' method_parameter )*
+	: method_parameter ( COMMA method_parameter )*
 	;
 method_parameters
-	: '(' method_parameter_list ')'
+	: OP method_parameter_list? CP
 	;
 indexer_parameters
-	: '[' method_parameter_list ']'
+	: OB method_parameter_list? CB
 	;
 
 // Arguments
 argument
 	: expression
-	| PARAMETER_MODIFIER TYPE_NAME VARIABLE_NAME
+	| parameter_modifier NAME NAME
 	;
 argument_list
-	: argument ( ',' argument )*
+	: argument ( COMMA argument )*
 	;
 generic_arguments
-	: '<' generic_parameter_list '>'
+	: LESS_THAN generic_parameter_list? GREATER_THAN
 	;
 method_arguments
-	: '(' argument_list ')'
+	: OP argument_list? CP
 	;
 indexer_arguments
-	: '[' argument_list ']'
+	: OB argument_list? CB
 	;
 
 // Other Lists
 member_initializer
-	: MEMBER_NAME generic_arguments? '=' ( expression | object_or_collection_initializer )
+	: NAME generic_arguments? ASSIGN ( expression | object_or_collection_initializer )
 	;
 object_initializer
-	: '{' ( member_initializer ( ',' member_initializer )? ','? )? '}' 
+	: OC ( member_initializer ( COMMA member_initializer )? COMMA? )? CC 
 	;
 element_initializer
 	: non_assignment_expression
-	| '{' expression '}'
+	| OC expression CC
 	;
 collection_initializer
-	: '{' ( element_initializer ( ',' element_initializer )? ','? )? '}'
+	: OC ( element_initializer ( COMMA element_initializer )? COMMA? )? CC
 	;
 anonymous_element_initializer
-	: MEMBER_NAME generic_arguments?
+	: NAME generic_arguments?
 	| member_access
-	| identifier '=' expression
+	| identifier ASSIGN expression
 	;
 anonymous_object_initializer
-	: '{' ( anonymous_element_initializer ( ',' anonymous_element_initializer )? ','? )? '}'
+	: OC ( anonymous_element_initializer ( COMMA anonymous_element_initializer )? COMMA? )? CC
 	;
 
 // Definitions
+modifier: PUBLIC | PRIVATE | PROTECTED | STATIC | ABSTRACT | VIRTUAL;
+parameter_modifier: IN | OUT | REF;
+class_type: CLASS | STRUCT;
 type_definition
-	: MODIFIER* TYPE_NAME '{' member_definition* '}'
+	: modifier* class_type NAME OC member_definition* CC
 	;
 member_definition
-	: field_definition
-	| property_definition
-	| method_definition
+	: modifier* NAME NAME ( field_definition | property_definition | method_definition )
 	;
 field_definition
-	: MODIFIER* MEMBER_NAME field_definition_end
-	;
-field_definition_end
-	: ( '=' expression )? ';'
+	: ( ASSIGN expression )? END
 	;
 property_definition
-	: MODIFIER* MEMBER_NAME property_definition_end
-	;
-property_definition_end
-	: '=>' expression
-	| '{' ( ( MODIFIER* property_get_definition ) ( MODIFIER* property_set_definition )? ) | ( ( MODIFIER* property_set_definition ) ( MODIFIER* property_get_definition )? )  '}'
+	: LAMBDA expression
+	| OC ( ( modifier* property_get_definition ) ( modifier* property_set_definition )? ) | ( ( modifier* property_set_definition ) ( modifier* property_get_definition )? )  CC
 	;
 property_get_definition
-	: 'get' ';'
-	| 'get' '=>' expression ';'
-	| 'get' code_block
+	: GET END
+	| GET LAMBDA expression END
+	| GET code_block
 	;
 property_set_definition
-	: 'set' ';'
-	| 'set' '=>' expression ';'
-	| 'set' code_block
+	: SET END
+	| SET LAMBDA expression END
+	| SET code_block
 	;
 method_definition
-	: MODIFIER* MEMBER_NAME method_parameters method_definition_end
-	;
-method_definition_end
-	: '=>' expression ';'
-	| code_block
+	: method_parameters ( LAMBDA expression END | code_block)
 	;
 
 // Identifiers
@@ -122,19 +116,31 @@ literal
 	| STRING
 	;
 identifier
-	: '@'? ( TYPE_NAME|MEMBER_NAME|VARIABLE_NAME ) ( ('.') TYPE_NAME|MEMBER_NAME|VARIABLE_NAME )* generic_arguments?
+	: '@'? ( NAME ) ( DOT NAME )* generic_arguments?
 	;
 
 // Statements
 statement
 	: code_block
 	| language_function
-	| initialization_expression ';'
-	| expression ';'
+	| initialization_expression END
+	| expression END
 	;
 code_block
-	: '{' statement* '}'
+	: OC statement* CC
 	;
+
+// Operators
+additive_operator: PLUS | MINUS;
+multiplicative_operator: MULTIPLY | DIVIDE | MODULUS;
+step_operator: INCREMENT | DECREMENT;
+bitwise_operator: BITWISE_AND | BITWISE_OR | BITWISE_XOR;
+boolean_operator: BOOLEAN_AND | BOOLEAN_OR;
+shift_operator: SHIFT_LEFT | SHIFT_RIGHT;
+equality_operator: EQUIVALENT | NOT_EQUIVALENT;
+relation_operator: LESS_THAN | GREATER_THAN | LESS_THAN_EQUAL | GREATER_THAN_EQUAL;
+assignment_operator: ASSIGN | ASSIGN_PLUS | ASSIGN_MINUS | ASSIGN_MULTIPLY | ASSIGN_DIVIDE | ASSIGN_MODULUS | ASSIGN_ACCESS | ASSIGN_AND | ASSIGN_OR | ASSIGN_XOR | ASSIGN_LEFT | ASSIGN_RIGHT;
+range_operator: RANGE_INCLUSIVE | RANGE_EXCLUSIVE;
 
 // Language Functions
 language_function	
@@ -148,28 +154,28 @@ language_function
 	| try_statement
 	;
 if_statement
-	: 'if' '(' expression ')' statement
+	: IF OP expression CP statement
 	;
 for_statement
-	: 'for' '(' expression ';' expression ';' expression ')' statement
+	: FOR OP expression END expression END expression CP statement
 	;
 foreach_statement
-	: 'foreach' '(' TYPE_NAME VARIABLE_NAME 'in' expression ')' statement
+	: FOREACH OP NAME NAME IN expression CP statement
 	;
 while_statement
-	: 'while' '(' expression ')' statement
+	: WHILE OP expression CP statement
 	;
 do_statement
-	: 'do' statement 'while' '(' expression ')' ';'
+	: DO statement WHILE OP expression CP END
 	;
 return_statement
-	: 'return' expression ';'
+	: RETURN expression END
 	;
 throw_statement
-	: 'throw' expression ';'
+	: THROW expression END
 	;
 try_statement
-	: 'try' statement ( 'catch' '(' TYPE_NAME VARIABLE_NAME ')' statement )* ( 'finally' statement )?
+	: TRY statement ( CATCH OP NAME NAME CP statement )* ( FINALLY statement )?
 	;
 
 // Expressions
@@ -178,100 +184,96 @@ expression
 	| assignment_expression
 	;
 initialization_expression
-	: TYPE_NAME VARIABLE_NAME ( '=' expression )
+	: NAME NAME ( ASSIGN expression )
 	;
 non_assignment_expression
 	: conditional_expression
 	| lambda_expression
-	//| query_expression
 	;
 lambda_expression
-	: method_arguments '=>' ( code_block )
+	: method_arguments LAMBDA ( code_block )
 	;
-// query_expression
-// 	: 'from' TYPE_NAME? identifier 'in' expression ...
-// 	;
 expression_list
-	: expression ( ',' expression )*
+	: expression ( COMMA expression )*
 	;
 conditional_expression
-	: null_coalescing_expression ( ('?') expression (':') expression )?
+	: null_coalescing_expression ( CONDITION_IF expression CONDITION_ELSE expression )?
 	;
 null_coalescing_expression
-	: conditional_or_expression ( ('??') null_coalescing_expression )?
+	: conditional_or_expression ( (NULL_COALESCING) null_coalescing_expression )?
 	;
 conditional_or_expression
-	: conditional_and_expression ( ('||') conditional_and_expression )*
+	: conditional_and_expression ( BOOLEAN_OR conditional_and_expression )*
 	;
 conditional_and_expression
-	: inclusive_or_expression ( ('&&') inclusive_or_expression )*
+	: inclusive_or_expression ( BOOLEAN_AND inclusive_or_expression )*
 	;
 inclusive_or_expression
-	: exclusive_or_expression ( ('|') exclusive_or_expression )*
+	: exclusive_or_expression ( BITWISE_OR exclusive_or_expression )*
 	;
 exclusive_or_expression
-	: and_expression ( ('^') and_expression )*
+	: and_expression ( BITWISE_XOR and_expression )*
 	;
 and_expression
-	: equality_expression ( ('&') equality_expression )*
+	: equality_expression ( BITWISE_AND equality_expression )*
 	;
 equality_expression
-	: relational_expression ( ('=='|'!=') relational_expression )*
+	: relational_expression ( equality_operator relational_expression )*
 	;
 relational_expression
 	: shift_expression ( relation_or_type_check )*
 	;
 relation_or_type_check
-	: ('<'|'>'|'<='|'>=') shift_expression
-	| ('is'|'as') TYPE_NAME
+	: relation_operator shift_expression
+	| (IS|AS) NAME
 	;
 shift_expression
-	: additive_expression ( ('<<'|'>>') additive_expression )*
+	: additive_expression ( shift_operator additive_expression )*
 	;
 additive_expression
-	: multiplicative_expression ( ('+'|'-') multiplicative_expression )*
+	: multiplicative_expression ( additive_operator multiplicative_expression )*
 	;
 multiplicative_expression
-	: with_expression ( ('*'|'/'|'%') with_expression )*
+	: with_expression ( multiplicative_operator with_expression )*
 	;
 with_expression
-	: range_expression ( ('with') anonymous_element_initializer )?
+	: range_expression ( WITH anonymous_element_initializer )?
 	;
 range_expression
-	: unary_expression ( ('..'|'..^') unary_expression )?
+	: unary_expression ( range_operator unary_expression )?
 	;
 unary_expression
 	: primary_expression
-	| ('+'|'-'|'!'|'~') unary_expression
-	| ('++'|'--') unary_expression
+	| (PLUS|MINUS|BOOLEAN_NOT|BITWISE_NOT) unary_expression
+	| step_operator unary_expression
 	| cast_expression
 	| pointer_indirection_expression
 	| addressof_expression
 	;
 cast_expression
-	: '(' TYPE_NAME ')' unary_expression
+	: OP NAME CP unary_expression
 	;
 pointer_indirection_expression
-	: '*' unary_expression
+	: MULTIPLY unary_expression
 	;
 addressof_expression
-	: '&' unary_expression
+	: BITWISE_AND unary_expression
 	;
 assignment_expression
-	: unary_expression ('='|'+='|'-='|'*='|'/='|'%='|'&='|'|='|'^='|'<<='|'>>='|'.=') expression
+	: unary_expression assignment_operator expression
 	;
 primary_expression
 	: array_creation_expression
 	| primary_no_array_creation_expression
 	;
 array_creation_expression
-	: 'new' indexer_arguments array_rank_specifier? array_initializer?
+	: NEW indexer_arguments array_rank_specifier? array_initializer?
 	;
 array_rank_specifier
-	: '[' ','* ']'
+	: OB COMMA* CB
 	;
 array_initializer
-	: '{' ( variable_initializer ( ',' variable_initializer )* ','? )? '}'
+	: OC ( variable_initializer ( COMMA variable_initializer )* COMMA? )? CC
 	;
 variable_initializer
 	: expression
@@ -280,7 +282,7 @@ variable_initializer
 primary_no_array_creation_expression
 	: literal
 	| identifier
-	| '(' expression ')'
+	| OP expression CP
 	| member_access
 	| invocation_expression
 	| indexer_expression
@@ -288,7 +290,7 @@ primary_no_array_creation_expression
 	| keyword_expression
 	;
 member_access
-	: ( '(' primary_expression ')' | TYPE_NAME ) '.' identifier generic_arguments?
+	: ( OP primary_expression CP | NAME ) DOT identifier generic_arguments?
 	;
 invocation_expression
 	: member_access method_arguments
@@ -297,7 +299,7 @@ indexer_expression
 	: member_access indexer_arguments
 	;
 post_step_expression
-	: ( literal | identifier ) ('++'|'--')
+	: ( literal | identifier ) (INCREMENT|DECREMENT)
 	;
 keyword_expression
 	: new_keyword_expression
@@ -312,41 +314,133 @@ object_or_collection_initializer
 	| collection_initializer
 	;
 new_keyword_expression
-	: 'new' TYPE_NAME ( ( method_arguments object_or_collection_initializer? ) | ( object_or_collection_initializer ) )
-	| 'new' TYPE_NAME ( '(' expression ')' )
-	| 'new' anonymous_object_initializer
+	: NEW NAME ( ( method_arguments object_or_collection_initializer? ) | ( object_or_collection_initializer ) )
+	| NEW NAME ( OP expression CP )
+	| NEW anonymous_object_initializer
 	;
 typeof_keyword_expression
-	: 'typeof' '(' ( TYPE_NAME ) ')'
+	: TYPEOF OP ( NAME ) CP
 	;
 checked_expression
-	: 'checked' '(' expression ')'
+	: CHECKED OP expression CP
 	;
 unchecked_expression
-	: 'unchecked' '(' expression ')'
+	: UNCHECKED OP expression CP
 	;
 default_keyword_expression
-	: 'default' ( '(' TYPE_NAME ')' )?
+	: DEFAULT ( OP NAME CP )?
 	;
 delegate_keyword_expression
-	: 'delegate' method_parameters code_block
+	: DELEGATE method_parameters code_block
 	;
 sizeof_keyword_expression
-	: 'sizeof' '(' TYPE_NAME ')'
+	: SIZEOF OP NAME CP
 	;
 
 /*
  *   Lexer Rules
  */
 
-// Whitespace
-WHITESPACE: ' '|'\t'|'\r';
-NEWLINE: '\n';
+// Common Keywords
+END: ';';
+COMMA: ',';
+OP: '(';
+CP: ')';
+OB: '[';
+CB: ']';
+OC: '{';
+CC: '}';
+
+// Operators
+PLUS: '+';
+MINUS: '-';
+MULTIPLY: '*';
+DIVIDE: '/';
+MODULUS: '%';
+INCREMENT: '++';
+DECREMENT: '--';
+BITWISE_AND: '&';
+BITWISE_OR: '|';
+BITWISE_XOR: '^';
+BITWISE_NOT: '~';
+BOOLEAN_AND: '&&';
+BOOLEAN_OR: '||';
+BOOLEAN_NOT: '!';
+SHIFT_LEFT: '<<';
+SHIFT_RIGHT: '>>';
+EQUIVALENT: '==';
+NOT_EQUIVALENT: '!=';
+LESS_THAN: '>';
+GREATER_THAN: '<';
+LESS_THAN_EQUAL: '>=';
+GREATER_THAN_EQUAL: '<=';
+DOT: '.';
+ASSIGN: '=';
+ASSIGN_PLUS: '+=';
+ASSIGN_MINUS: '-=';
+ASSIGN_MULTIPLY: '*=';
+ASSIGN_DIVIDE: '/=';
+ASSIGN_MODULUS: '%=';
+ASSIGN_ACCESS: '.=';
+ASSIGN_AND: '&=';
+ASSIGN_OR: '|=';
+ASSIGN_XOR: '^=';
+ASSIGN_LEFT: '<<=';
+ASSIGN_RIGHT: '>>=';
+CONDITION_IF: '?';
+CONDITION_ELSE: ':';
+RANGE_INCLUSIVE: '..';
+RANGE_EXCLUSIVE: '..^';
+IS: 'is';
+AS: 'as';
+IN: 'in';
+OUT: 'out';
+LAMBDA: '=>';
+NULL_COALESCING: '??';
+
+// Statement Keywords
+IF: 'if';
+ELSE: 'else';
+FOR: 'for';
+FOREACH: 'foreach';
+DO: 'do';
+WHILE: 'while';
+RETURN: 'return';
+THROW: 'throw';
+TRY: 'try';
+CATCH: 'catch';
+FINALLY: 'finally';
+
+// Expression Keywords
+NEW: 'new';
+TYPEOF: 'typeof';
+CHECKED: 'checked';
+UNCHECKED: 'unchecked';
+DEFAULT: 'default';
+DELEGATE: 'delegate';
+SIZEOF: 'sizeof';
+WITH: 'with';
+
+// Property Keywords
+GET: 'get';
+SET: 'set';
+
+// Modifier Keywords
+PUBLIC: 'public';
+PRIVATE: 'private';
+PROTECTED: 'protected';
+STATIC: 'static';
+ABSTRACT: 'abstract';
+VIRTUAL: 'virtual';
+OVERRIDE: 'override';
+REF: 'ref';
+CLASS: 'class';
+STRUCT: 'struct';
 
 // Literals
-INTEGER: [0-9]+;
-DECIMAL: [0-9]+ '.' [0-9]+;
 STRING: '"' ( '\\\\' | '\\"' | ~'"' ) '"';
+DECIMAL: [0-9]+ '.' [0-9]+;
+INTEGER: [0-9]+;
 
 // Simple Identifiers
 fragment SIMPLE_NAME_CHARACTER
@@ -358,31 +452,10 @@ fragment COMPLEX_NAME_CHARACTER
 	: SIMPLE_NAME_CHARACTER
 	| [0-9]
 	;
-TYPE_NAME
-	: SIMPLE_NAME_CHARACTER COMPLEX_NAME_CHARACTER*
-	;
-MEMBER_NAME
-	: SIMPLE_NAME_CHARACTER COMPLEX_NAME_CHARACTER*
-	;
-VARIABLE_NAME
+NAME
 	: SIMPLE_NAME_CHARACTER COMPLEX_NAME_CHARACTER*
 	;
 
-// Modifiers
-ACCESS
-	: 'public'
-	| 'private'
-	| 'protected'
-	;
-USAGE
-	: 'static'
-	| 'abstract'
-	| 'virtual'
-	| 'override'
-	;
-MODIFIER
-	: ACCESS | USAGE
-	;
-PARAMETER_MODIFIER
-	: 'in'|'out'|'ref'
-	;
+// Whitespace
+WHITESPACE: [ \t\r]+ -> skip;
+NEWLINE: [\n]+ -> skip;
