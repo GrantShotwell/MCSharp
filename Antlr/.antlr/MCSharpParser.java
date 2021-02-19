@@ -3481,10 +3481,10 @@ public class MCSharpParser extends Parser {
 		public Conditional_or_expressionContext conditional_or_expression() {
 			return getRuleContext(Conditional_or_expressionContext.class,0);
 		}
+		public TerminalNode NULL_COALESCING() { return getToken(MCSharpParser.NULL_COALESCING, 0); }
 		public Null_coalescing_expressionContext null_coalescing_expression() {
 			return getRuleContext(Null_coalescing_expressionContext.class,0);
 		}
-		public TerminalNode NULL_COALESCING() { return getToken(MCSharpParser.NULL_COALESCING, 0); }
 		public Null_coalescing_expressionContext(ParserRuleContext parent, int invokingState) {
 			super(parent, invokingState);
 		}
@@ -3504,10 +3504,8 @@ public class MCSharpParser extends Parser {
 			switch ( getInterpreter().adaptivePredict(_input,53,_ctx) ) {
 			case 1:
 				{
-				{
 				setState(616);
 				match(NULL_COALESCING);
-				}
 				setState(617);
 				null_coalescing_expression();
 				}

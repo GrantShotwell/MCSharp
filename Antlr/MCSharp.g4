@@ -200,7 +200,7 @@ conditional_expression
 	: null_coalescing_expression ( CONDITION_IF expression CONDITION_ELSE expression )?
 	;
 null_coalescing_expression
-	: conditional_or_expression ( (NULL_COALESCING) null_coalescing_expression )?
+	: conditional_or_expression ( NULL_COALESCING null_coalescing_expression )?
 	;
 conditional_or_expression
 	: conditional_and_expression ( BOOLEAN_OR conditional_and_expression )*

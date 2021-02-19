@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MCSharp.Compilation;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
@@ -327,7 +328,8 @@ namespace MCSharp {
 				return;
 			}
 
-			Compiler compiler = new Compiler(new Settings(datapack));
+			Settings settings = new Settings(datapack);
+			Compiler compiler = new Compiler(settings);
 			if(compiler.Compile(out string message)) {
 				PrintSuccess(message);
 			} else {

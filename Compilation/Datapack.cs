@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
-namespace MCSharp {
+namespace MCSharp.Compilation {
 
 	/// <summary>
 	/// Represents a Minecraft datapack and its file structure.
@@ -28,6 +28,13 @@ namespace MCSharp {
 			if(string.IsNullOrWhiteSpace(root))
 				throw new ArgumentException($"'{nameof(root)}' cannot be null or whitespace", nameof(root));
 			RootDirectory = root;
+
+		}
+
+
+		public StreamWriter CreateFunctionFile(string localPath) {
+
+			File.CreateText
 
 		}
 

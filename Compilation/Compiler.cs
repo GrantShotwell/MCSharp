@@ -1,54 +1,78 @@
 ﻿using Antlr4.Runtime;
 using Antlr4.Runtime.Misc;
 using Antlr4.Runtime.Tree;
+using MCSharp.Compilation.Linkage;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
+using System.Linq;
 
-namespace MCSharp {
+namespace MCSharp.Compilation {
 
 	public class Compiler {
 
 		public Settings Settings { get; }
+		public VirtualMachine VirtualMachine { get; }
 
 		public Compiler(Settings settings) {
 			Settings = settings;
+			VirtualMachine = new VirtualMachine();
 		}
 
 		#region Data
+
+		public ICollection<ScriptClass> ScriptTypes { get; } = new List<ScriptClass>();
+
 		#endregion
 
 		public bool Compile(out string message) {
 
-			// Find & parse all script files.
+			// Find, parse, and 1st pass walk (types, members) all script files.
 			foreach(string file in Settings.Datapack.GetScriptFiles()) {
 
 				// Use Antlr generated classes to parse the file.
 				ICharStream stream = CharStreams.fromString(File.ReadAllText(file));
 				ITokenSource lexer = new MCSharpLexer(stream);
 				ITokenStream tokens = new CommonTokenStream(lexer);
-				MCSharpParser parser = new MCSharpParser(tokens) { BuildParseTree = true };
+				var parser = new MCSharpParser(tokens) { BuildParseTree = true };
 				IParseTree tree = parser.script();
-				ScriptKeyPrinter printer = new ScriptKeyPrinter();
-				ParseTreeWalker.Default.Walk(printer, tree);
+				var walker = new ScriptClassWalker(this);
+				ParseTreeWalker.Default.Walk(walker, tree);
 
 			}
 
-			message = "Finished parsing.";
+			message = "Finished.";
 			return true;
 
 		}
 
-		public class ScriptKeyPrinter : MCSharpBaseListener {
+		public class ScriptClassWalker : MCSharpBaseListener {
 
-			public override void ExitScript([NotNull] MCSharpParser.ScriptContext context) {
-				base.ExitScript(context);
-				Program.PrintText($"Script Token: {context.GetText()}");
+			Compiler Compiler { get; }
+
+			private MCSharpParser.Type_definitionContext CurrentTypeContext { get; set; }
+			private ICollection<MCSharpParser.Member_definitionContext> CurrentMemberContexts { get; set; } = new LinkedList<MCSharpParser.Member_definitionContext>();
+
+			public ScriptClassWalker(Compiler compiler) {
+				Compiler = compiler;
+			}
+
+			public override void EnterType_definition([NotNull] MCSharpParser.Type_definitionContext context) {
+				CurrentMemberContexts.Clear();
+				CurrentTypeContext = context;
+			}
+
+			public override void EnterMember_definition([NotNull] MCSharpParser.Member_definitionContext context) {
+				CurrentMemberContexts.Add(context);
+			}
+
+			public override void ExitType_definition([NotNull] MCSharpParser.Type_definitionContext context) {
+				if(context != CurrentTypeContext) throw new Exception($"Subtypes are currently not supported by {nameof(ScriptClassWalker)}.");
+				var scriptType = new ScriptClass(CurrentTypeContext, CurrentMemberContexts.ToArray());
+				Compiler.ScriptTypes.Add(scriptType);
 			}
 
 		}
-
 
 	}
 
