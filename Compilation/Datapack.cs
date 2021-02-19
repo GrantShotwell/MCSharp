@@ -34,7 +34,7 @@ namespace MCSharp.Compilation {
 
 		public StreamWriter CreateFunctionFile(string localPath) {
 
-			File.CreateText
+			return File.CreateText($"{FunctionDirectory}\\{localPath}");
 
 		}
 
