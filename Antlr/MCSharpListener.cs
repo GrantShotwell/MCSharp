@@ -871,26 +871,6 @@ public interface IMCSharpListener : IParseTreeListener {
 	/// <param name="context">The parse tree.</param>
 	void ExitMember_access([NotNull] MCSharpParser.Member_accessContext context);
 	/// <summary>
-	/// Enter a parse tree produced by <see cref="MCSharpParser.invocation_expression"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	void EnterInvocation_expression([NotNull] MCSharpParser.Invocation_expressionContext context);
-	/// <summary>
-	/// Exit a parse tree produced by <see cref="MCSharpParser.invocation_expression"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	void ExitInvocation_expression([NotNull] MCSharpParser.Invocation_expressionContext context);
-	/// <summary>
-	/// Enter a parse tree produced by <see cref="MCSharpParser.indexer_expression"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	void EnterIndexer_expression([NotNull] MCSharpParser.Indexer_expressionContext context);
-	/// <summary>
-	/// Exit a parse tree produced by <see cref="MCSharpParser.indexer_expression"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	void ExitIndexer_expression([NotNull] MCSharpParser.Indexer_expressionContext context);
-	/// <summary>
 	/// Enter a parse tree produced by <see cref="MCSharpParser.post_step_expression"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>

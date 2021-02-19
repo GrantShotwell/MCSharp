@@ -1043,30 +1043,6 @@ public partial class MCSharpBaseListener : IMCSharpListener {
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitMember_access([NotNull] MCSharpParser.Member_accessContext context) { }
 	/// <summary>
-	/// Enter a parse tree produced by <see cref="MCSharpParser.invocation_expression"/>.
-	/// <para>The default implementation does nothing.</para>
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	public virtual void EnterInvocation_expression([NotNull] MCSharpParser.Invocation_expressionContext context) { }
-	/// <summary>
-	/// Exit a parse tree produced by <see cref="MCSharpParser.invocation_expression"/>.
-	/// <para>The default implementation does nothing.</para>
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	public virtual void ExitInvocation_expression([NotNull] MCSharpParser.Invocation_expressionContext context) { }
-	/// <summary>
-	/// Enter a parse tree produced by <see cref="MCSharpParser.indexer_expression"/>.
-	/// <para>The default implementation does nothing.</para>
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	public virtual void EnterIndexer_expression([NotNull] MCSharpParser.Indexer_expressionContext context) { }
-	/// <summary>
-	/// Exit a parse tree produced by <see cref="MCSharpParser.indexer_expression"/>.
-	/// <para>The default implementation does nothing.</para>
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	public virtual void ExitIndexer_expression([NotNull] MCSharpParser.Indexer_expressionContext context) { }
-	/// <summary>
 	/// Enter a parse tree produced by <see cref="MCSharpParser.post_step_expression"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>

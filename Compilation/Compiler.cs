@@ -10,10 +10,6 @@ namespace MCSharp {
 
 	public class Compiler {
 
-		public static string DefaultSuccess { get; } = "Success.";
-		public static string DefaultNoPath { get; } = "No path.";
-
-
 		public Settings Settings { get; }
 
 		public Compiler(Settings settings) {
@@ -25,26 +21,26 @@ namespace MCSharp {
 
 		public bool Compile(out string message) {
 
-			// Find & read all script files.
+			// Find & parse all script files.
 			foreach(string file in Settings.Datapack.GetScriptFiles()) {
 
+				// Use Antlr generated classes to parse the file.
 				ICharStream stream = CharStreams.fromString(File.ReadAllText(file));
 				ITokenSource lexer = new MCSharpLexer(stream);
 				ITokenStream tokens = new CommonTokenStream(lexer);
-				MCSharpParser parser = new MCSharpParser(tokens);
-				parser.BuildParseTree = true;
+				MCSharpParser parser = new MCSharpParser(tokens) { BuildParseTree = true };
 				IParseTree tree = parser.script();
-				TestKeyPrinter printer = new TestKeyPrinter();
+				ScriptKeyPrinter printer = new ScriptKeyPrinter();
 				ParseTreeWalker.Default.Walk(printer, tree);
 
 			}
 
-			message = DefaultSuccess;
+			message = "Finished parsing.";
 			return true;
 
 		}
 
-		public class TestKeyPrinter : MCSharpBaseListener {
+		public class ScriptKeyPrinter : MCSharpBaseListener {
 
 			public override void ExitScript([NotNull] MCSharpParser.ScriptContext context) {
 				base.ExitScript(context);

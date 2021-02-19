@@ -154,10 +154,10 @@ language_function
 	| try_statement
 	;
 if_statement
-	: IF OP expression CP statement
+	: IF OP expression CP statement ( ELSE statement )?
 	;
 for_statement
-	: FOR OP expression END expression END expression CP statement
+	: FOR OP initialization_expression END expression END expression CP statement
 	;
 foreach_statement
 	: FOREACH OP NAME NAME IN expression CP statement
@@ -225,7 +225,7 @@ relational_expression
 	;
 relation_or_type_check
 	: relation_operator shift_expression
-	| (IS|AS) NAME
+	| ( IS | AS ) NAME
 	;
 shift_expression
 	: additive_expression ( shift_operator additive_expression )*
@@ -241,6 +241,12 @@ with_expression
 	;
 range_expression
 	: unary_expression ( range_operator unary_expression )?
+	;
+pre_step_expression
+	: step_operator ( unary_expression )
+	;
+post_step_expression
+	: ( literal | identifier ) step_operator
 	;
 unary_expression
 	: primary_expression
@@ -284,22 +290,11 @@ primary_no_array_creation_expression
 	| identifier
 	| OP expression CP
 	| member_access
-	| invocation_expression
-	| indexer_expression
 	| post_step_expression
 	| keyword_expression
 	;
 member_access
-	: ( OP primary_expression CP | NAME ) DOT identifier generic_arguments?
-	;
-invocation_expression
-	: member_access method_arguments
-	;
-indexer_expression
-	: member_access indexer_arguments
-	;
-post_step_expression
-	: ( literal | identifier ) (INCREMENT|DECREMENT)
+	: ( OP primary_expression CP DOT )? identifier generic_arguments? ( method_arguments | indexer_arguments )?
 	;
 keyword_expression
 	: new_keyword_expression
