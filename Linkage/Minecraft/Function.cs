@@ -28,6 +28,14 @@ namespace MCSharp.Linkage.Minecraft {
 
 		}
 
+		public Function CreateChildFunction(StatementContext[] statements, Settings settings, string name) {
+
+			FunctionWriter writer = new FunctionWriter(Writer.VirtualMachine, settings, $"{Writer.LocalFilePath}\\{Writer.Name}", name);
+			Function sub = new Function(writer, GenericParameters, MethodParameters, statements, ReturnTypeIdentifier);
+			return sub;
+
+		}
+
 	}
 
 }
