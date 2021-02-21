@@ -271,6 +271,16 @@ public interface IMCSharpListener : IParseTreeListener {
 	/// <param name="context">The parse tree.</param>
 	void ExitMember_definition([NotNull] MCSharpParser.Member_definitionContext context);
 	/// <summary>
+	/// Enter a parse tree produced by <see cref="MCSharpParser.constructor_definition"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterConstructor_definition([NotNull] MCSharpParser.Constructor_definitionContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="MCSharpParser.constructor_definition"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitConstructor_definition([NotNull] MCSharpParser.Constructor_definitionContext context);
+	/// <summary>
 	/// Enter a parse tree produced by <see cref="MCSharpParser.field_definition"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>

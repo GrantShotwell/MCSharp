@@ -1,9 +1,9 @@
 ﻿using Antlr4.Runtime.Tree;
 using MCSharp.Compilation;
 using MCSharp.Compilation.Linkage;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using ConstructorDefinitionContext = MCSharpParser.Constructor_definitionContext;
+using MemberDefinitionContext = MCSharpParser.Member_definitionContext;
+using TypeDefinitionContext = MCSharpParser.Type_definitionContext;
 
 namespace MCSharp.Linkage {
 
@@ -15,7 +15,9 @@ namespace MCSharp.Linkage {
 		public ScriptMember[] Members { get; }
 		public ScriptClass[] SubTypes { get; }
 
-		public ScriptClass(MCSharpParser.Type_definitionContext typeContext, MCSharpParser.Member_definitionContext[] memberContexts, Settings settings, VirtualMachine virtualMachine) {
+		public int i_constructor = 0;
+
+		public ScriptClass(TypeDefinitionContext typeContext, MemberDefinitionContext[] memberContexts, ConstructorDefinitionContext[] constructorContexts, Settings settings, VirtualMachine virtualMachine) {
 
 			Modifiers = EnumLinker.LinkModifiers(typeContext.modifier());
 

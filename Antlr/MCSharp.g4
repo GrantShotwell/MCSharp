@@ -83,10 +83,13 @@ modifier: PUBLIC | PRIVATE | PROTECTED | STATIC | ABSTRACT | VIRTUAL;
 parameter_modifier: IN | OUT | REF;
 class_type: CLASS | STRUCT;
 type_definition
-	: modifier* class_type NAME OC member_definition* CC
+	: modifier* class_type NAME OC ( constructor_definition | member_definition )* CC
 	;
 member_definition
 	: modifier* NAME NAME ( field_definition | property_definition | method_definition )
+	;
+constructor_definition
+	: modifier* NAME method_parameters ( code_block | LAMBDA expression )
 	;
 field_definition
 	: ( ASSIGN expression )? END

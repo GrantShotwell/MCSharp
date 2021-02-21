@@ -42,7 +42,15 @@ namespace MCSharp.Compilation {
 			}
 
 			// Compile every class/struct member.
-			//todo
+			foreach(ScriptClass type in ScriptTypes) {
+
+				foreach(ScriptMember member in type.Members) {
+
+
+
+				}
+
+			}
 
 			message = "Finished.";
 			return true;
@@ -55,6 +63,7 @@ namespace MCSharp.Compilation {
 
 			private MCSharpParser.Type_definitionContext CurrentTypeContext { get; set; }
 			private ICollection<MCSharpParser.Member_definitionContext> CurrentMemberContexts { get; set; } = new LinkedList<MCSharpParser.Member_definitionContext>();
+			private ICollection<MCSharpParser.Constructor_definitionContext> CurrentConstructorContexts { get; set; } = new LinkedList<MCSharpParser.Constructor_definitionContext>();
 
 			public ScriptClassWalker(Compiler compiler) {
 				Compiler = compiler;
@@ -69,9 +78,13 @@ namespace MCSharp.Compilation {
 				CurrentMemberContexts.Add(context);
 			}
 
+			public override void EnterConstructor_definition([NotNull] MCSharpParser.Constructor_definitionContext context) {
+				CurrentConstructorContexts.Add(context);
+			}
+
 			public override void ExitType_definition([NotNull] MCSharpParser.Type_definitionContext context) {
 				if(context != CurrentTypeContext) throw new Exception($"Subtypes are currently not supported by {nameof(ScriptClassWalker)}.");
-				var scriptType = new ScriptClass(CurrentTypeContext, CurrentMemberContexts.ToArray(), Compiler.Settings, Compiler.VirtualMachine);
+				var scriptType = new ScriptClass(CurrentTypeContext, CurrentMemberContexts.ToArray(), CurrentConstructorContexts.ToArray(), Compiler.Settings, Compiler.VirtualMachine);
 				Compiler.ScriptTypes.Add(scriptType);
 			}
 
