@@ -899,6 +899,30 @@ public partial class MCSharpBaseListener : IMCSharpListener {
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitRange_expression([NotNull] MCSharpParser.Range_expressionContext context) { }
 	/// <summary>
+	/// Enter a parse tree produced by <see cref="MCSharpParser.pre_step_expression"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterPre_step_expression([NotNull] MCSharpParser.Pre_step_expressionContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="MCSharpParser.pre_step_expression"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitPre_step_expression([NotNull] MCSharpParser.Pre_step_expressionContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="MCSharpParser.post_step_expression"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterPost_step_expression([NotNull] MCSharpParser.Post_step_expressionContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="MCSharpParser.post_step_expression"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitPost_step_expression([NotNull] MCSharpParser.Post_step_expressionContext context) { }
+	/// <summary>
 	/// Enter a parse tree produced by <see cref="MCSharpParser.unary_expression"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>
@@ -1042,18 +1066,6 @@ public partial class MCSharpBaseListener : IMCSharpListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitMember_access([NotNull] MCSharpParser.Member_accessContext context) { }
-	/// <summary>
-	/// Enter a parse tree produced by <see cref="MCSharpParser.post_step_expression"/>.
-	/// <para>The default implementation does nothing.</para>
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	public virtual void EnterPost_step_expression([NotNull] MCSharpParser.Post_step_expressionContext context) { }
-	/// <summary>
-	/// Exit a parse tree produced by <see cref="MCSharpParser.post_step_expression"/>.
-	/// <para>The default implementation does nothing.</para>
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	public virtual void ExitPost_step_expression([NotNull] MCSharpParser.Post_step_expressionContext context) { }
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="MCSharpParser.keyword_expression"/>.
 	/// <para>The default implementation does nothing.</para>

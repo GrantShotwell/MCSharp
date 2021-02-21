@@ -751,6 +751,26 @@ public interface IMCSharpListener : IParseTreeListener {
 	/// <param name="context">The parse tree.</param>
 	void ExitRange_expression([NotNull] MCSharpParser.Range_expressionContext context);
 	/// <summary>
+	/// Enter a parse tree produced by <see cref="MCSharpParser.pre_step_expression"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterPre_step_expression([NotNull] MCSharpParser.Pre_step_expressionContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="MCSharpParser.pre_step_expression"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitPre_step_expression([NotNull] MCSharpParser.Pre_step_expressionContext context);
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="MCSharpParser.post_step_expression"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterPost_step_expression([NotNull] MCSharpParser.Post_step_expressionContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="MCSharpParser.post_step_expression"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitPost_step_expression([NotNull] MCSharpParser.Post_step_expressionContext context);
+	/// <summary>
 	/// Enter a parse tree produced by <see cref="MCSharpParser.unary_expression"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
@@ -870,16 +890,6 @@ public interface IMCSharpListener : IParseTreeListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	void ExitMember_access([NotNull] MCSharpParser.Member_accessContext context);
-	/// <summary>
-	/// Enter a parse tree produced by <see cref="MCSharpParser.post_step_expression"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	void EnterPost_step_expression([NotNull] MCSharpParser.Post_step_expressionContext context);
-	/// <summary>
-	/// Exit a parse tree produced by <see cref="MCSharpParser.post_step_expression"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	void ExitPost_step_expression([NotNull] MCSharpParser.Post_step_expressionContext context);
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="MCSharpParser.keyword_expression"/>.
 	/// </summary>

@@ -1,7 +1,7 @@
 ﻿using Antlr4.Runtime;
 using Antlr4.Runtime.Misc;
 using Antlr4.Runtime.Tree;
-using MCSharp.Compilation.Linkage;
+using MCSharp.Linkage;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -27,7 +27,7 @@ namespace MCSharp.Compilation {
 
 		public bool Compile(out string message) {
 
-			// Find, parse, and 1st pass walk (types, members) all script files.
+			// Find, parse, and first pass walk (types, members) all script files.
 			foreach(string file in Settings.Datapack.GetScriptFiles()) {
 
 				// Use Antlr generated classes to parse the file.
@@ -40,6 +40,9 @@ namespace MCSharp.Compilation {
 				ParseTreeWalker.Default.Walk(walker, tree);
 
 			}
+
+			// Compile every class/struct member.
+			//todo
 
 			message = "Finished.";
 			return true;
@@ -68,7 +71,7 @@ namespace MCSharp.Compilation {
 
 			public override void ExitType_definition([NotNull] MCSharpParser.Type_definitionContext context) {
 				if(context != CurrentTypeContext) throw new Exception($"Subtypes are currently not supported by {nameof(ScriptClassWalker)}.");
-				var scriptType = new ScriptClass(CurrentTypeContext, CurrentMemberContexts.ToArray());
+				var scriptType = new ScriptClass(CurrentTypeContext, CurrentMemberContexts.ToArray(), Compiler.Settings, Compiler.VirtualMachine);
 				Compiler.ScriptTypes.Add(scriptType);
 			}
 
