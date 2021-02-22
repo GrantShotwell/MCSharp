@@ -8,7 +8,7 @@ namespace MCSharp.Linkage {
 	/// <summary>
 	/// Represents a constructor for some type.
 	/// </summary>
-	public interface IConstructor {
+	public interface IConstructor : IDisposable {
 
 		/// <summary>
 		/// The type that has defined this constructor.

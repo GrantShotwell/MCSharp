@@ -62,6 +62,10 @@ namespace MCSharp.Linkage.Script {
 
 		}
 
+		public void Dispose() {
+			foreach(ScriptMember member in Members) member.Dispose();
+		}
+
 	}
 
 }

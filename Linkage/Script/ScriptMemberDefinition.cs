@@ -89,7 +89,7 @@ namespace MCSharp.Linkage.Script {
 					}
 
 					// Construct and return the property.
-					return new Property(getFunction, setFunction);
+					return new Property(setFunction, getFunction);
 
 				}
 
@@ -127,6 +127,8 @@ namespace MCSharp.Linkage.Script {
 
 		}
 
+		public abstract void Dispose();
+
 		public class Field : ScriptMemberDefinition, IField {
 
 			public ScriptExpression Initializer { get; }
@@ -136,16 +138,25 @@ namespace MCSharp.Linkage.Script {
 				Initializer = new ScriptExpression(initialize);
 			}
 
+			public override void Dispose() {
+				// Nothing to dispose of.
+			}
+
 		}
 
 		public class Property : ScriptMemberDefinition, IProperty {
 
-			public Function Setter { get; }
 			public Function Getter { get; }
+			public Function Setter { get; }
 
-			public Property(Function set, Function get) {
-				Setter = set;
+			public Property(Function get, Function set) {
 				Getter = get;
+				Setter = set;
+			}
+
+			public override void Dispose() {
+				Getter?.Dispose();
+				Setter?.Dispose();
 			}
 
 		}
@@ -156,6 +167,10 @@ namespace MCSharp.Linkage.Script {
 
 			public Method(Function invoke) {
 				Invoker = invoke ?? throw new ArgumentNullException(nameof(invoke));
+			}
+
+			public override void Dispose() {
+				Invoker.Dispose();
 			}
 
 		}

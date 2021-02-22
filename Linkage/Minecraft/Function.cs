@@ -4,7 +4,7 @@ using System;
 
 namespace MCSharp.Linkage.Minecraft {
 
-	public class Function {
+	public class Function : IDisposable {
 
 		public FunctionWriter Writer { get; }
 
@@ -30,6 +30,10 @@ namespace MCSharp.Linkage.Minecraft {
 			Function sub = new Function(writer, GenericParameters, MethodParameters, statements, ReturnTypeIdentifier);
 			return sub;
 
+		}
+
+		public void Dispose() {
+			Writer.Dispose();
 		}
 
 	}

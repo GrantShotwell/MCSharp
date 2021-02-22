@@ -8,7 +8,7 @@ namespace MCSharp.Linkage {
 	/// <summary>
 	/// Represents a type definition.
 	/// </summary>
-	public interface IType {
+	public interface IType : IDisposable {
 
 		/// <summary>
 		/// The modifiers that affect this type definition.

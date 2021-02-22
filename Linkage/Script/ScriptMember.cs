@@ -64,6 +64,10 @@ namespace MCSharp.Linkage.Script {
 
 		}
 
+		public void Dispose() {
+			Definition.Dispose();
+		}
+
 	}
 
 }

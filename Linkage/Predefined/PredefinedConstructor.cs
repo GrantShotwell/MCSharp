@@ -34,6 +34,10 @@ namespace MCSharp.Linkage.Predefined {
 			Invoker = invoker ?? throw new ArgumentNullException(nameof(invoker));
 		}
 
+		public void Dispose() {
+			Invoker.Dispose();
+		}
+
 	}
 
 }

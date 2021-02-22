@@ -46,6 +46,10 @@ namespace MCSharp.Linkage.Predefined {
 			Definition = definition ?? throw new ArgumentNullException(nameof(definition));
 		}
 
+		public void Dispose() {
+			Definition.Dispose();
+		}
+
 	}
 
 }

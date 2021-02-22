@@ -50,6 +50,9 @@ namespace MCSharp.Linkage.Script {
 
 		}
 
+		public void Dispose() {
+			Invoker.Dispose();
+		}
 
 	}
 

@@ -46,6 +46,10 @@ namespace MCSharp.Linkage.Predefined {
 			SubTypes = subTypes;
 		}
 
+		public void Dispose() {
+			foreach(PredefinedMember member in Members) member.Dispose();
+		}
+
 	}
 
 }

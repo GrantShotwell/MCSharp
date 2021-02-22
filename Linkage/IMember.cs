@@ -8,7 +8,7 @@ namespace MCSharp.Linkage {
 	/// <summary>
 	/// Represents a member, except constructors, for some type.
 	/// </summary>
-	public interface IMember {
+	public interface IMember : IDisposable {
 
 		/// <summary>
 		/// The type that has defined this member.

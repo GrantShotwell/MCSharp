@@ -15,7 +15,7 @@ using System.Threading;
 
 namespace MCSharp.Compilation {
 
-	public class Compiler {
+	public class Compiler : IDisposable {
 
 		public Settings Settings { get; }
 		public VirtualMachine VirtualMachine { get; }
@@ -111,6 +111,14 @@ namespace MCSharp.Compilation {
 
 			message = "Finished.";
 			return true;
+
+		}
+
+		public void Dispose() {
+
+			foreach(var type in DefinedTypes) {
+				type.Dispose();
+			}
 
 		}
 

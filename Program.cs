@@ -338,6 +338,8 @@ namespace MCSharp {
 				PrintError(message);
 			}
 
+			compiler.Dispose();
+
 
 			exit = false;
 

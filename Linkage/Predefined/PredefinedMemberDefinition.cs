@@ -6,6 +6,8 @@ namespace MCSharp.Linkage.Predefined {
 
 	public abstract class PredefinedMemberDefinition : IMemberDefinition {
 
+		public abstract void Dispose();
+
 	}
 
 }
