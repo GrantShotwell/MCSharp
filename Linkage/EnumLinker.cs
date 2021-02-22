@@ -4,8 +4,16 @@ using System.Text;
 
 namespace MCSharp.Linkage {
 
+	/// <summary>
+	/// Returns various <see cref="Enum"/>s from <see cref="Antlr4.Runtime.ParserRuleContext"/>(s).
+	/// </summary>
 	public static class EnumLinker {
 
+		/// <summary>
+		/// Links the given <see cref="MCSharpParser.ModifierContext"/>s to their corresponding <see cref="Modifier"/>s.
+		/// </summary>
+		/// <param name="modifiers">A collection of <see cref="MCSharpParser.ModifierContext"/> taken from script.</param>
+		/// <returns>Returns a <see cref="Modifier"/> value.</returns>
 		public static Modifier LinkModifiers(MCSharpParser.ModifierContext[] modifiers) {
 
 			Modifier mods = 0;
@@ -25,6 +33,11 @@ namespace MCSharp.Linkage {
 
 		}
 
+		/// <summary>
+		/// Links the given <see cref="MCSharpParser.Class_typeContext"/> to its corresponding <see cref="ClassType"/>.
+		/// </summary>
+		/// <param name="type">A <see cref="MCSharpParser.Class_typeContext"/> taken from script.</param>
+		/// <returns>Returns a <see cref="ClassType"/> value.</returns>
 		public static ClassType LinkClassType(MCSharpParser.Class_typeContext type) {
 
 			if(type.CLASS() != null) return ClassType.Class;
@@ -33,6 +46,11 @@ namespace MCSharp.Linkage {
 
 		}
 
+		/// <summary>
+		/// Links the given <see cref="MCSharpParser.Member_definitionContext"/> to its corresponding <see cref="MemberType"/>.
+		/// </summary>
+		/// <param name="definition">A <see cref="MCSharpParser.Member_definitionContext"/> taken from script.</param>
+		/// <returns>Returns a <see cref="MemberType"/> value.</returns>
 		public static MemberType LinkMemberType(MCSharpParser.Member_definitionContext definition) {
 
 			if(definition.field_definition() != null) return MemberType.Field;
@@ -40,10 +58,6 @@ namespace MCSharp.Linkage {
 			else if(definition.method_definition() != null) return MemberType.Method;
 			else return 0;
 
-		}
-
-		public static bool CheckStandardModifierRules(Modifier modifiers) {
-			throw new NotImplementedException();
 		}
 
 	}

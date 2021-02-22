@@ -4,6 +4,9 @@ using System.Text;
 
 namespace MCSharp.Linkage {
 
+	/// <summary>
+	/// Represents a statement in code.
+	/// </summary>
 	public interface IStatement {
 
 	}

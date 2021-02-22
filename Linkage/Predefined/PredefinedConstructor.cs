@@ -5,14 +5,29 @@ using System.Text;
 
 namespace MCSharp.Linkage.Predefined {
 
+	/// <summary>
+	/// Represents a predefined constructor.
+	/// </summary>
 	public class PredefinedConstructor : IConstructor {
 
+		/// <summary>
+		/// The predefined type that has defined this constructor.
+		/// </summary>
 		public PredefinedType Declarer { get; }
+		/// <inheritdoc/>
 		IType IConstructor.Declarer => Declarer;
 
+		/// <inheritdoc/>
 		public Modifier Modifiers { get; }
+		/// <inheritdoc/>
 		public Function Invoker { get; }
 
+		/// <summary>
+		/// Creates a new predefined constructor.
+		/// </summary>
+		/// <param name="declarer">The predefined type that has defined this constructor.</param>
+		/// <param name="modifiers">The modifiers that affect this constructor.</param>
+		/// <param name="invoker">The mcfunction file that will contain the final commands to execute this constructor.</param>
 		public PredefinedConstructor(PredefinedType declarer, Modifier modifiers, Function invoker) {
 			Declarer = declarer ?? throw new ArgumentNullException(nameof(declarer));
 			Modifiers = modifiers;

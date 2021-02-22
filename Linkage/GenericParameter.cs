@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Text;
 
 namespace MCSharp.Linkage {
+
 	public class GenericParameter {
 
 		public ITerminalNode TypeIdentifier { get; }
@@ -30,4 +31,5 @@ namespace MCSharp.Linkage {
 		}
 
 	}
+
 }
