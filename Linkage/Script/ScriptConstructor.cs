@@ -27,8 +27,8 @@ namespace MCSharp.Linkage.Script {
 		/// </summary>
 		/// <param name="declarer">The type that has defined this constructor.</param>
 		/// <param name="context">The parser context used to create the constructor.</param>
-		/// <param name="settings">Value passed to create <see cref="Function"/>s.</param>
-		/// <param name="virtualMachine">Value passed to create <see cref="Function"/>s.</param>
+		/// <param name="settings">Value passed to create <see cref="Function"/>(s).</param>
+		/// <param name="virtualMachine">Value passed to create <see cref="Function"/>(s).</param>
 		public ScriptConstructor(ScriptType declarer, ConstructorDefinitionContext context, Settings settings, VirtualMachine virtualMachine) {
 
 			Declarer = declarer;

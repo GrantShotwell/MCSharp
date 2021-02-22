@@ -328,8 +328,10 @@ namespace MCSharp {
 				return;
 			}
 
+			ICollection<Assembly> assemblies = new List<Assembly>(1) { Assembly.GetExecutingAssembly() };
 			Settings settings = new Settings(datapack);
-			Compiler compiler = new Compiler(settings);
+			Compiler compiler = new Compiler(settings, assemblies);
+
 			if(compiler.Compile(out string message)) {
 				PrintSuccess(message);
 			} else {

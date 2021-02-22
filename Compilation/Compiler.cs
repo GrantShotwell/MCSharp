@@ -2,13 +2,16 @@
 using Antlr4.Runtime.Misc;
 using Antlr4.Runtime.Tree;
 using MCSharp.Linkage.Script;
+using MCSharp.Linkage.Extensions;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using ConstructorDefinitionContext = MCSharpParser.Constructor_definitionContext;
 using MemberDefinitionContext = MCSharpParser.Member_definitionContext;
 using TypeDefinitionContext = MCSharpParser.Type_definitionContext;
+using System.Threading;
 
 namespace MCSharp.Compilation {
 
@@ -16,15 +19,18 @@ namespace MCSharp.Compilation {
 
 		public Settings Settings { get; }
 		public VirtualMachine VirtualMachine { get; }
+		public ICollection<Assembly> Assemblies { get; }
 
-		public Compiler(Settings settings) {
+		public Compiler(Settings settings, ICollection<Assembly> assemblies) {
 			Settings = settings;
 			VirtualMachine = new VirtualMachine();
+			Assemblies = assemblies;
 		}
 
 		#region Data
 
-		public ICollection<ScriptType> ScriptTypes { get; } = new List<ScriptType>();
+		public ICollection<ScriptType> DefinedTypes { get; } = new LinkedList<ScriptType>();
+		public ICollection<LinkerExtension> LinkerExtensions { get; } = new LinkedList<LinkerExtension>();
 
 		#endregion
 
@@ -33,24 +39,67 @@ namespace MCSharp.Compilation {
 			// TODO: Multithread first pass walk and adding redefined types (?).
 
 			// Find, parse, and first pass walk (types, members) all script files.
-			foreach(string file in Settings.Datapack.GetScriptFiles()) {
+			void FirstPassWalk() {
+				foreach(string file in Settings.Datapack.GetScriptFiles()) {
 
-				// Use Antlr generated classes to parse the file.
-				ICharStream stream = CharStreams.fromString(File.ReadAllText(file));
-				ITokenSource lexer = new MCSharpLexer(stream);
-				ITokenStream tokens = new CommonTokenStream(lexer);
-				var parser = new MCSharpParser(tokens) { BuildParseTree = true };
-				IParseTree tree = parser.script();
-				var walker = new ScriptClassWalker(this);
-				ParseTreeWalker.Default.Walk(walker, tree);
+					// Use Antlr generated classes to parse the file.
+					ICharStream stream = CharStreams.fromString(File.ReadAllText(file));
+					ITokenSource lexer = new MCSharpLexer(stream);
+					ITokenStream tokens = new CommonTokenStream(lexer);
+					var parser = new MCSharpParser(tokens) { BuildParseTree = true };
+					IParseTree tree = parser.script();
+					var walker = new ScriptClassWalker(this);
+					ParseTreeWalker.Default.Walk(walker, tree);
+
+				}
+			}
+
+			// Add linker extensions.
+			void AddLinkerExtensions() {
+				foreach(Assembly assembly in Assemblies) {
+					foreach(Type type in assembly.ExportedTypes) {
+
+						if(!type.IsAbstract && typeof(LinkerExtension).IsAssignableFrom(type)) {
+
+							ConstructorInfo constructor = type.GetConstructor(new Type[] { typeof(Compiler) });
+							LinkerExtension extension = constructor.Invoke(new object[] { this }) as LinkerExtension;
+							LinkerExtensions.Add(extension);
+
+						}
+
+					}
+				}
+			}
+
+			// Apply linker extensions.
+			void ApplyLinkerExtensions() {
+				foreach(LinkerExtension extension in LinkerExtensions) {
+
+					extension.CreatePredefinedTypes();
+
+				}
+			}
+
+			{
+
+				Thread thread1 = new Thread(new ThreadStart(() => {
+					FirstPassWalk();
+				}));
+				Thread thread2 = new Thread(new ThreadStart(() => {
+					AddLinkerExtensions();
+					ApplyLinkerExtensions();
+				}));
+
+				thread1.Start();
+				thread2.Start();
+
+				thread1.Join();
+				thread2.Join();
 
 			}
 
-			// Add predefined types.
-			// todo
-
 			// Compile every class/struct member.
-			foreach(ScriptType type in ScriptTypes) {
+			foreach(ScriptType type in DefinedTypes) {
 
 				foreach(ScriptMember member in type.Members) {
 
@@ -64,6 +113,7 @@ namespace MCSharp.Compilation {
 			return true;
 
 		}
+
 
 		public class ScriptClassWalker : MCSharpBaseListener {
 
@@ -93,7 +143,7 @@ namespace MCSharp.Compilation {
 			public override void ExitType_definition([NotNull] TypeDefinitionContext context) {
 				if(context != CurrentTypeContext) throw new Exception($"Subtypes are currently not supported by {nameof(ScriptClassWalker)}.");
 				var scriptType = new ScriptType(CurrentTypeContext, CurrentMemberContexts.ToArray(), CurrentConstructorContexts.ToArray(), Compiler.Settings, Compiler.VirtualMachine);
-				Compiler.ScriptTypes.Add(scriptType);
+				Compiler.DefinedTypes.Add(scriptType);
 			}
 
 		}
