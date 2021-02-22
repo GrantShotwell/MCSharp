@@ -1,22 +1,25 @@
 ﻿using Antlr4.Runtime.Tree;
 using MCSharp.Compilation;
-using MCSharp.Compilation.Linkage;
 using MemberDefinitionContext = MCSharpParser.Member_definitionContext;
 
-namespace MCSharp.Linkage {
+namespace MCSharp.Linkage.Script {
 
-	public class ScriptMember {
+	public class ScriptMember : IMember {
 
-		public ScriptClass Declarer { get; }
+		public ScriptType Declarer { get; }
+		IType IMember.Declarer => Declarer;
 		public MemberDefinitionContext FullContext { get; }
 
 		public Modifier Modifiers { get; }
 		public ITerminalNode ReturnTypeIdentifier { get; }
+		string IMember.ReturnTypeIdentifier => ReturnTypeIdentifier.GetText();
 		public ITerminalNode Identifier { get; }
+		string IMember.Identifier => Identifier.GetText();
 		public MemberType MemberType { get; }
 		public ScriptMemberDefinition Definition { get; }
+		IMemberDefinition IMember.Definition => Definition;
 
-		public ScriptMember(ScriptClass declarer, MemberDefinitionContext context, Settings settings, VirtualMachine virtualMachine) {
+		public ScriptMember(ScriptType declarer, MemberDefinitionContext context, Settings settings, VirtualMachine virtualMachine) {
 
 			Declarer = declarer;
 			FullContext = context;

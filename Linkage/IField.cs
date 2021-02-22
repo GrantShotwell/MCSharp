@@ -4,9 +4,10 @@ using System.Text;
 
 namespace MCSharp.Linkage {
 
-	public enum ClassType {
-		Class = 0b01,
-		Struct = 0b10
+	public interface IField : IMemberDefinition {
+
+		public IExpression Initializer { get; }
+
 	}
 
 }

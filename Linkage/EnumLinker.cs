@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace MCSharp.Compilation.Linkage {
+namespace MCSharp.Linkage {
 
 	public static class EnumLinker {
 

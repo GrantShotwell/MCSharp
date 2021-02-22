@@ -1,23 +1,25 @@
 ﻿using Antlr4.Runtime.Tree;
 using MCSharp.Compilation;
-using MCSharp.Compilation.Linkage;
 using ConstructorDefinitionContext = MCSharpParser.Constructor_definitionContext;
 using MemberDefinitionContext = MCSharpParser.Member_definitionContext;
 using TypeDefinitionContext = MCSharpParser.Type_definitionContext;
 
-namespace MCSharp.Linkage {
+namespace MCSharp.Linkage.Script {
 
-	public class ScriptClass {
+	public class ScriptType : IType {
 
 		public Modifier Modifiers { get; }
 		public ClassType ClassType { get; }
 		public ITerminalNode Identifier { get; }
+		string IType.Identifier => Identifier.GetText();
 		public ScriptMember[] Members { get; }
-		public ScriptClass[] SubTypes { get; }
+		IMember[] IType.Members => Members;
+		public ScriptType[] SubTypes { get; }
+		IType[] IType.SubTypes => SubTypes;
 
 		public int i_constructor = 0;
 
-		public ScriptClass(TypeDefinitionContext typeContext, MemberDefinitionContext[] memberContexts, ConstructorDefinitionContext[] constructorContexts, Settings settings, VirtualMachine virtualMachine) {
+		public ScriptType(TypeDefinitionContext typeContext, MemberDefinitionContext[] memberContexts, ConstructorDefinitionContext[] constructorContexts, Settings settings, VirtualMachine virtualMachine) {
 
 			Modifiers = EnumLinker.LinkModifiers(typeContext.modifier());
 

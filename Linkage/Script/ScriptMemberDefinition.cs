@@ -2,9 +2,9 @@
 using MCSharp.Linkage.Minecraft;
 using System;
 
-namespace MCSharp.Linkage {
+namespace MCSharp.Linkage.Script {
 
-	public abstract class ScriptMemberDefinition {
+	public abstract class ScriptMemberDefinition : IMemberDefinition {
 
 		public static ScriptMemberDefinition CreateMemberDefinitionLink(ScriptMember member, Settings settings, VirtualMachine virtualMachine) {
 
@@ -17,9 +17,8 @@ namespace MCSharp.Linkage {
 
 					// Get the 'initializer' definition. Null if undefined.
 					MCSharpParser.ExpressionContext initialize;
-					if(definition.ASSIGN() == null) {
-						initialize = null;
-					} else {
+					if(definition.ASSIGN() == null) initialize = null;
+					else {
 						initialize = definition.expression();
 					}
 
@@ -36,17 +35,15 @@ namespace MCSharp.Linkage {
 					// Get the 'getter' definition. Null if undefined.
 					MCSharpParser.Property_get_definitionContext getDefinition = definition.property_get_definition();
 					Function getFunction;
-					if(getDefinition == null) {
-
+					if(getDefinition == null)
 						getFunction = null;
-
-					} else {
+					else {
 
 						// Get function writer.
-						FunctionWriter writer = new FunctionWriter(virtualMachine, settings, member.Declarer.Identifier.GetText(), member.Identifier.GetText());
+						var writer = new FunctionWriter(virtualMachine, settings, member.Declarer.Identifier.GetText(), member.Identifier.GetText());
 
 						// Get the statement list for the function.
-						MCSharpParser.StatementContext[] statements;
+						ScriptStatement[] statements;
 						if(getDefinition.LAMBDA() != null) {
 							// Return expression.
 							throw new NotImplementedException("Lambda definitions for get property has not been implemented.");
@@ -55,7 +52,7 @@ namespace MCSharp.Linkage {
 							throw new NotImplementedException("Auto properties have not been implemented.");
 						} else {
 							// Code block.
-							statements = getDefinition.code_block().statement();
+							statements = ScriptStatement.CreateArrayFromArray(getDefinition.code_block().statement());
 						}
 
 						// Construct the 'get' function.
@@ -66,17 +63,15 @@ namespace MCSharp.Linkage {
 					// Get the 'setter' definition. Null if undefined.
 					MCSharpParser.Property_set_definitionContext setDefinition = definition.property_set_definition();
 					Function setFunction;
-					if(setDefinition == null) {
-
+					if(setDefinition == null)
 						setFunction = null;
-
-					} else {
+					else {
 
 						// Get funciton writer.
-						FunctionWriter writer = new FunctionWriter(virtualMachine, settings, member.Declarer.Identifier.GetText(), member.Identifier.GetText());
+						var writer = new FunctionWriter(virtualMachine, settings, member.Declarer.Identifier.GetText(), member.Identifier.GetText());
 
 						// Get the statement list for the function.
-						MCSharpParser.StatementContext[] statements;
+						ScriptStatement[] statements;
 						if(setDefinition.LAMBDA() != null) {
 							// Return expression.
 							throw new NotImplementedException("Lambda definitions for set property has not been implemented.");
@@ -85,7 +80,7 @@ namespace MCSharp.Linkage {
 							throw new NotImplementedException("Auto properties have not been implemented.");
 						} else {
 							// Code block.
-							statements = setDefinition.code_block().statement();
+							statements = ScriptStatement.CreateArrayFromArray(setDefinition.code_block().statement());
 						}
 
 						// Construct the 'set' function.
@@ -104,22 +99,22 @@ namespace MCSharp.Linkage {
 					MCSharpParser.Method_definitionContext definition = member.FullContext.method_definition();
 
 					// Get function writer, generic parameters, and method parameters.
-					FunctionWriter writer = new FunctionWriter(virtualMachine, settings, member.Declarer.Identifier.GetText(), member.Identifier.GetText());
+					var writer = new FunctionWriter(virtualMachine, settings, member.Declarer.Identifier.GetText(), member.Identifier.GetText());
 					GenericParameter[] generics = GenericParameter.CreateArrayFromArray(definition.generic_parameters()?.generic_parameter_list()?.generic_parameter());
 					MethodParameter[] parameters = MethodParameter.CreateArrayFromArray(definition.method_parameters().method_parameter_list()?.method_parameter());
 
 					// Get the statement list for the function.
-					MCSharpParser.StatementContext[] statements;
+					ScriptStatement[] statements;
 					if(definition.LAMBDA() != null) {
 						// Return expression.
 						throw new NotImplementedException("Lambda definitions for methods has not been implemented.");
 					} else {
 						// Code block.
-						statements = definition.code_block().statement();
+						statements = ScriptStatement.CreateArrayFromArray(definition.code_block().statement());
 					}
 
 					// Construct the function.
-					Function function = new Function(writer, generics, parameters, statements, member.ReturnTypeIdentifier);
+					var function = new Function(writer, generics, parameters, statements, member.ReturnTypeIdentifier);
 
 					// Construct and return the method.
 					return new Method(function);
@@ -132,17 +127,18 @@ namespace MCSharp.Linkage {
 
 		}
 
-		public class Field : ScriptMemberDefinition {
+		public class Field : ScriptMemberDefinition, IField {
 
-			public MCSharpParser.ExpressionContext Initializer { get; }
+			public ScriptExpression Initializer { get; }
+			IExpression IField.Initializer => Initializer;
 
 			public Field(MCSharpParser.ExpressionContext initialize) {
-				Initializer = initialize;
+				Initializer = new ScriptExpression(initialize);
 			}
 
 		}
 
-		public class Property : ScriptMemberDefinition {
+		public class Property : ScriptMemberDefinition, IProperty {
 
 			public Function Setter { get; }
 			public Function Getter { get; }
@@ -154,7 +150,7 @@ namespace MCSharp.Linkage {
 
 		}
 
-		public class Method : ScriptMemberDefinition {
+		public class Method : ScriptMemberDefinition, IMethod {
 
 			public Function Invoker { get; }
 
