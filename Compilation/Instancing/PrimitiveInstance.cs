@@ -14,7 +14,7 @@ namespace MCSharp.Compilation.Instancing {
 
 		/// <inheritdoc/>
 		public IType Type { get; }
-
+		
 		/// <inheritdoc/>
 		public ITerminalNode Identifier { get; }
 
