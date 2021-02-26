@@ -1,17 +1,18 @@
 ﻿using Antlr4.Runtime;
 using Antlr4.Runtime.Misc;
 using Antlr4.Runtime.Tree;
-using MCSharp.Linkage.Script;
+using MCSharp.Linkage;
 using MCSharp.Linkage.Extensions;
+using MCSharp.Linkage.Script;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 using ConstructorDefinitionContext = MCSharpParser.Constructor_definitionContext;
 using MemberDefinitionContext = MCSharpParser.Member_definitionContext;
 using TypeDefinitionContext = MCSharpParser.Type_definitionContext;
-using System.Threading;
 
 namespace MCSharp.Compilation {
 
@@ -29,14 +30,12 @@ namespace MCSharp.Compilation {
 
 		#region Data
 
-		public ICollection<ScriptType> DefinedTypes { get; } = new LinkedList<ScriptType>();
+		public ICollection<IType> DefinedTypes { get; } = new LinkedList<IType>();
 		public ICollection<LinkerExtension> LinkerExtensions { get; } = new LinkedList<LinkerExtension>();
 
 		#endregion
 
 		public bool Compile(out string message) {
-
-			// TODO: Multithread first pass walk and adding redefined types (?).
 
 			// Find, parse, and first pass walk (types, members) all script files.
 			void FirstPassWalk() {
@@ -82,26 +81,26 @@ namespace MCSharp.Compilation {
 
 			{
 
-				Thread thread1 = new Thread(new ThreadStart(() => {
+				Thread threadFirstPassWalk = new Thread(new ThreadStart(() => {
 					FirstPassWalk();
 				}));
-				Thread thread2 = new Thread(new ThreadStart(() => {
+				Thread threadAddLinkerExts = new Thread(new ThreadStart(() => {
 					AddLinkerExtensions();
 					ApplyLinkerExtensions();
 				}));
 
-				thread1.Start();
-				thread2.Start();
+				threadFirstPassWalk.Start();
+				threadAddLinkerExts.Start();
 
-				thread1.Join();
-				thread2.Join();
+				threadFirstPassWalk.Join();
+				threadAddLinkerExts.Join();
 
 			}
 
 			// Compile every class/struct member.
-			foreach(ScriptType type in DefinedTypes) {
+			foreach(IType type in DefinedTypes) {
 
-				foreach(ScriptMember member in type.Members) {
+				foreach(IMember member in type.Members) {
 
 
 

@@ -13,14 +13,15 @@ namespace MCSharp.Linkage.Predefined {
 		/// <summary>
 		/// The predefined type that has defined this constructor.
 		/// </summary>
-		public PredefinedType Declarer { get; }
+		public PredefinedType Declarer { get; set; }
 		/// <inheritdoc/>
 		IType IConstructor.Declarer => Declarer;
 
 		/// <inheritdoc/>
 		public Modifier Modifiers { get; }
+
 		/// <inheritdoc/>
-		public Function Invoker { get; }
+		public IFunction Invoker { get; }
 
 		/// <summary>
 		/// Creates a new predefined constructor.

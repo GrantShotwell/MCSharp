@@ -34,6 +34,10 @@ namespace MCSharp.Compilation {
 
 		public StreamWriter CreateFunctionFile(string localPath) {
 
+			string[] separated = localPath.Split(new char[] { '\\', '/' });
+			string localDirectory = string.Join('\\', separated[0..^1]);
+			Directory.CreateDirectory($"{FunctionDirectory}\\{localDirectory}");
+
 			return File.CreateText($"{FunctionDirectory}\\{localPath}");
 
 		}

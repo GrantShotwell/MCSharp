@@ -13,7 +13,7 @@ namespace MCSharp.Linkage {
 		/// <summary>
 		/// The mcfunction file that will contain the final commands to execute this method.
 		/// </summary>
-		public Function Invoker { get; }
+		public IFunction Invoker { get; }
 
 	}
 

@@ -13,11 +13,11 @@ namespace MCSharp.Linkage {
 		/// <summary>
 		/// The mcfunction file that will contain the commands to execute the 'getter' for the property.
 		/// </summary>
-		public Function Getter { get; }
+		public IFunction Getter { get; }
 		/// <summary>
 		/// The mcfunction file that will contain the commands to execute the 'setter' for the property.
 		/// </summary>
-		public Function Setter { get; }
+		public IFunction Setter { get; }
 
 	}
 

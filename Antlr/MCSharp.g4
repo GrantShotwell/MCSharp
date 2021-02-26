@@ -435,8 +435,14 @@ REF: 'ref';
 CLASS: 'class';
 STRUCT: 'struct';
 
+// Whitespace
+WHITESPACE: [ \t\r]+ -> skip;
+NEWLINE: [\n]+ -> skip;
+
 // Literals
-STRING: '"' ( '\\\\' | '\\"' | ~'"' ) '"';
+fragment ESCAPE: '\\';
+fragment ESCAPABLE: ESCAPE | '"';
+STRING: '"' ( ESCAPE ESCAPABLE | ~'"' )* '"';
 DECIMAL: [0-9]+ '.' [0-9]+;
 INTEGER: [0-9]+;
 
@@ -453,7 +459,3 @@ fragment COMPLEX_NAME_CHARACTER
 NAME
 	: SIMPLE_NAME_CHARACTER COMPLEX_NAME_CHARACTER*
 	;
-
-// Whitespace
-WHITESPACE: [ \t\r]+ -> skip;
-NEWLINE: [\n]+ -> skip;

@@ -56,7 +56,7 @@ namespace MCSharp.Linkage.Script {
 						}
 
 						// Construct the 'get' function.
-						getFunction = new Function(writer, new GenericParameter[] { }, new MethodParameter[] { }, statements, member.ReturnTypeIdentifier);
+						getFunction = new Function(writer, new ScriptGenericParameter[] { }, new ScriptMethodParameter[] { }, statements, member.ReturnTypeIdentifier.GetText());
 
 					}
 
@@ -84,7 +84,7 @@ namespace MCSharp.Linkage.Script {
 						}
 
 						// Construct the 'set' function.
-						setFunction = new Function(writer, new GenericParameter[] { }, new MethodParameter[] { }, statements, member.ReturnTypeIdentifier);
+						setFunction = new Function(writer, new ScriptGenericParameter[] { }, new ScriptMethodParameter[] { }, statements, member.ReturnTypeIdentifier.GetText());
 
 					}
 
@@ -100,8 +100,8 @@ namespace MCSharp.Linkage.Script {
 
 					// Get function writer, generic parameters, and method parameters.
 					var writer = new FunctionWriter(virtualMachine, settings, member.Declarer.Identifier.GetText(), member.Identifier.GetText());
-					GenericParameter[] generics = GenericParameter.CreateArrayFromArray(definition.generic_parameters()?.generic_parameter_list()?.generic_parameter());
-					MethodParameter[] parameters = MethodParameter.CreateArrayFromArray(definition.method_parameters().method_parameter_list()?.method_parameter());
+					ScriptGenericParameter[] generics = ScriptGenericParameter.CreateArrayFromArray(definition.generic_parameters()?.generic_parameter_list()?.generic_parameter());
+					ScriptMethodParameter[] parameters = ScriptMethodParameter.CreateArrayFromArray(definition.method_parameters().method_parameter_list()?.method_parameter());
 
 					// Get the statement list for the function.
 					ScriptStatement[] statements;
@@ -114,7 +114,7 @@ namespace MCSharp.Linkage.Script {
 					}
 
 					// Construct the function.
-					var function = new Function(writer, generics, parameters, statements, member.ReturnTypeIdentifier);
+					var function = new Function(writer, generics, parameters, statements, member.ReturnTypeIdentifier.GetText());
 
 					// Construct and return the method.
 					return new Method(function);
@@ -147,7 +147,10 @@ namespace MCSharp.Linkage.Script {
 		public class Property : ScriptMemberDefinition, IProperty {
 
 			public Function Getter { get; }
+			IFunction IProperty.Getter => Getter;
+
 			public Function Setter { get; }
+			IFunction IProperty.Setter => Setter;
 
 			public Property(Function get, Function set) {
 				Getter = get;
@@ -164,6 +167,7 @@ namespace MCSharp.Linkage.Script {
 		public class Method : ScriptMemberDefinition, IMethod {
 
 			public Function Invoker { get; }
+			IFunction IMethod.Invoker => Invoker;
 
 			public Method(Function invoke) {
 				Invoker = invoke ?? throw new ArgumentNullException(nameof(invoke));

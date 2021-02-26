@@ -9,6 +9,8 @@ namespace MCSharp.Linkage {
 	/// </summary>
 	public interface IExpression {
 
+		public MCSharpParser.ExpressionContext Context { get; }
+
 	}
 
 }

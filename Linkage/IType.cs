@@ -14,18 +14,27 @@ namespace MCSharp.Linkage {
 		/// The modifiers that affect this type definition.
 		/// </summary>
 		public Modifier Modifiers { get; }
+
 		/// <summary>
 		/// Whether this type definition is for a class or a struct.
 		/// </summary>
 		public ClassType ClassType { get; }
+
 		/// <summary>
 		/// The local identifier for this type definition.
 		/// </summary>
 		public string Identifier { get; }
+
 		/// <summary>
 		/// The members defined by this type definition.
 		/// </summary>
 		public IMember[] Members { get; }
+
+		/// <summary>
+		/// The constructors defined by this type definition.
+		/// </summary>
+		public IConstructor[] Constructors { get; }
+
 		/// <summary>
 		/// Type definitions defined within this type definition.
 		/// </summary>

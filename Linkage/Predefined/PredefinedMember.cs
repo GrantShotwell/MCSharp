@@ -13,7 +13,7 @@ namespace MCSharp.Linkage.Predefined {
 		/// <summary>
 		/// The predefined type that has defined this member.
 		/// </summary>
-		public PredefinedType Declarer { get; }
+		public PredefinedType Declarer { get; set; }
 		/// <inheritdoc/>
 		IType IMember.Declarer => Declarer;
 		/// <inheritdoc/>
@@ -38,7 +38,7 @@ namespace MCSharp.Linkage.Predefined {
 		/// <param name="memberType">Whether this member is a field, property, or method.</param>
 		/// <param name="definition">The <see cref="IMemberDefinition"/>.</param>
 		public PredefinedMember(PredefinedType declarer, Modifier modifiers, string returnTypeIdentifier, string identifier, MemberType memberType, PredefinedMemberDefinition definition) {
-			Declarer = declarer ?? throw new ArgumentNullException(nameof(declarer));
+			Declarer = declarer;
 			Modifiers = modifiers;
 			ReturnTypeIdentifier = returnTypeIdentifier ?? throw new ArgumentNullException(nameof(returnTypeIdentifier));
 			Identifier = identifier ?? throw new ArgumentNullException(nameof(identifier));

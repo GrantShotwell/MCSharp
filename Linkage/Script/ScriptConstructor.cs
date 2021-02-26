@@ -18,8 +18,13 @@ namespace MCSharp.Linkage.Script {
 
 		/// <inheritdoc/>
 		public Modifier Modifiers { get; }
-		/// <inheritdoc/>
+
+		/// <summary>
+		/// The mcfunction file that will contain the commands to execute this constructor.
+		/// </summary>
 		public Function Invoker { get; }
+		/// <inheritdoc/>
+		IFunction IConstructor.Invoker => Invoker;
 
 
 		/// <summary>
@@ -34,7 +39,7 @@ namespace MCSharp.Linkage.Script {
 			Declarer = declarer;
 
 			var writer = new FunctionWriter(virtualMachine, settings, Declarer.Identifier.GetText(), $"{Declarer.Identifier.GetText()}_{Declarer.i_constructor++}");
-			MethodParameter[] parameters = MethodParameter.CreateArrayFromArray(context.method_parameters().method_parameter_list()?.method_parameter());
+			ScriptMethodParameter[] parameters = ScriptMethodParameter.CreateArrayFromArray(context.method_parameters().method_parameter_list()?.method_parameter());
 
 			// Get the statement list for the function.
 			ScriptStatement[] statements;
@@ -46,7 +51,7 @@ namespace MCSharp.Linkage.Script {
 				statements = ScriptStatement.CreateArrayFromArray(context.code_block().statement());
 			}
 
-			Invoker = new Function(writer, new GenericParameter[] { }, parameters, statements, Declarer.Identifier);
+			Invoker = new Function(writer, new ScriptGenericParameter[] { }, parameters, statements, Declarer.Identifier.GetText());
 
 		}
 

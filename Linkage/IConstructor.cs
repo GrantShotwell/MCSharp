@@ -14,14 +14,16 @@ namespace MCSharp.Linkage {
 		/// The type that has defined this constructor.
 		/// </summary>
 		public IType Declarer { get; }
+
 		/// <summary>
 		/// The modifiers that affect this constructor.
 		/// </summary>
 		public Modifier Modifiers { get; }
+
 		/// <summary>
 		/// The mcfunction file that will contain the final commands to execute this constructor.
 		/// </summary>
-		public Function Invoker { get; }
+		public IFunction Invoker { get; }
 
 	}
 

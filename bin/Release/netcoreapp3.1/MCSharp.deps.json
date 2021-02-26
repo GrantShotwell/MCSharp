@@ -7,8 +7,19 @@
   "targets": {
     ".NETCoreApp,Version=v3.1": {
       "MCSharp/1.0.0": {
+        "dependencies": {
+          "Antlr4.Runtime.Standard": "4.9.1"
+        },
         "runtime": {
           "MCSharp.dll": {}
+        }
+      },
+      "Antlr4.Runtime.Standard/4.9.1": {
+        "runtime": {
+          "lib/netstandard2.1/Antlr4.Runtime.Standard.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
         }
       }
     }
@@ -18,6 +29,13 @@
       "type": "project",
       "serviceable": false,
       "sha512": ""
+    },
+    "Antlr4.Runtime.Standard/4.9.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-2b6SrwXRa3lgJ7nQyG+EZFJHGDWRW0Bb8KfqdXaAVL3QoGOuXkFRLBxTIbRt1lNUop9k++SG2kid/pl1Q49UGw==",
+      "path": "antlr4.runtime.standard/4.9.1",
+      "hashPath": "antlr4.runtime.standard.4.9.1.nupkg.sha512"
     }
   }
 }

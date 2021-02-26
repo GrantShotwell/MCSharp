@@ -13,20 +13,31 @@ namespace MCSharp.Linkage.Script {
 
 		/// <inheritdoc/>
 		public Modifier Modifiers { get; }
+
 		/// <inheritdoc/>
 		public ClassType ClassType { get; }
+
 		/// <summary>
 		/// The local identifier for this type definition.
 		/// </summary>
 		public ITerminalNode Identifier { get; }
 		/// <inheritdoc/>
 		string IType.Identifier => Identifier.GetText();
+
 		/// <summary>
 		/// The members defined by this type definition.
 		/// </summary>
 		public ScriptMember[] Members { get; }
 		/// <inheritdoc/>
 		IMember[] IType.Members => Members;
+
+		/// <summary>
+		/// The constructors defined by this type definition.
+		/// </summary>
+		public ScriptConstructor[] Constructors { get; }
+		/// <inheritdoc/>
+		IConstructor[] IType.Constructors => Constructors;
+
 		/// <summary>
 		/// The type definitions defined within this type definition.
 		/// </summary>

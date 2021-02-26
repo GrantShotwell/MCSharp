@@ -1,26 +1,27 @@
 ﻿using Antlr4.Runtime.Tree;
 using MCSharp.Compilation;
+using MCSharp.Linkage.Script;
 using System;
 
 namespace MCSharp.Linkage.Minecraft {
 
-	public class Function : IDisposable {
+	public class Function : IFunction {
 
 		public FunctionWriter Writer { get; }
 
-		public GenericParameter[] GenericParameters { get; }
-		public MethodParameter[] MethodParameters { get; }
+		public IGenericParameter[] GenericParameters { get; }
+		public IMethodParameter[] MethodParameters { get; }
 		public IStatement[] Statements { get; }
-		public ITerminalNode ReturnTypeIdentifier { get; }
+		public string ReturnTypeIdentifier { get; }
 
-		public Function(FunctionWriter writer, GenericParameter[] genericParameters, MethodParameter[] methodParameters, IStatement[] statements, ITerminalNode returnType) {
+		public Function(FunctionWriter writer, IGenericParameter[] genericParameters, IMethodParameter[] methodParameters, IStatement[] statements, string returnType) {
 
 			Writer = writer ?? throw new ArgumentNullException(nameof(writer));
 
-			GenericParameters = genericParameters;
-			MethodParameters = methodParameters;
-			Statements = statements;
-			ReturnTypeIdentifier = returnType;
+			GenericParameters = genericParameters ?? throw new ArgumentNullException(nameof(genericParameters));
+			MethodParameters = methodParameters ?? throw new ArgumentNullException(nameof(methodParameters));
+			Statements = statements ?? throw new ArgumentNullException(nameof(statements));
+			ReturnTypeIdentifier = returnType ?? throw new ArgumentNullException(nameof(returnType));
 
 		}
 

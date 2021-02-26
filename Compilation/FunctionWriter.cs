@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MCSharp.Converters;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -22,12 +23,15 @@ namespace MCSharp.Compilation {
 			Datapack datapack = settings.Datapack;
 			VirtualMachine = virtualMachine;
 
-			Name = name;
+			Name = NameStyleConverter.PascalToSnake(name);
+			path = NameStyleConverter.PascalToSnake(path);
 			LocalFilePath = $"{path}\\{Name}.mcfunction";
 			FilePath = $"{datapack.FunctionDirectory}\\{LocalFilePath}";
 			GamePath = $"{datapack.Name}:{path}\\{Name}";
 
 			StreamWriter = datapack.CreateFunctionFile(LocalFilePath);
+
+			Program.PrintText($"Created function '{LocalFilePath}'.");
 
 		}
 

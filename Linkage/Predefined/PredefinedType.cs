@@ -13,16 +13,27 @@ namespace MCSharp.Linkage.Predefined {
 
 		/// <inheritdoc/>
 		public Modifier Modifiers { get; }
+
 		/// <inheritdoc/>
 		public ClassType ClassType { get; }
+
 		/// <inheritdoc/>
 		public string Identifier { get; }
+
 		/// <summary>
 		/// The members defined by this type definition.
 		/// </summary>
 		public PredefinedMember[] Members { get; }
 		/// <inheritdoc/>
 		IMember[] IType.Members => Members;
+
+		/// <summary>
+		/// The constructors defined by this type definition.
+		/// </summary>
+		public PredefinedConstructor[] Constructors { get; }
+		/// <inheritdoc/>
+		IConstructor[] IType.Constructors => Constructors;
+
 		/// <summary>
 		/// The type definitions defined within this type definition.
 		/// </summary>
@@ -38,11 +49,12 @@ namespace MCSharp.Linkage.Predefined {
 		/// <param name="identifier">The local identifier for this type definition.</param>
 		/// <param name="members">The members defined by this type definition.</param>
 		/// <param name="subTypes">The type definitions defined by this type definition.</param>
-		public PredefinedType(Modifier modifiers, ClassType classType, string identifier, PredefinedMember[] members, PredefinedType[] subTypes) {
+		public PredefinedType(Modifier modifiers, ClassType classType, string identifier, PredefinedMember[] members, PredefinedConstructor[] constructors, PredefinedType[] subTypes) {
 			Modifiers = modifiers;
 			ClassType = classType;
 			Identifier = identifier;
 			Members = members;
+			Constructors = constructors;
 			SubTypes = subTypes;
 		}
 
