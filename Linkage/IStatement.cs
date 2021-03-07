@@ -9,6 +9,8 @@ namespace MCSharp.Linkage {
 	/// </summary>
 	public interface IStatement {
 
+		public MCSharpParser.StatementContext Context { get; }
+
 	}
 
 }

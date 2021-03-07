@@ -332,10 +332,11 @@ namespace MCSharp {
 			Settings settings = new Settings(datapack);
 			Compiler compiler = new Compiler(settings, assemblies);
 
-			if(compiler.Compile(out string message)) {
-				PrintSuccess(message);
+			ResultInfo result = compiler.Compile();
+			if(result.Success) {
+				PrintSuccess(result.Message);
 			} else {
-				PrintError(message);
+				PrintError(result.Message);
 			}
 
 			compiler.Dispose();

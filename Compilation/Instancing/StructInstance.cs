@@ -17,7 +17,20 @@ namespace MCSharp.Compilation.Instancing {
 		/// <inheritdoc/>
 		public ITerminalNode Identifier { get; }
 
-		public IReadOnlyList<IInstance> FieldInstances { get; }
+		public Scope Scope { get; }
+
+
+		public StructInstance(IType type, ITerminalNode identifier, Scope parent) {
+
+			if(type.ClassType != ClassType.Struct)
+				throw new IInstance.InvalidTypeException(type, "any struct");
+			Type = type;
+
+			Identifier = identifier;
+
+			Scope = new Scope(identifier.GetText(), parent);
+
+		}
 
 	}
 

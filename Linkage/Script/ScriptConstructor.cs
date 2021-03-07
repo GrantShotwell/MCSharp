@@ -22,7 +22,7 @@ namespace MCSharp.Linkage.Script {
 		/// <summary>
 		/// The mcfunction file that will contain the commands to execute this constructor.
 		/// </summary>
-		public Function Invoker { get; }
+		public StandaloneStatementFunction Invoker { get; }
 		/// <inheritdoc/>
 		IFunction IConstructor.Invoker => Invoker;
 
@@ -32,8 +32,8 @@ namespace MCSharp.Linkage.Script {
 		/// </summary>
 		/// <param name="declarer">The type that has defined this constructor.</param>
 		/// <param name="context">The parser context used to create the constructor.</param>
-		/// <param name="settings">Value passed to create <see cref="Function"/>(s).</param>
-		/// <param name="virtualMachine">Value passed to create <see cref="Function"/>(s).</param>
+		/// <param name="settings">Value passed to create <see cref="StandaloneStatementFunction"/>(s).</param>
+		/// <param name="virtualMachine">Value passed to create <see cref="StandaloneStatementFunction"/>(s).</param>
 		public ScriptConstructor(ScriptType declarer, ConstructorDefinitionContext context, Settings settings, VirtualMachine virtualMachine) {
 
 			Declarer = declarer;
@@ -51,7 +51,7 @@ namespace MCSharp.Linkage.Script {
 				statements = ScriptStatement.CreateArrayFromArray(context.code_block().statement());
 			}
 
-			Invoker = new Function(writer, new ScriptGenericParameter[] { }, parameters, statements, Declarer.Identifier.GetText());
+			Invoker = new StandaloneStatementFunction(writer, new ScriptGenericParameter[] { }, parameters, statements, Declarer.Identifier.GetText());
 
 		}
 

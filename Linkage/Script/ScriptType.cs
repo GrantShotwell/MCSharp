@@ -1,5 +1,9 @@
 ﻿using Antlr4.Runtime.Tree;
+using MCSharp.Collections;
 using MCSharp.Compilation;
+using MCSharp.Compilation.Instancing;
+using System;
+using System.Collections.Generic;
 using ConstructorDefinitionContext = MCSharpParser.Constructor_definitionContext;
 using MemberDefinitionContext = MCSharpParser.Member_definitionContext;
 using TypeDefinitionContext = MCSharpParser.Type_definitionContext;
@@ -27,25 +31,28 @@ namespace MCSharp.Linkage.Script {
 		/// <summary>
 		/// The members defined by this type definition.
 		/// </summary>
-		public ScriptMember[] Members { get; }
+		public IReadOnlyCollection<ScriptMember> Members { get; }
 		/// <inheritdoc/>
-		IMember[] IType.Members => Members;
+		IReadOnlyCollection<IMember> IType.Members => Members;
 
 		/// <summary>
 		/// The constructors defined by this type definition.
 		/// </summary>
-		public ScriptConstructor[] Constructors { get; }
+		public IReadOnlyCollection<ScriptConstructor> Constructors { get; }
 		/// <inheritdoc/>
-		IConstructor[] IType.Constructors => Constructors;
+		IReadOnlyCollection<IConstructor> IType.Constructors => Constructors;
+		public int i_constructor = 0;
 
 		/// <summary>
 		/// The type definitions defined within this type definition.
 		/// </summary>
-		public ScriptType[] SubTypes { get; }
+		public IReadOnlyCollection<ScriptType> SubTypes { get; }
 		/// <inheritdoc/>
-		IType[] IType.SubTypes => SubTypes;
+		IReadOnlyCollection<IType> IType.SubTypes => SubTypes;
 
-		public int i_constructor = 0;
+		/// <inheritdoc/>
+		public IHashSetDictionary<Operation, IOperation> Operations { get; }
+
 
 		/// <summary>
 		/// Creates a new type definition defined by script.
@@ -53,8 +60,8 @@ namespace MCSharp.Linkage.Script {
 		/// <param name="typeContext">The <see cref="MCSharpParser.Type_definitionContext"/> value taken from script.</param>
 		/// <param name="memberContexts">The <see cref="MCSharpParser.Member_definitionContext"/> values taken from script.</param>
 		/// <param name="constructorContexts">The <see cref="MCSharpParser.Constructor_definitionContext"/> values taken from script.</param>
-		/// <param name="settings">Value passed to create <see cref="Minecraft.Function"/>(s).</param>
-		/// <param name="virtualMachine">Value passed to create <see cref="Minecraft.Function"/>(s).</param>
+		/// <param name="settings">Value passed to create <see cref="Minecraft.StandaloneStatementFunction"/>(s).</param>
+		/// <param name="virtualMachine">Value passed to create <see cref="Minecraft.StandaloneStatementFunction"/>(s).</param>
 		public ScriptType(TypeDefinitionContext typeContext, MemberDefinitionContext[] memberContexts, ConstructorDefinitionContext[] constructorContexts, Settings settings, VirtualMachine virtualMachine) {
 
 			Modifiers = EnumLinker.LinkModifiers(typeContext.modifier());
@@ -63,20 +70,34 @@ namespace MCSharp.Linkage.Script {
 
 			Identifier = typeContext.NAME();
 
-			Members = new ScriptMember[memberContexts.Length];
+			ScriptMember[] members = new ScriptMember[memberContexts.Length];
 			for(int i = 0; i < memberContexts.Length; i++) {
-				Members[i] = new ScriptMember(this, memberContexts[i], settings, virtualMachine);
+				// todo: operations
+				members[i] = new ScriptMember(this, memberContexts[i], settings, virtualMachine);
 			}
+			Members = members;
 
-			// Planned feature.
+			ScriptConstructor[] constructors = new ScriptConstructor[constructorContexts.Length];
+			for(int i = 0; i < constructorContexts.Length; i++) {
+				constructors[i] = new ScriptConstructor(this, constructorContexts[i], settings, virtualMachine);
+			}
+			Constructors = constructors;
+
+			// todo
 			SubTypes = null;
+
+		}
+
+
+		public IInstance InitializeInstance(FunctionWriter function, Scope scope, ITerminalNode identifier) {
+
+			throw new NotImplementedException("Initializing script types has not been implemented.");
 
 		}
 
 		public void Dispose() {
 			foreach(ScriptMember member in Members) member.Dispose();
 		}
-
 	}
 
 }

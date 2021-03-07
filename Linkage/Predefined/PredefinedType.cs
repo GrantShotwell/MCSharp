@@ -3,6 +3,10 @@ using System.Collections.Generic;
 using System.Text;
 using System.Reflection;
 using Antlr4.Runtime.Tree;
+using MCSharp.Compilation.Instancing;
+using MCSharp.Linkage.Minecraft;
+using MCSharp.Compilation;
+using MCSharp.Collections;
 
 namespace MCSharp.Linkage.Predefined {
 
@@ -23,23 +27,30 @@ namespace MCSharp.Linkage.Predefined {
 		/// <summary>
 		/// The members defined by this type definition.
 		/// </summary>
-		public PredefinedMember[] Members { get; }
+		public IReadOnlyCollection<PredefinedMember> Members { get; }
 		/// <inheritdoc/>
-		IMember[] IType.Members => Members;
+		IReadOnlyCollection<IMember> IType.Members => Members;
 
 		/// <summary>
 		/// The constructors defined by this type definition.
 		/// </summary>
-		public PredefinedConstructor[] Constructors { get; }
+		public IReadOnlyCollection<PredefinedConstructor> Constructors { get; }
 		/// <inheritdoc/>
-		IConstructor[] IType.Constructors => Constructors;
+		IReadOnlyCollection<IConstructor> IType.Constructors => Constructors;
 
 		/// <summary>
 		/// The type definitions defined within this type definition.
 		/// </summary>
-		public PredefinedType[] SubTypes { get; }
+		public IReadOnlyCollection<PredefinedType> SubTypes { get; }
 		/// <inheritdoc/>
-		IType[] IType.SubTypes => SubTypes;
+		IReadOnlyCollection<IType> IType.SubTypes => SubTypes;
+
+		private InitializeInstanceDelegate Init { get; }
+
+		/// <inheritdoc/>
+		public IHashSetDictionary<Operation, PredefinedOperation> Operations { get; }
+		IHashSetDictionary<Operation, IOperation> IType.Operations => (IHashSetDictionary<Operation, IOperation>)Operations;
+
 
 		/// <summary>
 		/// Creates a new predefined type definition.
@@ -49,13 +60,26 @@ namespace MCSharp.Linkage.Predefined {
 		/// <param name="identifier">The local identifier for this type definition.</param>
 		/// <param name="members">The members defined by this type definition.</param>
 		/// <param name="subTypes">The type definitions defined by this type definition.</param>
-		public PredefinedType(Modifier modifiers, ClassType classType, string identifier, PredefinedMember[] members, PredefinedConstructor[] constructors, PredefinedType[] subTypes) {
+		public PredefinedType(Modifier modifiers, ClassType classType, string identifier, PredefinedMember[] members,
+		PredefinedConstructor[] constructors, PredefinedType[] subTypes, InitializeInstanceDelegate init, IHashSetDictionary<Operation, PredefinedOperation> operations) {
 			Modifiers = modifiers;
 			ClassType = classType;
 			Identifier = identifier;
 			Members = members;
 			Constructors = constructors;
 			SubTypes = subTypes;
+			Init = init;
+			Operations = operations;
+		}
+
+
+		public delegate IInstance InitializeInstanceDelegate(FunctionWriter writer, Scope scope, ITerminalNode identifier);
+
+		/// <inheritdoc/>
+		public IInstance InitializeInstance(FunctionWriter writer, Scope scope, ITerminalNode identifier) {
+
+			return Init(writer, scope, identifier);
+			
 		}
 
 		public void Dispose() {

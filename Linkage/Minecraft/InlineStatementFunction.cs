@@ -4,14 +4,14 @@ using System.Text;
 
 namespace MCSharp.Linkage.Minecraft {
 
-	public class InlineFunction : IFunction {
+	public class InlineStatementFunction : IStatementFunction {
 
-		public IGenericParameter[] GenericParameters { get; }
-		public IMethodParameter[] MethodParameters { get; }
+		public IReadOnlyList<IGenericParameter> GenericParameters { get; }
+		public IReadOnlyList<IMethodParameter> MethodParameters { get; }
 		public IStatement[] Statements { get; }
 		public string ReturnTypeIdentifier { get; }
 
-		public InlineFunction(IGenericParameter[] genericParameters, IMethodParameter[] methodParameters, IStatement[] statements, string returnTypeIdentifier) {
+		public InlineStatementFunction(IGenericParameter[] genericParameters, IMethodParameter[] methodParameters, IStatement[] statements, string returnTypeIdentifier) {
 
 			GenericParameters = genericParameters ?? throw new ArgumentNullException(nameof(genericParameters));
 			MethodParameters = methodParameters ?? throw new ArgumentNullException(nameof(methodParameters));

@@ -17,7 +17,20 @@ namespace MCSharp.Compilation.Instancing {
 		/// <inheritdoc/>
 		public ITerminalNode Identifier { get; }
 
-		public PrimitiveInstance.IntegerInstance ObjectId { get; }
+		public PrimitiveInstance.IntegerInstance.Constant ObjectId { get; }
+
+
+		public ClassInstance(IType type, ITerminalNode identifier, PrimitiveInstance.IntegerInstance.Constant objectId) {
+
+			if(type.ClassType != ClassType.Class)
+				throw new IInstance.InvalidTypeException(type, "any class");
+			Type = type ?? throw new ArgumentNullException(nameof(type));
+
+			Identifier = identifier ?? throw new ArgumentNullException(nameof(identifier));
+
+			ObjectId = objectId ?? throw new ArgumentNullException(nameof(objectId));
+
+		}
 
 	}
 

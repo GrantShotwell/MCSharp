@@ -45,8 +45,8 @@ namespace MCSharp.Linkage.Script {
 		/// </summary>
 		/// <param name="declarer">The type that has defined this member.</param>
 		/// <param name="context"></param>
-		/// <param name="settings">Value passed to create <see cref="Minecraft.Function"/>(s).</param>
-		/// <param name="virtualMachine">Value passed to create <see cref="Minecraft.Function"/>(s).</param>
+		/// <param name="settings">Value passed to create <see cref="Minecraft.StandaloneStatementFunction"/>(s).</param>
+		/// <param name="virtualMachine">Value passed to create <see cref="Minecraft.StandaloneStatementFunction"/>(s).</param>
 		public ScriptMember(ScriptType declarer, MemberDefinitionContext context, Settings settings, VirtualMachine virtualMachine) {
 
 			Declarer = declarer;

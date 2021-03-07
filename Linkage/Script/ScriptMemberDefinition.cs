@@ -34,7 +34,7 @@ namespace MCSharp.Linkage.Script {
 
 					// Get the 'getter' definition. Null if undefined.
 					MCSharpParser.Property_get_definitionContext getDefinition = definition.property_get_definition();
-					Function getFunction;
+					StandaloneStatementFunction getFunction;
 					if(getDefinition == null)
 						getFunction = null;
 					else {
@@ -56,13 +56,13 @@ namespace MCSharp.Linkage.Script {
 						}
 
 						// Construct the 'get' function.
-						getFunction = new Function(writer, new ScriptGenericParameter[] { }, new ScriptMethodParameter[] { }, statements, member.ReturnTypeIdentifier.GetText());
+						getFunction = new StandaloneStatementFunction(writer, new ScriptGenericParameter[] { }, new ScriptMethodParameter[] { }, statements, member.ReturnTypeIdentifier.GetText());
 
 					}
 
 					// Get the 'setter' definition. Null if undefined.
 					MCSharpParser.Property_set_definitionContext setDefinition = definition.property_set_definition();
-					Function setFunction;
+					StandaloneStatementFunction setFunction;
 					if(setDefinition == null)
 						setFunction = null;
 					else {
@@ -84,7 +84,7 @@ namespace MCSharp.Linkage.Script {
 						}
 
 						// Construct the 'set' function.
-						setFunction = new Function(writer, new ScriptGenericParameter[] { }, new ScriptMethodParameter[] { }, statements, member.ReturnTypeIdentifier.GetText());
+						setFunction = new StandaloneStatementFunction(writer, new ScriptGenericParameter[] { }, new ScriptMethodParameter[] { }, statements, member.ReturnTypeIdentifier.GetText());
 
 					}
 
@@ -114,7 +114,7 @@ namespace MCSharp.Linkage.Script {
 					}
 
 					// Construct the function.
-					var function = new Function(writer, generics, parameters, statements, member.ReturnTypeIdentifier.GetText());
+					var function = new StandaloneStatementFunction(writer, generics, parameters, statements, member.ReturnTypeIdentifier.GetText());
 
 					// Construct and return the method.
 					return new Method(function);
@@ -146,13 +146,13 @@ namespace MCSharp.Linkage.Script {
 
 		public class Property : ScriptMemberDefinition, IProperty {
 
-			public Function Getter { get; }
+			public StandaloneStatementFunction Getter { get; }
 			IFunction IProperty.Getter => Getter;
 
-			public Function Setter { get; }
+			public StandaloneStatementFunction Setter { get; }
 			IFunction IProperty.Setter => Setter;
 
-			public Property(Function get, Function set) {
+			public Property(StandaloneStatementFunction get, StandaloneStatementFunction set) {
 				Getter = get;
 				Setter = set;
 			}
@@ -166,10 +166,10 @@ namespace MCSharp.Linkage.Script {
 
 		public class Method : ScriptMemberDefinition, IMethod {
 
-			public Function Invoker { get; }
+			public StandaloneStatementFunction Invoker { get; }
 			IFunction IMethod.Invoker => Invoker;
 
-			public Method(Function invoke) {
+			public Method(StandaloneStatementFunction invoke) {
 				Invoker = invoke ?? throw new ArgumentNullException(nameof(invoke));
 			}
 

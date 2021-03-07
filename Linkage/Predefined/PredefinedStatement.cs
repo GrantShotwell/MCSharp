@@ -14,7 +14,9 @@ namespace MCSharp.Linkage.Predefined {
 	/// </summary>
 	public class PredefinedStatement : IStatement {
 
-		public MCSharpParser.StatementContext Context { get; }
+		public MCSharpParser.StatementContext PredefinedContext { get; }
+		MCSharpParser.StatementContext IStatement.Context => PredefinedContext;
+
 
 		/// <summary>
 		/// Creates a new <see cref="PredefinedStatement"/> by using Antlr to lex/parse <paramref name="statement"/>.
@@ -38,9 +40,16 @@ namespace MCSharp.Linkage.Predefined {
 			parser.RemoveErrorListeners();
 			parser.AddErrorListener(errorListener);
 
-			Context = parser.statement();
+			PredefinedContext = parser.statement();
 
 		}
+
+		public PredefinedStatement(MCSharpParser.StatementContext predefinedContext) {
+
+			PredefinedContext = predefinedContext;
+
+		}
+
 
 		public class InvalidPredefinedStatementException : Exception {
 

@@ -7,6 +7,7 @@ namespace MCSharp.Linkage.Script {
 	class ScriptStatement : IStatement {
 
 		public MCSharpParser.StatementContext ScriptContext { get; }
+		MCSharpParser.StatementContext IStatement.Context => ScriptContext;
 
 		public ScriptStatement(MCSharpParser.StatementContext scriptContext) {
 			ScriptContext = scriptContext;

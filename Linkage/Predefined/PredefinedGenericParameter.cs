@@ -4,7 +4,7 @@ using System.Text;
 
 namespace MCSharp.Linkage.Predefined {
 
-	class PredefinedGenericParameter : IGenericParameter {
+	public class PredefinedGenericParameter : IGenericParameter {
 
 		public string TypeIdentifier { get; }
 

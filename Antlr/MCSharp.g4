@@ -115,6 +115,7 @@ method_definition
 // Identifiers
 literal
 	: INTEGER
+	| BOOLEAN
 	| DECIMAL
 	| STRING
 	;
@@ -187,7 +188,7 @@ expression
 	| assignment_expression
 	;
 initialization_expression
-	: NAME NAME ( ASSIGN expression )
+	: NAME NAME ( ASSIGN expression )?
 	;
 non_assignment_expression
 	: conditional_expression
@@ -246,7 +247,7 @@ range_expression
 	: unary_expression ( range_operator unary_expression )?
 	;
 pre_step_expression
-	: step_operator ( unary_expression )
+	: step_operator unary_expression
 	;
 post_step_expression
 	: ( literal | identifier ) step_operator
@@ -254,7 +255,7 @@ post_step_expression
 unary_expression
 	: primary_expression
 	| (PLUS|MINUS|BOOLEAN_NOT|BITWISE_NOT) unary_expression
-	| step_operator unary_expression
+	| pre_step_expression
 	| cast_expression
 	| pointer_indirection_expression
 	| addressof_expression
@@ -445,6 +446,7 @@ fragment ESCAPABLE: ESCAPE | '"';
 STRING: '"' ( ESCAPE ESCAPABLE | ~'"' )* '"';
 DECIMAL: [0-9]+ '.' [0-9]+;
 INTEGER: [0-9]+;
+BOOLEAN: 'true' | 'false';
 
 // Simple Identifiers
 fragment SIMPLE_NAME_CHARACTER

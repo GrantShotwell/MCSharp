@@ -1,7 +1,7 @@
-﻿using Antlr4.Runtime.Tree;
+﻿using MCSharp.Collections;
+using MCSharp.Compilation.Instancing;
 using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace MCSharp.Linkage {
 
@@ -28,17 +28,31 @@ namespace MCSharp.Linkage {
 		/// <summary>
 		/// The members defined by this type definition.
 		/// </summary>
-		public IMember[] Members { get; }
+		public IReadOnlyCollection<IMember> Members { get; }
 
 		/// <summary>
 		/// The constructors defined by this type definition.
 		/// </summary>
-		public IConstructor[] Constructors { get; }
+		public IReadOnlyCollection<IConstructor> Constructors { get; }
 
 		/// <summary>
 		/// Type definitions defined within this type definition.
 		/// </summary>
-		public IType[] SubTypes { get; }
+		public IReadOnlyCollection<IType> SubTypes { get; }
+
+		/// <summary>
+		/// 
+		/// </summary>
+		public IHashSetDictionary<Operation, IOperation> Operations { get; }
+
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="writer"></param>
+		/// <param name="scope"></param>
+		/// <param name="identifier"></param>
+		/// <returns></returns>
+		public IInstance InitializeInstance(Compilation.FunctionWriter writer, Compilation.Scope scope, Antlr4.Runtime.Tree.ITerminalNode identifier);
 
 	}
 

@@ -1,5 +1,6 @@
 ﻿using Antlr4.Runtime.Tree;
 using MCSharp.Linkage;
+using System;
 
 namespace MCSharp.Compilation.Instancing {
 
@@ -17,6 +18,11 @@ namespace MCSharp.Compilation.Instancing {
 		/// The local identifier for this instance.
 		/// </summary>
 		public ITerminalNode Identifier { get; }
+
+
+		public class InvalidTypeException : Exception {
+			public InvalidTypeException(IType given, string expected) : base($"Cannot assign '{given.Identifier}' to {nameof(Type)} when '{expected}' was expected.") { }
+		}
 
 	}
 

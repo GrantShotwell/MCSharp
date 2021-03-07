@@ -6,10 +6,6 @@ namespace MCSharp.Compilation {
 
 	public class VirtualMachine {
 
-		public VirtualMachine() {
-
-		}
-
 	}
 
 }

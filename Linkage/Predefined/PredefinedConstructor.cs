@@ -29,7 +29,7 @@ namespace MCSharp.Linkage.Predefined {
 		/// <param name="declarer">The predefined type that has defined this constructor.</param>
 		/// <param name="modifiers">The modifiers that affect this constructor.</param>
 		/// <param name="invoker">The mcfunction file that will contain the final commands to execute this constructor.</param>
-		public PredefinedConstructor(PredefinedType declarer, Modifier modifiers, Function invoker) {
+		public PredefinedConstructor(PredefinedType declarer, Modifier modifiers, StandaloneStatementFunction invoker) {
 			Declarer = declarer ?? throw new ArgumentNullException(nameof(declarer));
 			Modifiers = modifiers;
 			Invoker = invoker ?? throw new ArgumentNullException(nameof(invoker));
