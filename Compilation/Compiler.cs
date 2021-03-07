@@ -270,6 +270,8 @@ namespace MCSharp.Compilation {
 				throw new ArgumentNullException(nameof(context));
 			#endregion
 
+			CompileArguments compile = new CompileArguments(function.Writer, scope, predefined);
+
 			CodeBlockContext code_block = context.code_block();
 			if(code_block != null) {
 
@@ -290,7 +292,7 @@ namespace MCSharp.Compilation {
 					StatementContext statement1 = if_stmts[0];
 					StatementContext statement2 = if_stmts.Length > 1 ? if_stmts[1] : null;
 
-					ResultInfo conditionResult = CompileExpression(function, scope, condition, predefined, out IInstance value);
+					ResultInfo conditionResult = CompileExpression(compile, condition, out IInstance value);
 					if(conditionResult.Failure) return conditionResult;
 
 					Scope statement1Scope = new Scope(null, scope);
@@ -374,7 +376,7 @@ namespace MCSharp.Compilation {
 				ExpressionContext assignment_value = initialization_expression.expression();
 				if(assignment_value != null) {
 
-					ResultInfo assignment_result = CompileExpression(function, scope, assignment_value, predefined, out IInstance value);
+					ResultInfo assignment_result = CompileExpression(compile, assignment_value, out IInstance value);
 					if(assignment_result.Failure) return assignment_result;
 
 					// todo: assign value
@@ -390,7 +392,7 @@ namespace MCSharp.Compilation {
 			ExpressionContext expression = context.expression();
 			if(expression != null) {
 
-				ResultInfo expression_result = CompileExpression(function, scope, expression, predefined, out _);
+				ResultInfo expression_result = CompileExpression(compile, expression, out _);
 				if(expression_result.Failure) return expression_result;
 
 				return ResultInfo.DefaultSuccess;
@@ -484,13 +486,9 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public ResultInfo CompileExpression(StandaloneStatementFunction function, Scope scope, ExpressionContext expression, bool predefined, out IInstance value) {
+		public ResultInfo CompileExpression(CompileArguments compile, ExpressionContext expression, out IInstance value) {
 
 			#region Argument Checks
-			if(function is null)
-				throw new ArgumentNullException(nameof(function));
-			if(scope is null)
-				throw new ArgumentNullException(nameof(scope));
 			if(expression is null)
 				throw new ArgumentNullException(nameof(expression));
 			#endregion
@@ -498,7 +496,7 @@ namespace MCSharp.Compilation {
 			NonAssignmentExpressionContext non_assignment_expression = expression.non_assignment_expression();
 			if(non_assignment_expression != null) {
 
-				ResultInfo non_assignment_result = CompileNonAssignmentExpression(function, scope, non_assignment_expression, predefined, out value);
+				ResultInfo non_assignment_result = CompileNonAssignmentExpression(compile, non_assignment_expression, out value);
 				if(non_assignment_result.Failure) return non_assignment_result;
 
 				return ResultInfo.DefaultSuccess;
@@ -508,7 +506,7 @@ namespace MCSharp.Compilation {
 			AssignmentExpressionContext assignment_expression = expression.assignment_expression();
 			if(assignment_expression != null) {
 
-				ResultInfo assignment_result = CompileAssignmentExpression(function, scope, assignment_expression, predefined, out value);
+				ResultInfo assignment_result = CompileAssignmentExpression(compile, assignment_expression, out value);
 				if(assignment_result.Failure) return assignment_result;
 
 				return ResultInfo.DefaultSuccess;
@@ -519,13 +517,9 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public ResultInfo CompileNonAssignmentExpression(StandaloneStatementFunction function, Scope scope, NonAssignmentExpressionContext non_assignment_expression, bool predefined, out IInstance value) {
+		public ResultInfo CompileNonAssignmentExpression(CompileArguments compile, NonAssignmentExpressionContext non_assignment_expression, out IInstance value) {
 
 			#region Argument Checks
-			if(function is null)
-				throw new ArgumentNullException(nameof(function));
-			if(scope is null)
-				throw new ArgumentNullException(nameof(scope));
 			if(non_assignment_expression is null)
 				throw new ArgumentNullException(nameof(non_assignment_expression));
 			#endregion
@@ -533,7 +527,7 @@ namespace MCSharp.Compilation {
 			ConditionalExpressionContext conditional_expression = non_assignment_expression.conditional_expression();
 			if(conditional_expression != null) {
 
-				ResultInfo conditional_result = CompileConditionalExpression(function, scope, conditional_expression, predefined, out value);
+				ResultInfo conditional_result = CompileConditionalExpression(compile, conditional_expression, out value);
 				if(conditional_result.Failure) return conditional_result;
 
 				return ResultInfo.DefaultSuccess;
@@ -543,7 +537,7 @@ namespace MCSharp.Compilation {
 			LambdaExpressionContext lambda_expression = non_assignment_expression.lambda_expression();
 			if(lambda_expression != null) {
 
-				ResultInfo lambda_result = CompileLambdaExpression(function, scope, lambda_expression, predefined, out value);
+				ResultInfo lambda_result = CompileLambdaExpression(compile, lambda_expression, out value);
 				if(lambda_result.Failure) return lambda_result;
 
 				return ResultInfo.DefaultSuccess;
@@ -554,13 +548,9 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public ResultInfo CompileLambdaExpression(StandaloneStatementFunction function, Scope scope, LambdaExpressionContext lambda_expression, bool predefined, out IInstance value) {
+		public ResultInfo CompileLambdaExpression(CompileArguments compile, LambdaExpressionContext lambda_expression, out IInstance value) {
 
 			#region Argument Checks
-			if(function is null)
-				throw new ArgumentNullException(nameof(function));
-			if(scope is null)
-				throw new ArgumentNullException(nameof(scope));
 			if(lambda_expression is null)
 				throw new ArgumentNullException(nameof(lambda_expression));
 			#endregion
@@ -569,13 +559,9 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public ResultInfo CompileConditionalExpression(StandaloneStatementFunction function, Scope scope, ConditionalExpressionContext conditional_expression, bool predefined, out IInstance value) {
+		public ResultInfo CompileConditionalExpression(CompileArguments compile, ConditionalExpressionContext conditional_expression, out IInstance value) {
 
 			#region Argument Checks
-			if(function is null)
-				throw new ArgumentNullException(nameof(function));
-			if(scope is null)
-				throw new ArgumentNullException(nameof(scope));
 			if(conditional_expression is null)
 				throw new ArgumentNullException(nameof(conditional_expression));
 			#endregion
@@ -583,7 +569,7 @@ namespace MCSharp.Compilation {
 			value = null;
 
 			NullCoalescingExpressionContext null_coalescing_expression = conditional_expression.null_coalescing_expression();
-			ResultInfo null_coalescing_result = CompileNullCoalescingExpression(function, scope, null_coalescing_expression, predefined, out IInstance null_coalescing_value);
+			ResultInfo null_coalescing_result = CompileNullCoalescingExpression(compile, null_coalescing_expression, out IInstance null_coalescing_value);
 			if(null_coalescing_result.Failure) return null_coalescing_result;
 
 			ExpressionContext[] expressions = conditional_expression.expression();
@@ -592,10 +578,10 @@ namespace MCSharp.Compilation {
 				IInstance[] expression_values = new IInstance[2];
 				ResultInfo[] expression_results = new ResultInfo[2];
 
-				expression_results[0] = CompileExpression(function, scope, expressions[0], predefined, out expression_values[0]);
+				expression_results[0] = CompileExpression(compile, expressions[0], out expression_values[0]);
 				if(expression_results[0].Failure) return expression_results[0];
 
-				expression_results[1] = CompileExpression(function, scope, expressions[1], predefined, out expression_values[1]);
+				expression_results[1] = CompileExpression(compile, expressions[1], out expression_values[1]);
 				if(expression_results[1].Failure) return expression_results[1];
 
 				throw new NotImplementedException("Conditional expressions have not been implemented.");
@@ -609,13 +595,9 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public ResultInfo CompileNullCoalescingExpression(StandaloneStatementFunction function, Scope scope, NullCoalescingExpressionContext null_coalescing_expression, bool predefined, out IInstance value) {
+		public ResultInfo CompileNullCoalescingExpression(CompileArguments compile, NullCoalescingExpressionContext null_coalescing_expression, out IInstance value) {
 
 			#region Argument Checks
-			if(function is null)
-				throw new ArgumentNullException(nameof(function));
-			if(scope is null)
-				throw new ArgumentNullException(nameof(scope));
 			if(null_coalescing_expression is null)
 				throw new ArgumentNullException(nameof(null_coalescing_expression));
 			#endregion
@@ -623,7 +605,7 @@ namespace MCSharp.Compilation {
 			value = null;
 
 			ConditionalOrExpressionContext conditional_or_expression = null_coalescing_expression.conditional_or_expression();
-			ResultInfo conditional_or_result = CompileConditionalOrExpression(function, scope, conditional_or_expression, predefined, out IInstance conditional_or_value);
+			ResultInfo conditional_or_result = CompileConditionalOrExpression(compile, conditional_or_expression, out IInstance conditional_or_value);
 			if(conditional_or_result.Failure) return conditional_or_result;
 
 			NullCoalescingExpressionContext null_coalescing_expression_second = null_coalescing_expression.null_coalescing_expression();
@@ -631,7 +613,7 @@ namespace MCSharp.Compilation {
 
 				value = null;
 
-				ResultInfo null_coalescing_second_result = CompileNullCoalescingExpression(function, scope, null_coalescing_expression_second, predefined, out IInstance null_coalescing_second_value);
+				ResultInfo null_coalescing_second_result = CompileNullCoalescingExpression(compile, null_coalescing_expression_second, out IInstance null_coalescing_second_value);
 				if(null_coalescing_second_result.Failure) return null_coalescing_second_result;
 
 				throw new NotImplementedException("Null-coalescing expressions have not been implemented.");
@@ -645,13 +627,9 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public ResultInfo CompileConditionalOrExpression(StandaloneStatementFunction function, Scope scope, ConditionalOrExpressionContext conditional_or_expression, bool predefined, out IInstance value) {
+		public ResultInfo CompileConditionalOrExpression(CompileArguments compile, ConditionalOrExpressionContext conditional_or_expression, out IInstance value) {
 
 			#region Argument Checks
-			if(function is null)
-				throw new ArgumentNullException(nameof(function));
-			if(scope is null)
-				throw new ArgumentNullException(nameof(scope));
 			if(conditional_or_expression is null)
 				throw new ArgumentNullException(nameof(conditional_or_expression));
 			#endregion
@@ -663,12 +641,12 @@ namespace MCSharp.Compilation {
 
 			value = null;
 
-			conditional_and_results[0] = CompileConditionalAndExpression(function, scope, conditional_and_expressions[0], predefined, out conditional_and_values[0]);
+			conditional_and_results[0] = CompileConditionalAndExpression(compile, conditional_and_expressions[0], out conditional_and_values[0]);
 			if(conditional_and_results[0].Failure) return conditional_and_results[0];
 
 			if(count == 2 && conditional_and_expressions[1] != null) {
 
-				conditional_and_results[1] = CompileConditionalAndExpression(function, scope, conditional_and_expressions[1], predefined, out conditional_and_values[1]);
+				conditional_and_results[1] = CompileConditionalAndExpression(compile, conditional_and_expressions[1], out conditional_and_values[1]);
 				if(conditional_and_results[1].Failure) return conditional_and_results[1];
 
 				throw new NotImplementedException("Boolean OR expressions have not been implemented.");
@@ -682,13 +660,9 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public ResultInfo CompileConditionalAndExpression(StandaloneStatementFunction function, Scope scope, ConditionalAndExpressionContext conditional_and_expression, bool predefined, out IInstance value) {
+		public ResultInfo CompileConditionalAndExpression(CompileArguments compile, ConditionalAndExpressionContext conditional_and_expression, out IInstance value) {
 
 			#region Argument Checks
-			if(function is null)
-				throw new ArgumentNullException(nameof(function));
-			if(scope is null)
-				throw new ArgumentNullException(nameof(scope));
 			if(conditional_and_expression is null)
 				throw new ArgumentNullException(nameof(conditional_and_expression));
 			#endregion
@@ -700,12 +674,12 @@ namespace MCSharp.Compilation {
 
 			value = null;
 
-			inclusive_or_results[0] = CompileInclusiveOrExpression(function, scope, inclusive_or_expressions[0], predefined, out inclusive_or_values[0]);
+			inclusive_or_results[0] = CompileInclusiveOrExpression(compile, inclusive_or_expressions[0], out inclusive_or_values[0]);
 			if(inclusive_or_results[0].Failure) return inclusive_or_results[0];
 
 			if(count == 2 && inclusive_or_expressions[1] != null) {
 
-				inclusive_or_results[1] = CompileInclusiveOrExpression(function, scope, inclusive_or_expressions[1], predefined, out inclusive_or_values[1]);
+				inclusive_or_results[1] = CompileInclusiveOrExpression(compile, inclusive_or_expressions[1], out inclusive_or_values[1]);
 				if(inclusive_or_results[1].Failure) return inclusive_or_results[1];
 
 				throw new NotImplementedException("Boolean AND expressions have not been implemented.");
@@ -719,13 +693,9 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public ResultInfo CompileInclusiveOrExpression(StandaloneStatementFunction function, Scope scope, InclusiveOrExpressionContext inclusive_or_expression, bool predefined, out IInstance value) {
+		public ResultInfo CompileInclusiveOrExpression(CompileArguments compile, InclusiveOrExpressionContext inclusive_or_expression, out IInstance value) {
 
 			#region Argument Checks
-			if(function is null)
-				throw new ArgumentNullException(nameof(function));
-			if(scope is null)
-				throw new ArgumentNullException(nameof(scope));
 			if(inclusive_or_expression is null)
 				throw new ArgumentNullException(nameof(inclusive_or_expression));
 			#endregion
@@ -737,12 +707,12 @@ namespace MCSharp.Compilation {
 
 			value = null;
 
-			exclusive_or_results[0] = CompileExclusiveOrExpression(function, scope, exclusive_or_expressions[0], predefined, out exclusive_or_values[0]);
+			exclusive_or_results[0] = CompileExclusiveOrExpression(compile, exclusive_or_expressions[0], out exclusive_or_values[0]);
 			if(exclusive_or_results[0].Failure) return exclusive_or_results[0];
 
 			if(count == 2 && exclusive_or_expressions[1] != null) {
 
-				exclusive_or_results[1] = CompileExclusiveOrExpression(function, scope, exclusive_or_expressions[1], predefined, out exclusive_or_values[1]);
+				exclusive_or_results[1] = CompileExclusiveOrExpression(compile, exclusive_or_expressions[1], out exclusive_or_values[1]);
 				if(exclusive_or_results[1].Failure) return exclusive_or_results[1];
 
 				throw new NotImplementedException("Bitwise XOR expressions have not been implemented.");
@@ -756,13 +726,9 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public ResultInfo CompileExclusiveOrExpression(StandaloneStatementFunction function, Scope scope, ExclusiveOrExpressionContext exclusive_or_expression, bool predefined, out IInstance value) {
+		public ResultInfo CompileExclusiveOrExpression(CompileArguments compile, ExclusiveOrExpressionContext exclusive_or_expression, out IInstance value) {
 
 			#region Argument Checks
-			if(function is null)
-				throw new ArgumentNullException(nameof(function));
-			if(scope is null)
-				throw new ArgumentNullException(nameof(scope));
 			if(exclusive_or_expression is null)
 				throw new ArgumentNullException(nameof(exclusive_or_expression));
 			#endregion
@@ -774,12 +740,12 @@ namespace MCSharp.Compilation {
 
 			value = null;
 
-			and_results[0] = CompileAndExpression(function, scope, and_expressions[0], predefined, out and_values[0]);
+			and_results[0] = CompileAndExpression(compile, and_expressions[0], out and_values[0]);
 			if(and_results[0].Failure) return and_results[0];
 
 			if(count == 2 && and_expressions[1] != null) {
 
-				and_results[1] = CompileAndExpression(function, scope, and_expressions[1], predefined, out and_values[1]);
+				and_results[1] = CompileAndExpression(compile, and_expressions[1], out and_values[1]);
 				if(and_results[1].Failure) return and_results[1];
 
 				throw new NotImplementedException("Bitwise OR expressions have not been implemented.");
@@ -793,13 +759,9 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public ResultInfo CompileAndExpression(StandaloneStatementFunction function, Scope scope, AndExpressionContext and_expression, bool predefined, out IInstance value) {
+		public ResultInfo CompileAndExpression(CompileArguments compile, AndExpressionContext and_expression, out IInstance value) {
 
 			#region Argument Checks
-			if(function is null)
-				throw new ArgumentNullException(nameof(function));
-			if(scope is null)
-				throw new ArgumentNullException(nameof(scope));
 			if(and_expression is null)
 				throw new ArgumentNullException(nameof(and_expression));
 			#endregion
@@ -811,12 +773,12 @@ namespace MCSharp.Compilation {
 
 			value = null;
 
-			equality_results[0] = CompileEqualityExpression(function, scope, equality_expressions[0], predefined, out equality_values[0]);
+			equality_results[0] = CompileEqualityExpression(compile, equality_expressions[0], out equality_values[0]);
 			if(equality_results[0].Failure) return equality_results[0];
 
 			if(count == 2 && equality_expressions[1] != null) {
 
-				equality_results[1] = CompileEqualityExpression(function, scope, equality_expressions[1], predefined, out equality_values[1]);
+				equality_results[1] = CompileEqualityExpression(compile, equality_expressions[1], out equality_values[1]);
 				if(equality_results[1].Failure) return equality_results[1];
 
 				throw new NotImplementedException("Bitwise AND expressions have not been implemented.");
@@ -830,13 +792,9 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public ResultInfo CompileEqualityExpression(StandaloneStatementFunction function, Scope scope, EqualityExpressionContext equality_expression, bool predefined, out IInstance value) {
+		public ResultInfo CompileEqualityExpression(CompileArguments compile, EqualityExpressionContext equality_expression, out IInstance value) {
 
 			#region Argument Checks
-			if(function is null)
-				throw new ArgumentNullException(nameof(function));
-			if(scope is null)
-				throw new ArgumentNullException(nameof(scope));
 			if(equality_expression is null)
 				throw new ArgumentNullException(nameof(equality_expression));
 			#endregion
@@ -848,12 +806,12 @@ namespace MCSharp.Compilation {
 
 			value = null;
 
-			relational_results[0] = CompileRelationalExpression(function, scope, relational_expressions[0], predefined, out relational_values[0]);
+			relational_results[0] = CompileRelationalExpression(compile, relational_expressions[0], out relational_values[0]);
 			if(relational_results[0].Failure) return relational_results[0];
 
 			if(count == 2 && relational_expressions[1] != null) {
 
-				relational_results[1] = CompileRelationalExpression(function, scope, relational_expressions[1], predefined, out relational_values[1]);
+				relational_results[1] = CompileRelationalExpression(compile, relational_expressions[1], out relational_values[1]);
 				if(relational_results[1].Failure) return relational_results[1];
 
 				throw new NotImplementedException("Equality expressions have not been implemented.");
@@ -867,13 +825,9 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public ResultInfo CompileRelationalExpression(StandaloneStatementFunction function, Scope scope, RelationalExpressionContext relational_expression, bool predefined, out IInstance value) {
+		public ResultInfo CompileRelationalExpression(CompileArguments compile, RelationalExpressionContext relational_expression, out IInstance value) {
 
 			#region Argument Checks
-			if(function is null)
-				throw new ArgumentNullException(nameof(function));
-			if(scope is null)
-				throw new ArgumentNullException(nameof(scope));
 			if(relational_expression is null)
 				throw new ArgumentNullException(nameof(relational_expression));
 			#endregion
@@ -881,7 +835,7 @@ namespace MCSharp.Compilation {
 			value = null;
 
 			ShiftExpressionContext shift_expression = relational_expression.shift_expression();
-			ResultInfo shift_result = CompileShiftExpression(function, scope, shift_expression, predefined, out IInstance shift_value);
+			ResultInfo shift_result = CompileShiftExpression(compile, shift_expression, out IInstance shift_value);
 			if(shift_result.Failure) return shift_result;
 
 			RelationOrTypeCheckContext[] relation_or_type_check = relational_expression.relation_or_type_check();
@@ -895,13 +849,9 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public ResultInfo CompileRelationOrTypeCheck(StandaloneStatementFunction function, Scope scope, RelationOrTypeCheckContext relation_or_type_check, bool predefined, out IInstance value) {
+		public ResultInfo CompileRelationOrTypeCheck(CompileArguments compile, RelationOrTypeCheckContext relation_or_type_check, out IInstance value) {
 
 			#region Argument Checks
-			if(function is null)
-				throw new ArgumentNullException(nameof(function));
-			if(scope is null)
-				throw new ArgumentNullException(nameof(scope));
 			if(relation_or_type_check is null)
 				throw new ArgumentNullException(nameof(relation_or_type_check));
 			#endregion
@@ -910,13 +860,9 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public ResultInfo CompileShiftExpression(StandaloneStatementFunction function, Scope scope, ShiftExpressionContext shift_expression, bool predefined, out IInstance value) {
+		public ResultInfo CompileShiftExpression(CompileArguments compile, ShiftExpressionContext shift_expression, out IInstance value) {
 
 			#region Argument Checks
-			if(function is null)
-				throw new ArgumentNullException(nameof(function));
-			if(scope is null)
-				throw new ArgumentNullException(nameof(scope));
 			if(shift_expression is null)
 				throw new ArgumentNullException(nameof(shift_expression));
 			#endregion
@@ -928,12 +874,12 @@ namespace MCSharp.Compilation {
 
 			value = null;
 
-			additive_results[0] = CompileAdditiveExpression(function, scope, additive_expressions[0], predefined, out additive_values[0]);
+			additive_results[0] = CompileAdditiveExpression(compile, additive_expressions[0], out additive_values[0]);
 			if(additive_results[0].Failure) return additive_results[0];
 
 			if(count == 2 && additive_expressions[1] != null) {
 
-				additive_results[1] = CompileAdditiveExpression(function, scope, additive_expressions[1], predefined, out additive_values[1]);
+				additive_results[1] = CompileAdditiveExpression(compile, additive_expressions[1], out additive_values[1]);
 				if(additive_results[1].Failure) return additive_results[1];
 
 				throw new NotImplementedException("Shift expressions have not been implemented.");
@@ -947,13 +893,9 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public ResultInfo CompileAdditiveExpression(StandaloneStatementFunction function, Scope scope, AdditiveExpressionContext additive_expression, bool predefined, out IInstance value) {
+		public ResultInfo CompileAdditiveExpression(CompileArguments compile, AdditiveExpressionContext additive_expression, out IInstance value) {
 
 			#region Argument Checks
-			if(function is null)
-				throw new ArgumentNullException(nameof(function));
-			if(scope is null)
-				throw new ArgumentNullException(nameof(scope));
 			if(additive_expression is null)
 				throw new ArgumentNullException(nameof(additive_expression));
 			#endregion
@@ -965,12 +907,12 @@ namespace MCSharp.Compilation {
 
 			value = null;
 
-			multiplicative_results[0] = CompileMultiplicativeExpression(function, scope, multiplicative_expressions[0], predefined, out multiplicative_values[0]);
+			multiplicative_results[0] = CompileMultiplicativeExpression(compile, multiplicative_expressions[0], out multiplicative_values[0]);
 			if(multiplicative_results[0].Failure) return multiplicative_results[0];
 
 			if(count == 2 && multiplicative_expressions[1] != null) {
 
-				multiplicative_results[1] = CompileMultiplicativeExpression(function, scope, multiplicative_expressions[1], predefined, out multiplicative_values[1]);
+				multiplicative_results[1] = CompileMultiplicativeExpression(compile, multiplicative_expressions[1], out multiplicative_values[1]);
 				if(multiplicative_results[1].Failure) return multiplicative_results[1];
 
 				throw new NotImplementedException("Additive expressions have not been implemented.");
@@ -984,13 +926,9 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public ResultInfo CompileMultiplicativeExpression(StandaloneStatementFunction function, Scope scope, MultiplicativeExpressionContext multiplicative_expression, bool predefined, out IInstance value) {
+		public ResultInfo CompileMultiplicativeExpression(CompileArguments compile, MultiplicativeExpressionContext multiplicative_expression, out IInstance value) {
 
 			#region Argument Checks
-			if(function is null)
-				throw new ArgumentNullException(nameof(function));
-			if(scope is null)
-				throw new ArgumentNullException(nameof(scope));
 			if(multiplicative_expression is null)
 				throw new ArgumentNullException(nameof(multiplicative_expression));
 			#endregion
@@ -1002,12 +940,12 @@ namespace MCSharp.Compilation {
 
 			value = null;
 
-			with_results[0] = CompileWithExpression(function, scope, with_expressions[0], predefined, out with_values[0]);
+			with_results[0] = CompileWithExpression(compile, with_expressions[0], out with_values[0]);
 			if(with_results[0].Failure) return with_results[0];
 
 			if(count == 2 && with_expressions[1] != null) {
 
-				with_results[1] = CompileWithExpression(function, scope, with_expressions[1], predefined, out with_values[1]);
+				with_results[1] = CompileWithExpression(compile, with_expressions[1], out with_values[1]);
 				if(with_results[1].Failure) return with_results[1];
 
 				throw new NotImplementedException("Multiplicative expressions have not been implemented.");
@@ -1021,13 +959,9 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public ResultInfo CompileWithExpression(StandaloneStatementFunction function, Scope scope, WithExpressionContext with_expression, bool predefined, out IInstance value) {
+		public ResultInfo CompileWithExpression(CompileArguments compile, WithExpressionContext with_expression, out IInstance value) {
 
 			#region Argument Checks
-			if(function is null)
-				throw new ArgumentNullException(nameof(function));
-			if(scope is null)
-				throw new ArgumentNullException(nameof(scope));
 			if(with_expression is null)
 				throw new ArgumentNullException(nameof(with_expression));
 			#endregion
@@ -1035,7 +969,7 @@ namespace MCSharp.Compilation {
 			value = null;
 
 			RangeExpressionContext range_expression = with_expression.range_expression();
-			ResultInfo range_result = CompileRangeExpression(function, scope, range_expression, predefined, out IInstance range_value);
+			ResultInfo range_result = CompileRangeExpression(compile, range_expression, out IInstance range_value);
 			if(range_result.Failure) return range_result;
 
 			MCSharpParser.Anonymous_element_initializerContext anonymous_element_initializer = with_expression.anonymous_element_initializer();
@@ -1050,13 +984,9 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public ResultInfo CompileRangeExpression(StandaloneStatementFunction function, Scope scope, RangeExpressionContext range_expression, bool predefined, out IInstance value) {
+		public ResultInfo CompileRangeExpression(CompileArguments compile, RangeExpressionContext range_expression, out IInstance value) {
 
 			#region Argument Checks
-			if(function is null)
-				throw new ArgumentNullException(nameof(function));
-			if(scope is null)
-				throw new ArgumentNullException(nameof(scope));
 			if(range_expression is null)
 				throw new ArgumentNullException(nameof(range_expression));
 			#endregion
@@ -1068,12 +998,12 @@ namespace MCSharp.Compilation {
 
 			value = null;
 
-			unary_results[0] = CompileUnaryExpression(function, scope, unary_expressions[0], predefined, out unary_values[0]);
+			unary_results[0] = CompileUnaryExpression(compile, unary_expressions[0], out unary_values[0]);
 			if(unary_results[0].Failure) return unary_results[0];
 
 			if(count == 2 && unary_expressions[1] != null) {
 
-				unary_results[1] = CompileUnaryExpression(function, scope, unary_expressions[1], predefined, out unary_values[1]);
+				unary_results[1] = CompileUnaryExpression(compile, unary_expressions[1], out unary_values[1]);
 				if(unary_results[1].Failure) return unary_results[1];
 
 				throw new NotImplementedException("Range expressions have been been implemented.");
@@ -1087,13 +1017,9 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public ResultInfo CompilePreStepExpression(StandaloneStatementFunction function, Scope scope, PreStepExpressionContext pre_step_expression, bool predefined, out IInstance value) {
+		public ResultInfo CompilePreStepExpression(CompileArguments compile, PreStepExpressionContext pre_step_expression, out IInstance value) {
 
 			#region Argument Checks
-			if(function is null)
-				throw new ArgumentNullException(nameof(function));
-			if(scope is null)
-				throw new ArgumentNullException(nameof(scope));
 			if(pre_step_expression is null)
 				throw new ArgumentNullException(nameof(pre_step_expression));
 			#endregion
@@ -1102,13 +1028,9 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public ResultInfo CompilePostStepExpression(StandaloneStatementFunction function, Scope scope, PostStepExpressionContext post_step_expression, bool predefined, out IInstance value) {
+		public ResultInfo CompilePostStepExpression(CompileArguments compile, PostStepExpressionContext post_step_expression, out IInstance value) {
 
 			#region Argument Checks
-			if(function is null)
-				throw new ArgumentNullException(nameof(function));
-			if(scope is null)
-				throw new ArgumentNullException(nameof(scope));
 			if(post_step_expression is null)
 				throw new ArgumentNullException(nameof(post_step_expression));
 			#endregion
@@ -1117,13 +1039,9 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public ResultInfo CompileUnaryExpression(StandaloneStatementFunction function, Scope scope, UnaryExpressionContext unary_expression, bool predefined, out IInstance value) {
+		public ResultInfo CompileUnaryExpression(CompileArguments compile, UnaryExpressionContext unary_expression, out IInstance value) {
 
 			#region Argument Checks
-			if(function is null)
-				throw new ArgumentNullException(nameof(function));
-			if(scope is null)
-				throw new ArgumentNullException(nameof(scope));
 			if(unary_expression is null)
 				throw new ArgumentNullException(nameof(unary_expression));
 			#endregion
@@ -1131,7 +1049,7 @@ namespace MCSharp.Compilation {
 			PrimaryExpressionContext primary_expression = unary_expression.primary_expression();
 			if(primary_expression != null) {
 
-				ResultInfo result = CompilePrimaryExpression(function, scope, primary_expression, predefined, out value);
+				ResultInfo result = CompilePrimaryExpression(compile, primary_expression, out value);
 				if(result.Failure) return result;
 
 				return ResultInfo.DefaultSuccess;
@@ -1143,7 +1061,7 @@ namespace MCSharp.Compilation {
 
 				value = null;
 
-				ResultInfo result = CompileUnaryExpression(function, scope, subunary_expression, predefined, out IInstance unary_value);
+				ResultInfo result = CompileUnaryExpression(compile, subunary_expression, out IInstance unary_value);
 				if(result.Failure) return result;
 
 				throw new NotImplementedException("Unary expressions have not been implemented.");
@@ -1153,7 +1071,7 @@ namespace MCSharp.Compilation {
 			PreStepExpressionContext pre_step_expression = unary_expression.pre_step_expression();
 			if(pre_step_expression != null) {
 
-				ResultInfo result = CompilePreStepExpression(function, scope, pre_step_expression, predefined, out value);
+				ResultInfo result = CompilePreStepExpression(compile, pre_step_expression, out value);
 				if(result.Failure) return result;
 
 				return ResultInfo.DefaultSuccess;
@@ -1163,7 +1081,7 @@ namespace MCSharp.Compilation {
 			CastExpressionContext cast_expression = unary_expression.cast_expression();
 			if(cast_expression != null) {
 
-				ResultInfo result = CompileCastExpression(function, scope, cast_expression, predefined, out value);
+				ResultInfo result = CompileCastExpression(compile, cast_expression, out value);
 				if(result.Failure) return result;
 
 				return ResultInfo.DefaultSuccess;
@@ -1173,7 +1091,7 @@ namespace MCSharp.Compilation {
 			PointerIndirectionExpressionContext pointer_indirection_expression = unary_expression.pointer_indirection_expression();
 			if(pointer_indirection_expression != null) {
 
-				ResultInfo result = CompilePointerIndirectionExpression(function, scope, pointer_indirection_expression, predefined, out value);
+				ResultInfo result = CompilePointerIndirectionExpression(compile, pointer_indirection_expression, out value);
 				if(result.Failure) return result;
 
 				return ResultInfo.DefaultSuccess;
@@ -1183,7 +1101,7 @@ namespace MCSharp.Compilation {
 			AddressofExpressionContext addressof_expression = unary_expression.addressof_expression();
 			if(addressof_expression != null) {
 
-				ResultInfo result = CompileAddressofExpression(function, scope, addressof_expression, predefined, out value);
+				ResultInfo result = CompileAddressofExpression(compile, addressof_expression, out value);
 				if(result.Failure) return result;
 
 				return ResultInfo.DefaultSuccess;
@@ -1194,13 +1112,9 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public ResultInfo CompileCastExpression(StandaloneStatementFunction function, Scope scope, CastExpressionContext cast_expression, bool predefined, out IInstance value) {
+		public ResultInfo CompileCastExpression(CompileArguments compile, CastExpressionContext cast_expression, out IInstance value) {
 
 			#region Argument Checks
-			if(function is null)
-				throw new ArgumentNullException(nameof(function));
-			if(scope is null)
-				throw new ArgumentNullException(nameof(scope));
 			if(cast_expression is null)
 				throw new ArgumentNullException(nameof(cast_expression));
 			#endregion
@@ -1209,13 +1123,9 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public ResultInfo CompilePointerIndirectionExpression(StandaloneStatementFunction function, Scope scope, PointerIndirectionExpressionContext pointer_indirection_expression, bool predefined, out IInstance value) {
+		public ResultInfo CompilePointerIndirectionExpression(CompileArguments compile, PointerIndirectionExpressionContext pointer_indirection_expression, out IInstance value) {
 
 			#region Argument Checks
-			if(function is null)
-				throw new ArgumentNullException(nameof(function));
-			if(scope is null)
-				throw new ArgumentNullException(nameof(scope));
 			if(pointer_indirection_expression is null)
 				throw new ArgumentNullException(nameof(pointer_indirection_expression));
 			#endregion
@@ -1224,13 +1134,9 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public ResultInfo CompileAddressofExpression(StandaloneStatementFunction function, Scope scope, AddressofExpressionContext addressof_expression, bool predefined, out IInstance value) {
+		public ResultInfo CompileAddressofExpression(CompileArguments compile, AddressofExpressionContext addressof_expression, out IInstance value) {
 
 			#region Argument Checks
-			if(function is null)
-				throw new ArgumentNullException(nameof(function));
-			if(scope is null)
-				throw new ArgumentNullException(nameof(scope));
 			if(addressof_expression is null)
 				throw new ArgumentNullException(nameof(addressof_expression));
 			#endregion
@@ -1238,20 +1144,16 @@ namespace MCSharp.Compilation {
 			value = null;
 
 			UnaryExpressionContext unary_expression = addressof_expression.unary_expression();
-			ResultInfo unary_result = CompileUnaryExpression(function, scope, unary_expression, predefined, out IInstance unary_value);
+			ResultInfo unary_result = CompileUnaryExpression(compile, unary_expression, out IInstance unary_value);
 			if(unary_result.Failure) return unary_result;
 
 			throw new NotImplementedException("Addressof expressions have not been implemented.");
 
 		}
 
-		public ResultInfo CompileAssignmentExpression(StandaloneStatementFunction function, Scope scope, AssignmentExpressionContext assignment_expression, bool predefined, out IInstance value) {
+		public ResultInfo CompileAssignmentExpression(CompileArguments compile, AssignmentExpressionContext assignment_expression, out IInstance value) {
 
 			#region Argument Checks
-			if(function is null)
-				throw new ArgumentNullException(nameof(function));
-			if(scope is null)
-				throw new ArgumentNullException(nameof(scope));
 			if(assignment_expression is null)
 				throw new ArgumentNullException(nameof(assignment_expression));
 			#endregion
@@ -1259,24 +1161,20 @@ namespace MCSharp.Compilation {
 			value = null;
 
 			UnaryExpressionContext unary_expression = assignment_expression.unary_expression();
-			ResultInfo unary_result = CompileUnaryExpression(function, scope, unary_expression, predefined, out IInstance unary_value);
+			ResultInfo unary_result = CompileUnaryExpression(compile, unary_expression, out IInstance unary_value);
 			if(unary_result.Failure) return unary_result;
 
 			ExpressionContext expression = assignment_expression.expression();
-			ResultInfo expression_result = CompileExpression(function, scope, expression, predefined, out IInstance expression_value);
+			ResultInfo expression_result = CompileExpression(compile, expression, out IInstance expression_value);
 			if(expression_result.Failure) return expression_result;
 
 			throw new NotImplementedException("Assignment expression evaluation has not been implemented.");
 
 		}
 
-		public ResultInfo CompilePrimaryExpression(StandaloneStatementFunction function, Scope scope, PrimaryExpressionContext primary_expression, bool predefined, out IInstance value) {
+		public ResultInfo CompilePrimaryExpression(CompileArguments compile, PrimaryExpressionContext primary_expression, out IInstance value) {
 
 			#region Argument Checks
-			if(function is null)
-				throw new ArgumentNullException(nameof(function));
-			if(scope is null)
-				throw new ArgumentNullException(nameof(scope));
 			if(primary_expression is null)
 				throw new ArgumentNullException(nameof(primary_expression));
 			#endregion
@@ -1286,7 +1184,7 @@ namespace MCSharp.Compilation {
 			ArrayCreationExpressionContext array_creation_expression = primary_expression.array_creation_expression();
 			if(array_creation_expression != null) {
 
-				ResultInfo result = CompileArrayCreationExpression(function, scope, array_creation_expression, predefined, out value);
+				ResultInfo result = CompileArrayCreationExpression(compile, array_creation_expression, out value);
 				if(result.Failure) return result;
 
 				return ResultInfo.DefaultSuccess;
@@ -1296,7 +1194,7 @@ namespace MCSharp.Compilation {
 			PrimaryNoArrayCreationExpressionContext primary_no_array_creation_expression = primary_expression.primary_no_array_creation_expression();
 			if(primary_no_array_creation_expression != null) {
 
-				ResultInfo result = CompilePrimaryNoArrayCreationExpression(function, scope, primary_no_array_creation_expression, predefined, out value);
+				ResultInfo result = CompilePrimaryNoArrayCreationExpression(compile, primary_no_array_creation_expression, out value);
 				if(result.Failure) return result;
 
 				return ResultInfo.DefaultSuccess;
@@ -1307,14 +1205,9 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public ResultInfo CompileArrayCreationExpression(StandaloneStatementFunction function, Scope scope,
-		ArrayCreationExpressionContext array_creation_expression, bool predefined, out IInstance value) {
+		public ResultInfo CompileArrayCreationExpression(CompileArguments compile, ArrayCreationExpressionContext array_creation_expression, out IInstance value) {
 
 			#region Argument Checks
-			if(function is null)
-				throw new ArgumentNullException(nameof(function));
-			if(scope is null)
-				throw new ArgumentNullException(nameof(scope));
 			if(array_creation_expression is null)
 				throw new ArgumentNullException(nameof(array_creation_expression));
 			#endregion
@@ -1323,14 +1216,9 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public ResultInfo CompilePrimaryNoArrayCreationExpression(StandaloneStatementFunction function, Scope scope,
-		PrimaryNoArrayCreationExpressionContext primary_no_array_creation_expression, bool predefined, out IInstance value) {
+		public ResultInfo CompilePrimaryNoArrayCreationExpression(CompileArguments compile, PrimaryNoArrayCreationExpressionContext primary_no_array_creation_expression, out IInstance value) {
 
 			#region Argument Checks
-			if(function is null)
-				throw new ArgumentNullException(nameof(function));
-			if(scope is null)
-				throw new ArgumentNullException(nameof(scope));
 			if(primary_no_array_creation_expression is null)
 				throw new ArgumentNullException(nameof(primary_no_array_creation_expression));
 			#endregion
@@ -1345,9 +1233,8 @@ namespace MCSharp.Compilation {
 					int integer_value = int.Parse(text);
 
 					IType integer_type = DefinedTypes[MCSharpLinkerExtension.IntIdentifier];
-					ITerminalNode anon_identifier = scope.MakeAnonymousInstanceName();
-					value = new PrimitiveInstance.IntegerInstance.Constant(integer_type, anon_identifier, integer_value);
-					scope.AddInstance(value);
+					value = new PrimitiveInstance.IntegerInstance.Constant(integer_type, null, integer_value);
+					compile.Scope.AddInstance(value);
 
 					return ResultInfo.DefaultSuccess;
 
@@ -1360,9 +1247,8 @@ namespace MCSharp.Compilation {
 					bool boolean_value = bool.Parse(text);
 
 					IType boolean_type = DefinedTypes[MCSharpLinkerExtension.BoolIdentifier];
-					ITerminalNode anon_identifier = scope.MakeAnonymousInstanceName();
-					value = new PrimitiveInstance.BooleanInstance.Constant(boolean_type, anon_identifier, boolean_value);
-					scope.AddInstance(value);
+					value = new PrimitiveInstance.BooleanInstance.Constant(boolean_type, null, boolean_value);
+					compile.Scope.AddInstance(value);
 
 					return ResultInfo.DefaultSuccess;
 
@@ -1375,7 +1261,6 @@ namespace MCSharp.Compilation {
 					string string_value = text[1..^1];
 
 					IType string_type = DefinedTypes[MCSharpLinkerExtension.StringIdentifier];
-					ITerminalNode anon_identifier = scope.MakeAnonymousInstanceName();
 
 					throw new NotImplementedException("String literals have not been implemented.");
 
@@ -1388,7 +1273,6 @@ namespace MCSharp.Compilation {
 					double decimal_value = double.Parse(text);
 
 					// type
-					ITerminalNode anon_identifier = scope.MakeAnonymousInstanceName();
 
 					throw new NotImplementedException("Decimal/double/floats literals have not been implemented.");
 
@@ -1408,7 +1292,7 @@ namespace MCSharp.Compilation {
 			ExpressionContext expression = primary_no_array_creation_expression.expression();
 			if(expression != null) {
 
-				ResultInfo result = CompileExpression(function, scope, expression, predefined, out value);
+				ResultInfo result = CompileExpression(compile, expression, out value);
 				if(result.Failure) return result;
 
 				return ResultInfo.DefaultSuccess;
