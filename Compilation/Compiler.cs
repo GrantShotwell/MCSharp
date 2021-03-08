@@ -373,14 +373,16 @@ namespace MCSharp.Compilation {
 				IType type = DefinedTypes[typeName.GetText()];
 				IInstance instance = type.InitializeInstance(function.Writer, scope, identifier);
 
-				ExpressionContext assignment_value = initialization_expression.expression();
-				if(assignment_value != null) {
+				ExpressionContext assignment = initialization_expression.expression();
+				if(assignment != null) {
 
-					ResultInfo assignment_result = CompileExpression(compile, assignment_value, out IInstance value);
+					ResultInfo assignment_result = CompileExpression(compile, assignment, out IInstance assignment_value);
 					if(assignment_result.Failure) return assignment_result;
 
-					// todo: assign value
-					throw new NotImplementedException("Initialization expressions with assignment have not been implemented.");
+					ResultInfo assign_result = CompileSimpleOperation(compile, Operation.Assign, instance, assignment_value, out _);
+					if(assign_result.Failure) return assign_result;
+
+					return ResultInfo.DefaultSuccess;
 
 				}
 
@@ -415,7 +417,7 @@ namespace MCSharp.Compilation {
 			ICollection<IOperation> matches = new List<IOperation>(2);
 
 			// Find matches from type 1.
-			{
+			if(type1.Operations.ContainsKey(op)) {
 				HashSet<IOperation> operations = type1.Operations[op];
 				foreach(IOperation operation in operations) {
 					IReadOnlyList<IMethodParameter> parameters = operation.Function.MethodParameters;
@@ -423,14 +425,14 @@ namespace MCSharp.Compilation {
 						throw new InvalidOperationException(
 							$"{nameof(CompileSimpleOperation)} was called on {op} expecting exactly 2 parameters, " +
 							$"but found {parameters.Count} instead from {type1.Identifier}.");
-					if(parameters[0].Identifier == type1.Identifier && parameters[1].Identifier == type2.Identifier) {
+					if(parameters[0].TypeIdentifier == type1.Identifier && parameters[1].TypeIdentifier == type2.Identifier) {
 						matches.Add(operation);
 					}
 				}
 			}
 
 			// Find matches from type 2.
-			if(type2 != type1) {
+			if(type2 != type1 && type2.Operations.ContainsKey(op)) {
 				HashSet<IOperation> operations = type2.Operations[op];
 				foreach(IOperation operation in operations) {
 					IReadOnlyList<IMethodParameter> parameters = operation.Function.MethodParameters;
@@ -438,7 +440,7 @@ namespace MCSharp.Compilation {
 						throw new InvalidOperationException(
 							$"{nameof(CompileSimpleOperation)} was called on {operation} expecting exactly 2 parameters, " +
 							$"but found {parameters.Count} instead from {type2.Identifier}.");
-					if(parameters[0].Identifier == type1.Identifier && parameters[1].Identifier == type2.Identifier) {
+					if(parameters[0].TypeIdentifier == type1.Identifier && parameters[1].TypeIdentifier == type2.Identifier) {
 						matches.Add(operation);
 					}
 				}
@@ -900,29 +902,29 @@ namespace MCSharp.Compilation {
 				throw new ArgumentNullException(nameof(additive_expression));
 			#endregion
 
-			MultiplicativeExpressionContext[] multiplicative_expressions = additive_expression.multiplicative_expression();
-			var count = multiplicative_expressions.Length;
-			ResultInfo[] multiplicative_results = new ResultInfo[count];
-			IInstance[] multiplicative_values = new IInstance[count];
+			MultiplicativeExpressionContext[] expressions = additive_expression.multiplicative_expression();
+			MCSharpParser.Additive_operatorContext[] operators = additive_expression.additive_operator();
 
-			value = null;
+			ResultInfo firstResult = CompileMultiplicativeExpression(compile, expressions[0], out value);
+			if(firstResult.Failure) return firstResult;
 
-			multiplicative_results[0] = CompileMultiplicativeExpression(compile, multiplicative_expressions[0], out multiplicative_values[0]);
-			if(multiplicative_results[0].Failure) return multiplicative_results[0];
+			int count = expressions.Length;
+			for(int i = 1; i < count; i++) {
 
-			if(count == 2 && multiplicative_expressions[1] != null) {
+				ResultInfo exResult = CompileMultiplicativeExpression(compile, expressions[i], out IInstance expressionValue);
+				if(exResult.Failure) return exResult;
 
-				multiplicative_results[1] = CompileMultiplicativeExpression(compile, multiplicative_expressions[1], out multiplicative_values[1]);
-				if(multiplicative_results[1].Failure) return multiplicative_results[1];
+				Operation op;
+				MCSharpParser.Additive_operatorContext additive_operator = operators[i - 1];
+				if(additive_operator.PLUS() != null) op = Operation.Addition;
+				else op = Operation.Subtraction;
 
-				throw new NotImplementedException("Additive expressions have not been implemented.");
-
-			} else {
-
-				value = multiplicative_values[0];
-				return ResultInfo.DefaultSuccess;
+				ResultInfo opResult = CompileSimpleOperation(compile, op, value, expressionValue, out value);
+				if(opResult.Failure) return opResult;
 
 			}
+
+			return ResultInfo.DefaultSuccess;
 
 		}
 
@@ -1234,7 +1236,8 @@ namespace MCSharp.Compilation {
 
 					IType integer_type = DefinedTypes[MCSharpLinkerExtension.IntIdentifier];
 					value = new PrimitiveInstance.IntegerInstance.Constant(integer_type, null, integer_value);
-					compile.Scope.AddInstance(value);
+					ResultInfo scopeResult = compile.Scope.AddInstance(value);
+					if(scopeResult.Failure) return scopeResult;
 
 					return ResultInfo.DefaultSuccess;
 
@@ -1248,7 +1251,8 @@ namespace MCSharp.Compilation {
 
 					IType boolean_type = DefinedTypes[MCSharpLinkerExtension.BoolIdentifier];
 					value = new PrimitiveInstance.BooleanInstance.Constant(boolean_type, null, boolean_value);
-					compile.Scope.AddInstance(value);
+					ResultInfo scoprResult = compile.Scope.AddInstance(value);
+					if(scoprResult.Failure) return scoprResult;
 
 					return ResultInfo.DefaultSuccess;
 
@@ -1285,7 +1289,33 @@ namespace MCSharp.Compilation {
 			MCSharpParser.IdentifierContext identifier = primary_no_array_creation_expression.identifier();
 			if(identifier != null) {
 
-				throw new NotImplementedException("Identifier evaluation have not been implemented.");
+				ITerminalNode[] names = identifier.NAME();
+				MCSharpParser.Generic_argumentsContext generic_arguments = identifier.generic_arguments();
+
+				if(generic_arguments != null) {
+					
+					throw new NotImplementedException("Generic arguments for identifiers have not been implemented.");
+
+				} else if(names.Length > 1) {
+
+					throw new NotImplementedException("Access identifiers have not been implemented.");
+
+				} else {
+
+					string name = names[0].GetText();
+
+					Scope scope = compile.Scope;
+					var instances = scope.Instances;
+
+					if(instances.ContainsKey(name)) {
+						value = instances[name];
+						return ResultInfo.DefaultSuccess;
+					} else {
+						value = null;
+						return new ResultInfo(false, $"Identifier '{name}' does not exist.");
+					}
+
+				}
 
 			}
 

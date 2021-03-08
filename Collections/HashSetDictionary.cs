@@ -27,6 +27,10 @@ namespace MCSharp.Collections {
 		public HashSet<TValue> this[TKey key] { get => Dictionary[key]; set => Dictionary[key] = value; }
 
 
+		private HashSetDictionary(IDictionary<TKey, HashSet<TValue>> dictionary) {
+			Dictionary = dictionary;
+		}
+
 		public HashSetDictionary() {
 			Dictionary = new Dictionary<TKey, HashSet<TValue>>();
 		}

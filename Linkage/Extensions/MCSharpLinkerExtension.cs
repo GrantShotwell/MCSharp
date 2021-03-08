@@ -92,33 +92,92 @@ namespace MCSharp.Linkage.Extensions {
 
 			#region Operations
 
-			HashSetDictionary<Operation, PredefinedOperation> operations = new HashSetDictionary<Operation, PredefinedOperation>();
+			HashSetDictionary<Operation, IOperation> operations = new HashSetDictionary<Operation, IOperation>();
 
 			static IInstance ScoreboardOperation(Compiler.CompileArguments compile, IInstance[] method, PredefinedType predefinedType, string op) {
+
 				Scope scope = compile.Scope;
 				FunctionWriter writer = compile.Writer;
 				string selector = StorageSelector;
 
 				PrimitiveInstance.IntegerInstance left = method[0] as PrimitiveInstance.IntegerInstance;
+				PrimitiveInstance.IntegerInstance.Constant leftConstant = left is null ? method[0] as PrimitiveInstance.IntegerInstance.Constant : null;
 				PrimitiveInstance.IntegerInstance right = method[1] as PrimitiveInstance.IntegerInstance;
+				PrimitiveInstance.IntegerInstance.Constant rightConstant = right is null ? method[1] as PrimitiveInstance.IntegerInstance.Constant : null;
 
-				PrimitiveInstance.IntegerInstance result = predefinedType.InitializeInstance(writer, scope, null) as PrimitiveInstance.IntegerInstance;
-				writer.WriteCommand($"scoreboard players operation {selector} {result.Objective.Name} = {selector} {left.Objective.Name}");
-				writer.WriteCommand($"scoreboard players operation {selector} {result.Objective.Name} {op} {selector} {right.Objective.Name}");
+				if(leftConstant != null && rightConstant != null) {
+					int value = leftConstant.Value + rightConstant.Value;
+					PrimitiveInstance.IntegerInstance.Constant result = new PrimitiveInstance.IntegerInstance.Constant(predefinedType, null, value);
+					return result;
+				} else if(leftConstant != null) {
+					PrimitiveInstance.IntegerInstance result = predefinedType.InitializeInstance(writer, scope, null) as PrimitiveInstance.IntegerInstance;
+					writer.WriteCommand($"scoreboard players set {selector} {result.Objective.Name} {leftConstant.Value}");
+					writer.WriteCommand($"scoreboard players operation {selector} {result.Objective.Name} {op} {selector} {right.Objective.Name}");
+					return result;
+				} else if(rightConstant != null) {
+					PrimitiveInstance.IntegerInstance result = predefinedType.InitializeInstance(writer, scope, null) as PrimitiveInstance.IntegerInstance;
+					writer.WriteCommand($"scoreboard players operation {selector} {result.Objective.Name} = {selector} {left.Objective.Name}");
+					right = predefinedType.InitializeInstance(writer, scope, null) as PrimitiveInstance.IntegerInstance;
+					writer.WriteCommand($"scoreboard players set {selector} {right.Objective.Name} {rightConstant.Value}");
+					writer.WriteCommand($"scoreboard players operation {selector} {result.Objective.Name} {op} {selector} {right.Objective.Name}");
+					return result;
+				} else {
+					PrimitiveInstance.IntegerInstance result = predefinedType.InitializeInstance(writer, scope, null) as PrimitiveInstance.IntegerInstance;
+					writer.WriteCommand($"scoreboard players operation {selector} {result.Objective.Name} = {selector} {left.Objective.Name}");
+					writer.WriteCommand($"scoreboard players operation {selector} {result.Objective.Name} {op} {selector} {right.Objective.Name}");
+					return result;
+				}
 
-				return result;
+			}
+
+			// Assign
+			{
+
+				CustomFunction function = new CustomFunction(IntIdentifier,
+					new PredefinedGenericParameter[] {
+
+					},
+					new PredefinedMethodParameter[] {
+						new PredefinedMethodParameter(IntIdentifier, "left"),
+						new PredefinedMethodParameter(IntIdentifier, "right")
+					},
+					(compile, generic, method) => {
+
+						string selector = StorageSelector;
+
+						PrimitiveInstance.IntegerInstance left = method[0] as PrimitiveInstance.IntegerInstance;
+						PrimitiveInstance.IntegerInstance.Constant leftConstant = left is null ? method[0] as PrimitiveInstance.IntegerInstance.Constant : null;
+						PrimitiveInstance.IntegerInstance right = method[1] as PrimitiveInstance.IntegerInstance;
+						PrimitiveInstance.IntegerInstance.Constant rightConstant = right is null ? method[1] as PrimitiveInstance.IntegerInstance.Constant : null;
+
+						if(leftConstant != null) {
+							throw new InvalidOperationException("Cannot assign to a constant.");
+						} else if(rightConstant != null) {
+							compile.Writer.WriteCommand($"scoreboard players set {selector} {left.Objective.Name} {rightConstant.Value}");
+						} else {
+							compile.Writer.WriteCommand($"scoreboard players operation {selector} {left.Objective.Name} = {selector} {right.Objective.Name}");
+						}
+
+						return left;
+
+					}
+				);
+
+				Operation op = Operation.Assign;
+				operations.Add(op, new PredefinedOperation(op, function));
+
 			}
 
 			// Addition
 			{
 
-				CustomFunction function = new CustomFunction("int",
+				CustomFunction function = new CustomFunction(IntIdentifier,
 					new PredefinedGenericParameter[] {
 						
 					},
 					new PredefinedMethodParameter[] {
-						new PredefinedMethodParameter("int", "left"),
-						new PredefinedMethodParameter("int", "right")
+						new PredefinedMethodParameter(IntIdentifier, "left"),
+						new PredefinedMethodParameter(IntIdentifier, "right")
 					},
 					(compile, generic, method) => {
 						return ScoreboardOperation(compile, method, predefinedType, "+=");
@@ -133,13 +192,13 @@ namespace MCSharp.Linkage.Extensions {
 			// Subtraction
 			{
 				
-				CustomFunction function = new CustomFunction("int",
+				CustomFunction function = new CustomFunction(IntIdentifier,
 					new PredefinedGenericParameter[] {
 
 					},
 					new PredefinedMethodParameter[] {
-						new PredefinedMethodParameter("int", "left"),
-						new PredefinedMethodParameter("int", "right")
+						new PredefinedMethodParameter(IntIdentifier, "left"),
+						new PredefinedMethodParameter(IntIdentifier, "right")
 					},
 					(compile, generic, method) => {
 						return ScoreboardOperation(compile, method, predefinedType, "-=");
@@ -152,10 +211,11 @@ namespace MCSharp.Linkage.Extensions {
 			}
 
 			#endregion
+
 			PredefinedType.InitializeInstanceDelegate init = (writer, scope, identifier) => {
 
 				if(predefinedType is null) throw new Exception();
-				var objective = Objective.AddObjective(writer, identifier.GetText(), "dummy");
+				var objective = Objective.AddObjective(writer, identifier?.GetText(), "dummy");
 				return new PrimitiveInstance.IntegerInstance(predefinedType, identifier, objective);
 
 			};
@@ -223,7 +283,7 @@ namespace MCSharp.Linkage.Extensions {
 
 			#region Operations
 
-			HashSetDictionary<Operation, PredefinedOperation> operations = new HashSetDictionary<Operation, PredefinedOperation>();
+			HashSetDictionary<Operation, IOperation> operations = new HashSetDictionary<Operation, IOperation>();
 
 			{
 
@@ -301,7 +361,7 @@ namespace MCSharp.Linkage.Extensions {
 
 			#region Operations
 
-			HashSetDictionary<Operation, PredefinedOperation> operations = new HashSetDictionary<Operation, PredefinedOperation>();
+			HashSetDictionary<Operation, IOperation> operations = new HashSetDictionary<Operation, IOperation>();
 
 			{
 
@@ -351,7 +411,7 @@ namespace MCSharp.Linkage.Extensions {
 
 			#region Operations
 
-			HashSetDictionary<Operation, PredefinedOperation> operations = new HashSetDictionary<Operation, PredefinedOperation>();
+			HashSetDictionary<Operation, IOperation> operations = new HashSetDictionary<Operation, IOperation>();
 
 			{
 

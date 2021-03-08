@@ -38,9 +38,18 @@ namespace MCSharp.Linkage.Minecraft {
 		/// <returns></returns>
 		public static Objective AddObjective(FunctionWriter function, string name, string criterion) {
 
+			if(name is null) {
+				name = MakeNextAnonymousName();
+			}
+
 			function.WriteCommand($"scoreboard objectives add {name} {criterion}");
 			return new Objective(name, criterion);
 
+		}
+
+		private static int anonCount = 0;
+		private static string MakeNextAnonymousName() {
+			return $"mcs.{anonCount++}";
 		}
 
 		public void WriteRemove(FunctionWriter function) {

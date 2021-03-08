@@ -48,8 +48,7 @@ namespace MCSharp.Linkage.Predefined {
 		private InitializeInstanceDelegate Init { get; }
 
 		/// <inheritdoc/>
-		public IHashSetDictionary<Operation, PredefinedOperation> Operations { get; }
-		IHashSetDictionary<Operation, IOperation> IType.Operations => (IHashSetDictionary<Operation, IOperation>)Operations;
+		public IHashSetDictionary<Operation, IOperation> Operations { get; }
 
 
 		/// <summary>
@@ -61,7 +60,7 @@ namespace MCSharp.Linkage.Predefined {
 		/// <param name="members">The members defined by this type definition.</param>
 		/// <param name="subTypes">The type definitions defined by this type definition.</param>
 		public PredefinedType(Modifier modifiers, ClassType classType, string identifier, PredefinedMember[] members,
-		PredefinedConstructor[] constructors, PredefinedType[] subTypes, InitializeInstanceDelegate init, IHashSetDictionary<Operation, PredefinedOperation> operations) {
+		PredefinedConstructor[] constructors, PredefinedType[] subTypes, InitializeInstanceDelegate init, IHashSetDictionary<Operation, IOperation> operations) {
 			Modifiers = modifiers;
 			ClassType = classType;
 			Identifier = identifier;
@@ -78,7 +77,9 @@ namespace MCSharp.Linkage.Predefined {
 		/// <inheritdoc/>
 		public IInstance InitializeInstance(FunctionWriter writer, Scope scope, ITerminalNode identifier) {
 
-			return Init(writer, scope, identifier);
+			IInstance value = Init(writer, scope, identifier);
+			scope.AddInstance(value);
+			return value;
 			
 		}
 

@@ -6,6 +6,9 @@ namespace MCSharp.Linkage {
 
 	public enum Operation {
 
+		// Assign
+		Assign,
+
 		// Conditional Expression
 		Conditional,
 
