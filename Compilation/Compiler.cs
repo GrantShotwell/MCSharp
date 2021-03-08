@@ -636,29 +636,25 @@ namespace MCSharp.Compilation {
 				throw new ArgumentNullException(nameof(conditional_or_expression));
 			#endregion
 
-			ConditionalAndExpressionContext[] conditional_and_expressions = conditional_or_expression.conditional_and_expression();
-			int count = conditional_and_expressions.Length;
-			ResultInfo[] conditional_and_results = new ResultInfo[count];
-			IInstance[] conditional_and_values = new IInstance[count];
+			ConditionalAndExpressionContext[] expressions = conditional_or_expression.conditional_and_expression();
 
-			value = null;
+			ResultInfo firstResult = CompileConditionalAndExpression(compile, expressions[0], out value);
+			if(firstResult.Failure) return firstResult;
 
-			conditional_and_results[0] = CompileConditionalAndExpression(compile, conditional_and_expressions[0], out conditional_and_values[0]);
-			if(conditional_and_results[0].Failure) return conditional_and_results[0];
+			// TODO: Stop when any instance can evaluate to 'true'.
 
-			if(count == 2 && conditional_and_expressions[1] != null) {
+			int count = expressions.Length;
+			for(int i = 1; i < count; i++) {
 
-				conditional_and_results[1] = CompileConditionalAndExpression(compile, conditional_and_expressions[1], out conditional_and_values[1]);
-				if(conditional_and_results[1].Failure) return conditional_and_results[1];
+				ResultInfo exResult = CompileConditionalAndExpression(compile, expressions[i], out IInstance expressionValue);
+				if(exResult.Failure) return exResult;
 
-				throw new NotImplementedException("Boolean OR expressions have not been implemented.");
-
-			} else {
-
-				value = conditional_and_values[0];
-				return ResultInfo.DefaultSuccess;
+				ResultInfo opResult = CompileSimpleOperation(compile, Operation.BooleanOR, value, expressionValue, out value);
+				if(opResult.Failure) return opResult;
 
 			}
+
+			return ResultInfo.DefaultSuccess;
 
 		}
 
@@ -669,29 +665,25 @@ namespace MCSharp.Compilation {
 				throw new ArgumentNullException(nameof(conditional_and_expression));
 			#endregion
 
-			InclusiveOrExpressionContext[] inclusive_or_expressions = conditional_and_expression.inclusive_or_expression();
-			int count = inclusive_or_expressions.Length;
-			ResultInfo[] inclusive_or_results = new ResultInfo[count];
-			IInstance[] inclusive_or_values = new IInstance[count];
+			InclusiveOrExpressionContext[] expressions = conditional_and_expression.inclusive_or_expression();
 
-			value = null;
+			ResultInfo firstResult = CompileInclusiveOrExpression(compile, expressions[0], out value);
+			if(firstResult.Failure) return firstResult;
 
-			inclusive_or_results[0] = CompileInclusiveOrExpression(compile, inclusive_or_expressions[0], out inclusive_or_values[0]);
-			if(inclusive_or_results[0].Failure) return inclusive_or_results[0];
+			// TODO: Stop when any instance can evaluate to 'false'.
 
-			if(count == 2 && inclusive_or_expressions[1] != null) {
+			int count = expressions.Length;
+			for(int i = 1; i < count; i++) {
 
-				inclusive_or_results[1] = CompileInclusiveOrExpression(compile, inclusive_or_expressions[1], out inclusive_or_values[1]);
-				if(inclusive_or_results[1].Failure) return inclusive_or_results[1];
+				ResultInfo exResult = CompileInclusiveOrExpression(compile, expressions[i], out IInstance expressionValue);
+				if(exResult.Failure) return exResult;
 
-				throw new NotImplementedException("Boolean AND expressions have not been implemented.");
-
-			} else {
-
-				value = inclusive_or_values[0];
-				return ResultInfo.DefaultSuccess;
+				ResultInfo opResult = CompileSimpleOperation(compile, Operation.BooleanAND, value, expressionValue, out value);
+				if(opResult.Failure) return opResult;
 
 			}
+
+			return ResultInfo.DefaultSuccess;
 
 		}
 
@@ -702,29 +694,23 @@ namespace MCSharp.Compilation {
 				throw new ArgumentNullException(nameof(inclusive_or_expression));
 			#endregion
 
-			ExclusiveOrExpressionContext[] exclusive_or_expressions = inclusive_or_expression.exclusive_or_expression();
-			int count = exclusive_or_expressions.Length;
-			ResultInfo[] exclusive_or_results = new ResultInfo[count];
-			IInstance[] exclusive_or_values = new IInstance[count];
+			ExclusiveOrExpressionContext[] expressions = inclusive_or_expression.exclusive_or_expression();
 
-			value = null;
+			ResultInfo firstResult = CompileExclusiveOrExpression(compile, expressions[0], out value);
+			if(firstResult.Failure) return firstResult;
 
-			exclusive_or_results[0] = CompileExclusiveOrExpression(compile, exclusive_or_expressions[0], out exclusive_or_values[0]);
-			if(exclusive_or_results[0].Failure) return exclusive_or_results[0];
+			int count = expressions.Length;
+			for(int i = 1; i < count; i++) {
 
-			if(count == 2 && exclusive_or_expressions[1] != null) {
+				ResultInfo exResult = CompileExclusiveOrExpression(compile, expressions[i], out IInstance expressionValue);
+				if(exResult.Failure) return exResult;
 
-				exclusive_or_results[1] = CompileExclusiveOrExpression(compile, exclusive_or_expressions[1], out exclusive_or_values[1]);
-				if(exclusive_or_results[1].Failure) return exclusive_or_results[1];
-
-				throw new NotImplementedException("Bitwise XOR expressions have not been implemented.");
-
-			} else {
-
-				value = exclusive_or_values[0];
-				return ResultInfo.DefaultSuccess;
+				ResultInfo opResult = CompileSimpleOperation(compile, Operation.BitwiseOR, value, expressionValue, out value);
+				if(opResult.Failure) return opResult;
 
 			}
+
+			return ResultInfo.DefaultSuccess;
 
 		}
 
@@ -735,29 +721,23 @@ namespace MCSharp.Compilation {
 				throw new ArgumentNullException(nameof(exclusive_or_expression));
 			#endregion
 
-			AndExpressionContext[] and_expressions = exclusive_or_expression.and_expression();
-			int count = and_expressions.Length;
-			ResultInfo[] and_results = new ResultInfo[count];
-			IInstance[] and_values = new IInstance[count];
+			AndExpressionContext[] expressions = exclusive_or_expression.and_expression();
 
-			value = null;
+			ResultInfo firstResult = CompileAndExpression(compile, expressions[0], out value);
+			if(firstResult.Failure) return firstResult;
 
-			and_results[0] = CompileAndExpression(compile, and_expressions[0], out and_values[0]);
-			if(and_results[0].Failure) return and_results[0];
+			int count = expressions.Length;
+			for(int i = 1; i < count; i++) {
 
-			if(count == 2 && and_expressions[1] != null) {
+				ResultInfo exResult = CompileAndExpression(compile, expressions[i], out IInstance expressionValue);
+				if(exResult.Failure) return exResult;
 
-				and_results[1] = CompileAndExpression(compile, and_expressions[1], out and_values[1]);
-				if(and_results[1].Failure) return and_results[1];
-
-				throw new NotImplementedException("Bitwise OR expressions have not been implemented.");
-
-			} else {
-
-				value = and_values[0];
-				return ResultInfo.DefaultSuccess;
+				ResultInfo opResult = CompileSimpleOperation(compile, Operation.BitwiseXOR, value, expressionValue, out value);
+				if(opResult.Failure) return opResult;
 
 			}
+
+			return ResultInfo.DefaultSuccess;
 
 		}
 
@@ -768,29 +748,23 @@ namespace MCSharp.Compilation {
 				throw new ArgumentNullException(nameof(and_expression));
 			#endregion
 
-			EqualityExpressionContext[] equality_expressions = and_expression.equality_expression();
-			int count = equality_expressions.Length;
-			ResultInfo[] equality_results = new ResultInfo[count];
-			IInstance[] equality_values = new IInstance[count];
+			EqualityExpressionContext[] expressions = and_expression.equality_expression();
 
-			value = null;
+			ResultInfo firstResult = CompileEqualityExpression(compile, expressions[0], out value);
+			if(firstResult.Failure) return firstResult;
 
-			equality_results[0] = CompileEqualityExpression(compile, equality_expressions[0], out equality_values[0]);
-			if(equality_results[0].Failure) return equality_results[0];
+			int count = expressions.Length;
+			for(int i = 1; i < count; i++) {
 
-			if(count == 2 && equality_expressions[1] != null) {
+				ResultInfo exResult = CompileEqualityExpression(compile, expressions[i], out IInstance expressionValue);
+				if(exResult.Failure) return exResult;
 
-				equality_results[1] = CompileEqualityExpression(compile, equality_expressions[1], out equality_values[1]);
-				if(equality_results[1].Failure) return equality_results[1];
-
-				throw new NotImplementedException("Bitwise AND expressions have not been implemented.");
-
-			} else {
-
-				value = equality_values[0];
-				return ResultInfo.DefaultSuccess;
+				ResultInfo opResult = CompileSimpleOperation(compile, Operation.BitwiseAND, value, expressionValue, out value);
+				if(opResult.Failure) return opResult;
 
 			}
+
+			return ResultInfo.DefaultSuccess;
 
 		}
 
@@ -801,29 +775,29 @@ namespace MCSharp.Compilation {
 				throw new ArgumentNullException(nameof(equality_expression));
 			#endregion
 
-			RelationalExpressionContext[] relational_expressions = equality_expression.relational_expression();
-			int count = relational_expressions.Length;
-			ResultInfo[] relational_results = new ResultInfo[count];
-			IInstance[] relational_values = new IInstance[count];
+			RelationalExpressionContext[] expressions = equality_expression.relational_expression();
+			MCSharpParser.Equality_operatorContext[] operators = equality_expression.equality_operator();
 
-			value = null;
+			ResultInfo firstResult = CompileRelationalExpression(compile, expressions[0], out value);
+			if(firstResult.Failure) return firstResult;
 
-			relational_results[0] = CompileRelationalExpression(compile, relational_expressions[0], out relational_values[0]);
-			if(relational_results[0].Failure) return relational_results[0];
+			int count = expressions.Length;
+			for(int i = 1; i < count; i++) {
 
-			if(count == 2 && relational_expressions[1] != null) {
+				ResultInfo exResult = CompileRelationalExpression(compile, expressions[i], out IInstance expressionValue);
+				if(exResult.Failure) return exResult;
 
-				relational_results[1] = CompileRelationalExpression(compile, relational_expressions[1], out relational_values[1]);
-				if(relational_results[1].Failure) return relational_results[1];
+				Operation op;
+				MCSharpParser.Equality_operatorContext equality_operator = operators[i - 1];
+				if(equality_operator.EQUIVALENT() != null) op = Operation.Equality;
+				else op = Operation.Inequality;
 
-				throw new NotImplementedException("Equality expressions have not been implemented.");
-
-			} else {
-
-				value = relational_values[0];
-				return ResultInfo.DefaultSuccess;
+				ResultInfo opResult = CompileSimpleOperation(compile, op, value, expressionValue, out value);
+				if(opResult.Failure) return opResult;
 
 			}
+
+			return ResultInfo.DefaultSuccess;
 
 		}
 
@@ -835,17 +809,13 @@ namespace MCSharp.Compilation {
 			#endregion
 
 			value = null;
-
 			ShiftExpressionContext shift_expression = relational_expression.shift_expression();
 			ResultInfo shift_result = CompileShiftExpression(compile, shift_expression, out IInstance shift_value);
 			if(shift_result.Failure) return shift_result;
-
 			RelationOrTypeCheckContext[] relation_or_type_check = relational_expression.relation_or_type_check();
-
 			if(relation_or_type_check.Length > 0) {
 				throw new NotImplementedException("Relation/type check has not been implemented.");
 			}
-
 			value = shift_value;
 			return ResultInfo.DefaultSuccess;
 
@@ -949,7 +919,7 @@ namespace MCSharp.Compilation {
 
 				Operation op;
 				MCSharpParser.Multiplicative_operatorContext multiplicative_operator = operators[i - 1];
-				if(multiplicative_operator.MULTIPLY() != null) op = Operation.Addition;
+				if(multiplicative_operator.MULTIPLY() != null) op = Operation.Multiplication;
 				else if(multiplicative_operator.DIVIDE() != null) op = Operation.Division;
 				else op = Operation.Modulo;
 
