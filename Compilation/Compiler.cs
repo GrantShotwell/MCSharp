@@ -935,29 +935,30 @@ namespace MCSharp.Compilation {
 				throw new ArgumentNullException(nameof(multiplicative_expression));
 			#endregion
 
-			WithExpressionContext[] with_expressions = multiplicative_expression.with_expression();
-			int count = with_expressions.Length;
-			ResultInfo[] with_results = new ResultInfo[count];
-			IInstance[] with_values = new IInstance[count];
+			WithExpressionContext[] expressions = multiplicative_expression.with_expression();
+			MCSharpParser.Multiplicative_operatorContext[] operators = multiplicative_expression.multiplicative_operator();
 
-			value = null;
+			ResultInfo firstResult = CompileWithExpression(compile, expressions[0], out value);
+			if(firstResult.Failure) return firstResult;
 
-			with_results[0] = CompileWithExpression(compile, with_expressions[0], out with_values[0]);
-			if(with_results[0].Failure) return with_results[0];
+			int count = expressions.Length;
+			for(int i = 1; i < count; i++) {
 
-			if(count == 2 && with_expressions[1] != null) {
+				ResultInfo exResult = CompileWithExpression(compile, expressions[i], out IInstance expressionValue);
+				if(exResult.Failure) return exResult;
 
-				with_results[1] = CompileWithExpression(compile, with_expressions[1], out with_values[1]);
-				if(with_results[1].Failure) return with_results[1];
+				Operation op;
+				MCSharpParser.Multiplicative_operatorContext multiplicative_operator = operators[i - 1];
+				if(multiplicative_operator.MULTIPLY() != null) op = Operation.Addition;
+				else if(multiplicative_operator.DIVIDE() != null) op = Operation.Division;
+				else op = Operation.Modulo;
 
-				throw new NotImplementedException("Multiplicative expressions have not been implemented.");
-
-			} else {
-
-				value = with_values[0];
-				return ResultInfo.DefaultSuccess;
+				ResultInfo opResult = CompileSimpleOperation(compile, op, value, expressionValue, out value);
+				if(opResult.Failure) return opResult;
 
 			}
+
+			return ResultInfo.DefaultSuccess;
 
 		}
 
@@ -1232,10 +1233,10 @@ namespace MCSharp.Compilation {
 				if(integer_literal != null) {
 
 					string text = integer_literal.GetText();
-					int integer_value = int.Parse(text);
+					int _value = int.Parse(text);
 
-					IType integer_type = DefinedTypes[MCSharpLinkerExtension.IntIdentifier];
-					value = new PrimitiveInstance.IntegerInstance.Constant(integer_type, null, integer_value);
+					IType type = DefinedTypes[MCSharpLinkerExtension.IntIdentifier];
+					value = new PrimitiveInstance.IntegerInstance.Constant(type, null, _value);
 					ResultInfo scopeResult = compile.Scope.AddInstance(value);
 					if(scopeResult.Failure) return scopeResult;
 
@@ -1247,10 +1248,10 @@ namespace MCSharp.Compilation {
 				if(boolean_literal != null) {
 
 					string text = boolean_literal.GetText();
-					bool boolean_value = bool.Parse(text);
+					bool _value = bool.Parse(text);
 
-					IType boolean_type = DefinedTypes[MCSharpLinkerExtension.BoolIdentifier];
-					value = new PrimitiveInstance.BooleanInstance.Constant(boolean_type, null, boolean_value);
+					IType type = DefinedTypes[MCSharpLinkerExtension.BoolIdentifier];
+					value = new PrimitiveInstance.BooleanInstance.Constant(type, null, _value);
 					ResultInfo scoprResult = compile.Scope.AddInstance(value);
 					if(scoprResult.Failure) return scoprResult;
 
@@ -1262,9 +1263,9 @@ namespace MCSharp.Compilation {
 				if(string_literal != null) {
 
 					string text = string_literal.GetText();
-					string string_value = text[1..^1];
+					string _value = text[1..^1];
 
-					IType string_type = DefinedTypes[MCSharpLinkerExtension.StringIdentifier];
+					IType type = DefinedTypes[MCSharpLinkerExtension.StringIdentifier];
 
 					throw new NotImplementedException("String literals have not been implemented.");
 
@@ -1274,7 +1275,7 @@ namespace MCSharp.Compilation {
 				if(decimal_literal != null) {
 
 					string text = decimal_literal.GetText();
-					double decimal_value = double.Parse(text);
+					double _value = double.Parse(text);
 
 					// type
 

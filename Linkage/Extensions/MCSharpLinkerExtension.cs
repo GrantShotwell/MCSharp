@@ -94,7 +94,7 @@ namespace MCSharp.Linkage.Extensions {
 
 			HashSetDictionary<Operation, IOperation> operations = new HashSetDictionary<Operation, IOperation>();
 
-			static IInstance ScoreboardOperation(Compiler.CompileArguments compile, IInstance[] method, PredefinedType predefinedType, string op) {
+			static IInstance ScoreboardOperation(Compiler.CompileArguments compile, IInstance[] method, PredefinedType predefinedType, string op, Func<int, int, int> evaluateConstants) {
 
 				Scope scope = compile.Scope;
 				FunctionWriter writer = compile.Writer;
@@ -106,7 +106,7 @@ namespace MCSharp.Linkage.Extensions {
 				PrimitiveInstance.IntegerInstance.Constant rightConstant = right is null ? method[1] as PrimitiveInstance.IntegerInstance.Constant : null;
 
 				if(leftConstant != null && rightConstant != null) {
-					int value = leftConstant.Value + rightConstant.Value;
+					int value = evaluateConstants(leftConstant.Value, rightConstant.Value);
 					PrimitiveInstance.IntegerInstance.Constant result = new PrimitiveInstance.IntegerInstance.Constant(predefinedType, null, value);
 					return result;
 				} else if(leftConstant != null) {
@@ -180,7 +180,7 @@ namespace MCSharp.Linkage.Extensions {
 						new PredefinedMethodParameter(IntIdentifier, "right")
 					},
 					(compile, generic, method) => {
-						return ScoreboardOperation(compile, method, predefinedType, "+=");
+						return ScoreboardOperation(compile, method, predefinedType, "+=", (left, right) => left + right);
 					}
 				);
 
@@ -201,11 +201,74 @@ namespace MCSharp.Linkage.Extensions {
 						new PredefinedMethodParameter(IntIdentifier, "right")
 					},
 					(compile, generic, method) => {
-						return ScoreboardOperation(compile, method, predefinedType, "-=");
+						return ScoreboardOperation(compile, method, predefinedType, "-=", (left, right) => left - right);
 					}
 				);
 
 				Operation op = Operation.Subtraction;
+				operations.Add(op, new PredefinedOperation(op, function));
+
+			}
+
+			// Multiplication
+			{
+
+				CustomFunction function = new CustomFunction(IntIdentifier,
+					new PredefinedGenericParameter[] {
+
+					},
+					new PredefinedMethodParameter[] {
+						new PredefinedMethodParameter(IntIdentifier, "left"),
+						new PredefinedMethodParameter(IntIdentifier, "right")
+					},
+					(compile, generic, method) => {
+						return ScoreboardOperation(compile, method, predefinedType, "*=", (left, right) => left * right);
+					}
+				);
+
+				Operation op = Operation.Multiplication;
+				operations.Add(op, new PredefinedOperation(op, function));
+
+			}
+
+			// Division
+			{
+
+				CustomFunction function = new CustomFunction(IntIdentifier,
+					new PredefinedGenericParameter[] {
+
+					},
+					new PredefinedMethodParameter[] {
+						new PredefinedMethodParameter(IntIdentifier, "left"),
+						new PredefinedMethodParameter(IntIdentifier, "right")
+					},
+					(compile, generic, method) => {
+						return ScoreboardOperation(compile, method, predefinedType, "/=", (left, right) => left / right);
+					}
+				);
+
+				Operation op = Operation.Division;
+				operations.Add(op, new PredefinedOperation(op, function));
+
+			}
+
+			// Modulo
+			{
+
+				CustomFunction function = new CustomFunction(IntIdentifier,
+					new PredefinedGenericParameter[] {
+
+					},
+					new PredefinedMethodParameter[] {
+						new PredefinedMethodParameter(IntIdentifier, "left"),
+						new PredefinedMethodParameter(IntIdentifier, "right")
+					},
+					(compile, generic, method) => {
+						return ScoreboardOperation(compile, method, predefinedType, "%=", (left, right) => left % right);
+					}
+				);
+
+				Operation op = Operation.Modulo;
 				operations.Add(op, new PredefinedOperation(op, function));
 
 			}
