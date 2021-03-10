@@ -1,4 +1,5 @@
 ﻿using MCSharp.Compilation;
+using MCSharp.Compilation.Instancing;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -24,20 +25,27 @@ namespace MCSharp.Linkage.Minecraft {
 		/// <inheritdoc/>
 		public string ReturnTypeIdentifier { get; }
 
+		private ICollection<StandaloneStatementFunction> ChildFunctions { get; } = new LinkedList<StandaloneStatementFunction>();
+
+		private bool Compiled { get; set; }
+
+		public Scope Scope { get; }
+
 
 		/// <summary>
 		/// Creates a new <see cref="StandaloneStatementFunction"/>.
 		/// </summary>
 		/// <param name="writer">The <see cref="FunctionWriter"/> this <see cref="IFunction"/> will write to.</param>
+		/// <param name="scope">The <see cref="Scope"/> used when writing the function.</param>
 		/// <param name="genericParameters">The <see cref="IGenericParameter"/>s of this <see cref="IFunction"/>.</param>
 		/// <param name="methodParameters">The <see cref="IMethodParameter"/>s of this <see cref="IFunction"/>.</param>
 		/// <param name="statements">The <see cref="IStatement"/>s of this <see cref="IFunction"/>.</param>
 		/// <param name="returnType">The local identifier of the return type for this <see cref="IFunction"/>.</param>
 		/// <exception cref="ArgumentNullException">Thrown when any argument is <see langword="null"/></exception>
-		public StandaloneStatementFunction(FunctionWriter writer, IGenericParameter[] genericParameters, IMethodParameter[] methodParameters, IStatement[] statements, string returnType) {
+		public StandaloneStatementFunction(FunctionWriter writer, Scope scope, IGenericParameter[] genericParameters, IMethodParameter[] methodParameters, IStatement[] statements, string returnType) {
 
 			Writer = writer ?? throw new ArgumentNullException(nameof(writer));
-
+			Scope = scope ?? throw new ArgumentNullException(nameof(scope));
 			GenericParameters = genericParameters ?? throw new ArgumentNullException(nameof(genericParameters));
 			MethodParameters = methodParameters ?? throw new ArgumentNullException(nameof(methodParameters));
 			Statements = statements ?? throw new ArgumentNullException(nameof(statements));
@@ -61,21 +69,39 @@ namespace MCSharp.Linkage.Minecraft {
 				throw new ArgumentNullException(nameof(statements));
 			#endregion
 
-			if(name == null) name = GenerateNewChildName();
-
-			FunctionWriter writer = new FunctionWriter(Writer.VirtualMachine, settings, $"{Writer.LocalFilePath}\\{Writer.Name}", name);
-			StandaloneStatementFunction sub = new StandaloneStatementFunction(writer, GenericParameters.ToArray(), MethodParameters.ToArray(), statements, ReturnTypeIdentifier);
-			return sub;
+			if(name == null) name = NextChildName();
+			FunctionWriter writer = new FunctionWriter(Writer.VirtualMachine, settings, $"{Writer.LocalDirectory}\\{Writer.Name}", name);
+			StandaloneStatementFunction child = new StandaloneStatementFunction(writer, new Scope(null, Scope, null), GenericParameters.ToArray(), MethodParameters.ToArray(), statements, ReturnTypeIdentifier);
+			ChildFunctions.Add(child);
+			return child;
 
 		}
 
-		private static int childcount = 0;
-		private string GenerateNewChildName() {
-			return $"{Writer.Name}\\{childcount++}";
+
+		/// <inheritdoc/>
+		public ResultInfo Invoke(Compiler.CompileArguments location, IType[] generic, IInstance[] arguments, out IInstance result) {
+
+			if(!Compiled) {
+				location.Compiler.CompileStatements(this, Scope, Statements);
+				Compiled = true;
+			}
+
+			result = null;
+
+			location.Writer.WriteCommand($"function {Writer.GamePath}");
+			return ResultInfo.DefaultSuccess;
+
+		}
+
+		private string NextChildName() {
+			return ChildFunctions.Count.ToString();
 		}
 
 		public void Dispose() {
 			Writer.Dispose();
+			foreach(IFunction function in ChildFunctions) {
+				function.Dispose();
+			}
 		}
 
 	}

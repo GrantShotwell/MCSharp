@@ -8,7 +8,7 @@ namespace MCSharp.Linkage.Script {
 	/// <summary>
 	/// Represents a constructor defined by script.
 	/// </summary>
-	public class ScriptConstructor : IConstructor {
+	public class ScriptConstructor : IConstructor, IScopeHolder {
 
 		/// <summary>
 		/// The type, defined by script, that has defined this constructor.
@@ -25,6 +25,9 @@ namespace MCSharp.Linkage.Script {
 		public StandaloneStatementFunction Invoker { get; }
 		/// <inheritdoc/>
 		IFunction IConstructor.Invoker => Invoker;
+
+		/// <inheritdoc/>
+		public Scope Scope { get; set; }
 
 
 		/// <summary>
@@ -51,7 +54,8 @@ namespace MCSharp.Linkage.Script {
 				statements = ScriptStatement.CreateArrayFromArray(context.code_block().statement());
 			}
 
-			Invoker = new StandaloneStatementFunction(writer, new ScriptGenericParameter[] { }, parameters, statements, Declarer.Identifier.GetText());
+			Scope = new Scope(null, declarer.Scope, this);
+			Invoker = new StandaloneStatementFunction(writer, Scope, new ScriptGenericParameter[] { }, parameters, statements, Declarer.Identifier.GetText());
 
 		}
 

@@ -14,10 +14,12 @@ namespace MCSharp.Compilation.Instancing {
 		/// <inheritdoc/>
 		public IType Type { get; }
 
-		/// <inheritdoc/>
+		/// <summary>
+		/// The local identifier for this instance.
+		/// </summary>
 		public ITerminalNode Identifier { get; }
-
-		public Scope Scope { get; }
+		/// <inheritdoc/>
+		string IInstance.Identifier => Identifier.GetText();
 
 
 		public StructInstance(IType type, ITerminalNode identifier, Scope parent) {
@@ -27,8 +29,6 @@ namespace MCSharp.Compilation.Instancing {
 			Type = type;
 
 			Identifier = identifier;
-
-			Scope = new Scope(identifier.GetText(), parent);
 
 		}
 

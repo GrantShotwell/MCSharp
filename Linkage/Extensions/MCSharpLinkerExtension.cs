@@ -11,7 +11,7 @@ namespace MCSharp.Linkage.Extensions {
 
 	public class MCSharpLinkerExtension : LinkerExtension {
 
-		public static string StorageSelector => "value";
+		public static string StorageSelector => "mcs.value";
 		public static string IntIdentifier => "int";
 		public static string BoolIdentifier => "bool";
 		public static string ObjectiveIdentifier => "objective";
@@ -141,14 +141,14 @@ namespace MCSharp.Linkage.Extensions {
 						new PredefinedMethodParameter(IntIdentifier, "left"),
 						new PredefinedMethodParameter(IntIdentifier, "right")
 					},
-					(compile, generic, method) => {
+					(Compiler.CompileArguments compile, IType[] generic, IInstance[] arguments, out IInstance result) => {
 
 						string selector = StorageSelector;
 
-						PrimitiveInstance.IntegerInstance left = method[0] as PrimitiveInstance.IntegerInstance;
-						PrimitiveInstance.IntegerInstance.Constant leftConstant = left is null ? method[0] as PrimitiveInstance.IntegerInstance.Constant : null;
-						PrimitiveInstance.IntegerInstance right = method[1] as PrimitiveInstance.IntegerInstance;
-						PrimitiveInstance.IntegerInstance.Constant rightConstant = right is null ? method[1] as PrimitiveInstance.IntegerInstance.Constant : null;
+						PrimitiveInstance.IntegerInstance left = arguments[0] as PrimitiveInstance.IntegerInstance;
+						PrimitiveInstance.IntegerInstance.Constant leftConstant = left is null ? arguments[0] as PrimitiveInstance.IntegerInstance.Constant : null;
+						PrimitiveInstance.IntegerInstance right = arguments[1] as PrimitiveInstance.IntegerInstance;
+						PrimitiveInstance.IntegerInstance.Constant rightConstant = right is null ? arguments[1] as PrimitiveInstance.IntegerInstance.Constant : null;
 
 						if(leftConstant != null) {
 							throw new InvalidOperationException("Cannot assign to a constant.");
@@ -158,7 +158,8 @@ namespace MCSharp.Linkage.Extensions {
 							compile.Writer.WriteCommand($"scoreboard players operation {selector} {left.Objective.Name} = {selector} {right.Objective.Name}");
 						}
 
-						return left;
+						result = left;
+						return ResultInfo.DefaultSuccess;
 
 					}
 				);
@@ -179,8 +180,9 @@ namespace MCSharp.Linkage.Extensions {
 						new PredefinedMethodParameter(IntIdentifier, "left"),
 						new PredefinedMethodParameter(IntIdentifier, "right")
 					},
-					(compile, generic, method) => {
-						return ScoreboardOperation(compile, method, predefinedType, "+=", (left, right) => left + right);
+					(Compiler.CompileArguments compile, IType[] generic, IInstance[] arguments, out IInstance result) => {
+						result = ScoreboardOperation(compile, arguments, predefinedType, "+=", (left, right) => left + right);
+						return ResultInfo.DefaultSuccess;
 					}
 				);
 
@@ -200,8 +202,9 @@ namespace MCSharp.Linkage.Extensions {
 						new PredefinedMethodParameter(IntIdentifier, "left"),
 						new PredefinedMethodParameter(IntIdentifier, "right")
 					},
-					(compile, generic, method) => {
-						return ScoreboardOperation(compile, method, predefinedType, "-=", (left, right) => left - right);
+					(Compiler.CompileArguments compile, IType[] generic, IInstance[] arguments, out IInstance result) => {
+						result = ScoreboardOperation(compile, arguments, predefinedType, "-=", (left, right) => left - right);
+						return ResultInfo.DefaultSuccess;
 					}
 				);
 
@@ -221,8 +224,9 @@ namespace MCSharp.Linkage.Extensions {
 						new PredefinedMethodParameter(IntIdentifier, "left"),
 						new PredefinedMethodParameter(IntIdentifier, "right")
 					},
-					(compile, generic, method) => {
-						return ScoreboardOperation(compile, method, predefinedType, "*=", (left, right) => left * right);
+					(Compiler.CompileArguments compile, IType[] generic, IInstance[] arguments, out IInstance result) => {
+						result = ScoreboardOperation(compile, arguments, predefinedType, "*=", (left, right) => left * right);
+						return ResultInfo.DefaultSuccess;
 					}
 				);
 
@@ -242,8 +246,9 @@ namespace MCSharp.Linkage.Extensions {
 						new PredefinedMethodParameter(IntIdentifier, "left"),
 						new PredefinedMethodParameter(IntIdentifier, "right")
 					},
-					(compile, generic, method) => {
-						return ScoreboardOperation(compile, method, predefinedType, "/=", (left, right) => left / right);
+					(Compiler.CompileArguments compile, IType[] generic, IInstance[] arguments, out IInstance result) => {
+						result = ScoreboardOperation(compile, arguments, predefinedType, "/=", (left, right) => left / right);
+						return ResultInfo.DefaultSuccess;
 					}
 				);
 
@@ -263,8 +268,9 @@ namespace MCSharp.Linkage.Extensions {
 						new PredefinedMethodParameter(IntIdentifier, "left"),
 						new PredefinedMethodParameter(IntIdentifier, "right")
 					},
-					(compile, generic, method) => {
-						return ScoreboardOperation(compile, method, predefinedType, "%=", (left, right) => left % right);
+					(Compiler.CompileArguments compile, IType[] generic, IInstance[] arguments, out IInstance result) => {
+						result = ScoreboardOperation(compile, arguments, predefinedType, "%=", (left, right) => left % right);
+						return ResultInfo.DefaultSuccess;
 					}
 				);
 
@@ -278,7 +284,7 @@ namespace MCSharp.Linkage.Extensions {
 			PredefinedType.InitializeInstanceDelegate init = (writer, scope, identifier) => {
 
 				if(predefinedType is null) throw new Exception();
-				var objective = Objective.AddObjective(writer, identifier?.GetText(), "dummy");
+				var objective = Objective.AddObjective(writer, identifier, "dummy");
 				return new PrimitiveInstance.IntegerInstance(predefinedType, identifier, objective);
 
 			};
@@ -348,7 +354,149 @@ namespace MCSharp.Linkage.Extensions {
 
 			HashSetDictionary<Operation, IOperation> operations = new HashSetDictionary<Operation, IOperation>();
 
+			// Assign
 			{
+
+				CustomFunction function = new CustomFunction(BoolIdentifier,
+					new PredefinedGenericParameter[] {
+
+					},
+					new PredefinedMethodParameter[] {
+						new PredefinedMethodParameter(BoolIdentifier, "left"),
+						new PredefinedMethodParameter(BoolIdentifier, "right")
+					},
+					(Compiler.CompileArguments compile, IType[] generic, IInstance[] arguments, out IInstance result) => {
+
+						string selector = StorageSelector;
+
+						PrimitiveInstance.BooleanInstance left = arguments[0] as PrimitiveInstance.BooleanInstance;
+						PrimitiveInstance.BooleanInstance.Constant leftConstant = left is null ? arguments[0] as PrimitiveInstance.BooleanInstance.Constant : null;
+						PrimitiveInstance.BooleanInstance right = arguments[1] as PrimitiveInstance.BooleanInstance;
+						PrimitiveInstance.BooleanInstance.Constant rightConstant = right is null ? arguments[1] as PrimitiveInstance.BooleanInstance.Constant : null;
+
+						if(leftConstant != null) {
+							throw new InvalidOperationException("Cannot assign to a constant.");
+						} else if(rightConstant != null) {
+							compile.Writer.WriteCommand($"scoreboard players set {selector} {left.Objective.Name} {(rightConstant.Value ? 1 : 0)}");
+						} else {
+							compile.Writer.WriteCommand($"scoreboard players operation {selector} {left.Objective.Name} = {selector} {right.Objective.Name}");
+						}
+
+						result = left;
+						return ResultInfo.DefaultSuccess;
+
+					}
+				);
+
+				Operation op = Operation.Assign;
+				operations.Add(op, new PredefinedOperation(op, function));
+
+			}
+
+			// Boolean AND
+			{
+
+				CustomFunction function = new CustomFunction(BoolIdentifier,
+					new PredefinedGenericParameter[] {
+
+					},
+					new PredefinedMethodParameter[] {
+						new PredefinedMethodParameter(BoolIdentifier, "left"),
+						new PredefinedMethodParameter(BoolIdentifier, "right")
+					},
+					(Compiler.CompileArguments compile, IType[] generic, IInstance[] arguments, out IInstance result) => {
+
+						string selector = StorageSelector;
+
+						PrimitiveInstance.BooleanInstance left = arguments[0] as PrimitiveInstance.BooleanInstance;
+						PrimitiveInstance.BooleanInstance.Constant leftConstant = left is null ? arguments[0] as PrimitiveInstance.BooleanInstance.Constant : null;
+						PrimitiveInstance.BooleanInstance right = arguments[1] as PrimitiveInstance.BooleanInstance;
+						PrimitiveInstance.BooleanInstance.Constant rightConstant = right is null ? arguments[1] as PrimitiveInstance.BooleanInstance.Constant : null;
+
+						if(leftConstant != null && rightConstant != null) {
+							result = new PrimitiveInstance.BooleanInstance.Constant(predefinedType, null, leftConstant.Value && rightConstant.Value);
+						} else if(leftConstant != null) {
+							if(!leftConstant.Value) {
+								result = leftConstant;
+							} else {
+								PrimitiveInstance.BooleanInstance instance = (result = predefinedType.InitializeInstance(compile.Writer, compile.Scope, null)) as PrimitiveInstance.BooleanInstance;
+								compile.Writer.WriteCommand($"scoreboard players set {selector} {instance.Objective.Name} {(leftConstant.Value ? 1 : 0)}");
+							}
+						} else if(rightConstant != null) {
+							if(!rightConstant.Value) {
+								result = rightConstant;
+							} else {
+								PrimitiveInstance.BooleanInstance instance = (result = predefinedType.InitializeInstance(compile.Writer, compile.Scope, null)) as PrimitiveInstance.BooleanInstance;
+								compile.Writer.WriteCommand($"scoreboard players set {selector} {instance.Objective.Name} {(rightConstant.Value ? 1 : 0)}");
+								result = instance;
+							}
+						} else {
+							PrimitiveInstance.BooleanInstance instance = (result = predefinedType.InitializeInstance(compile.Writer, compile.Scope, null)) as PrimitiveInstance.BooleanInstance;
+							compile.Writer.WriteCommand($"scoreboard players set {selector} {instance.Objective.Name} 0");
+							compile.Writer.WriteCommand($"execute if score {selector} {left.Objective.Name} matches 1.. if score {selector} {right.Objective.Name} matches 1.. " +
+								$"run scoreboard players set {selector} {instance.Objective.Name} 1");
+						}
+
+						return ResultInfo.DefaultSuccess;
+
+					}
+				);
+
+				Operation op = Operation.BooleanAND;
+				operations.Add(op, new PredefinedOperation(op, function));
+
+			}
+
+			// Boolean OR
+			{
+
+				CustomFunction function = new CustomFunction(BoolIdentifier,
+					new PredefinedGenericParameter[] {
+
+					},
+					new PredefinedMethodParameter[] {
+						new PredefinedMethodParameter(BoolIdentifier, "left"),
+						new PredefinedMethodParameter(BoolIdentifier, "right")
+					},
+					(Compiler.CompileArguments compile, IType[] generic, IInstance[] arguments, out IInstance result) => {
+
+						string selector = StorageSelector;
+
+						PrimitiveInstance.BooleanInstance left = arguments[0] as PrimitiveInstance.BooleanInstance;
+						PrimitiveInstance.BooleanInstance.Constant leftConstant = left is null ? arguments[0] as PrimitiveInstance.BooleanInstance.Constant : null;
+						PrimitiveInstance.BooleanInstance right = arguments[1] as PrimitiveInstance.BooleanInstance;
+						PrimitiveInstance.BooleanInstance.Constant rightConstant = right is null ? arguments[1] as PrimitiveInstance.BooleanInstance.Constant : null;
+
+						if(leftConstant != null && rightConstant != null) {
+							result = new PrimitiveInstance.BooleanInstance.Constant(predefinedType, null, leftConstant.Value && rightConstant.Value);
+						} else if(leftConstant != null) {
+							if(leftConstant.Value) {
+								result = leftConstant;
+							} else {
+								PrimitiveInstance.BooleanInstance instance = (result = predefinedType.InitializeInstance(compile.Writer, compile.Scope, null)) as PrimitiveInstance.BooleanInstance;
+								compile.Writer.WriteCommand($"scoreboard players set {selector} {instance.Objective.Name} {(leftConstant.Value ? 1 : 0)}");
+							}
+						} else if(rightConstant != null) {
+							if(rightConstant.Value) {
+								result = rightConstant;
+							} else {
+								PrimitiveInstance.BooleanInstance instance = (result = predefinedType.InitializeInstance(compile.Writer, compile.Scope, null)) as PrimitiveInstance.BooleanInstance;
+								compile.Writer.WriteCommand($"scoreboard players set {selector} {instance.Objective.Name} {(rightConstant.Value ? 1 : 0)}");
+							}
+						} else {
+							PrimitiveInstance.BooleanInstance instance = (result = predefinedType.InitializeInstance(compile.Writer, compile.Scope, null)) as PrimitiveInstance.BooleanInstance;
+							compile.Writer.WriteCommand($"scoreboard players set {selector} {instance.Objective.Name} 1");
+							compile.Writer.WriteCommand($"execute if score {selector} {left.Objective.Name} matches ..0 if score {selector} {right.Objective.Name} matches ..0 " +
+								$"run scoreboard players set {selector} {instance.Objective.Name} 0");
+						}
+
+						return ResultInfo.DefaultSuccess;
+
+					}
+				);
+
+				Operation op = Operation.BooleanOR;
+				operations.Add(op, new PredefinedOperation(op, function));
 
 			}
 
@@ -356,7 +504,7 @@ namespace MCSharp.Linkage.Extensions {
 			PredefinedType.InitializeInstanceDelegate init = (writer, scope, identifier) => {
 
 				if(predefinedType is null) throw new Exception();
-				var objective = Objective.AddObjective(writer, identifier.GetText(), "dummy");
+				var objective = Objective.AddObjective(writer, identifier, "dummy");
 				return new PrimitiveInstance.BooleanInstance(predefinedType, identifier, objective);
 
 			};

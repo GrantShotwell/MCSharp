@@ -1,4 +1,5 @@
 ﻿using Antlr4.Runtime.Tree;
+using MCSharp.Compilation;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -14,16 +15,25 @@ namespace MCSharp.Linkage.Predefined {
 		/// The predefined type that has defined this member.
 		/// </summary>
 		public PredefinedType Declarer { get; set; }
+
 		/// <inheritdoc/>
 		IType IMember.Declarer => Declarer;
+
+		/// <inheritdoc/>
+		public Scope Scope { get; set; }
+
 		/// <inheritdoc/>
 		public Modifier Modifiers { get; }
+
 		/// <inheritdoc/>
 		public string ReturnTypeIdentifier { get; }
+
 		/// <inheritdoc/>
 		public string Identifier { get; }
+
 		/// <inheritdoc/>
 		public MemberType MemberType { get; }
+
 		/// <inheritdoc/>
 		public IMemberDefinition Definition { get; }
 

@@ -12,6 +12,10 @@ namespace MCSharp.Linkage.Script {
 		public ScriptType Declarer { get; }
 		/// <inheritdoc/>
 		IType IMember.Declarer => Declarer;
+
+		/// <inheritdoc/>
+		public Scope Scope { get; set; }
+
 		/// <summary>
 		/// TODO: Possibly remove this.
 		/// </summary>

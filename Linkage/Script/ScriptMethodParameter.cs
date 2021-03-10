@@ -1,13 +1,25 @@
 ﻿using Antlr4.Runtime.Tree;
+using MCSharp.Compilation.Instancing;
 
 namespace MCSharp.Linkage.Script {
 
 	public class ScriptMethodParameter : IMethodParameter {
 
+		/// <summary>
+		/// 
+		/// </summary>
 		public ITerminalNode TypeIdentifier { get; }
+		/// <inheritdoc/>
 		string IMethodParameter.TypeIdentifier => TypeIdentifier.GetText();
+
+		/// <summary>
+		/// 
+		/// </summary>
 		public ITerminalNode Identifier { get; }
+		/// <inheritdoc/>
 		string IMethodParameter.Identifier => Identifier.GetText();
+
+		public IInstance Instance { get; set; }
 
 		public ScriptMethodParameter(MCSharpParser.Method_parameterContext context) {
 

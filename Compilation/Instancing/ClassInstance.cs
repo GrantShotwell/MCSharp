@@ -14,8 +14,12 @@ namespace MCSharp.Compilation.Instancing {
 		/// <inheritdoc/>
 		public IType Type { get; }
 
-		/// <inheritdoc/>
+		/// <summary>
+		/// The local identifier of this instance.
+		/// </summary>
 		public ITerminalNode Identifier { get; }
+		/// <inheritdoc/>
+		string IInstance.Identifier => Identifier.GetText();
 
 		public PrimitiveInstance.IntegerInstance.Constant ObjectId { get; }
 

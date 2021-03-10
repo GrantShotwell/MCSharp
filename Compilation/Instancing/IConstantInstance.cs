@@ -5,7 +5,7 @@ using System.Text;
 namespace MCSharp.Compilation.Instancing {
 
 	/// <summary>
-	/// Represents an <see cref="IInstance"/> with a constant value of an unknown type.
+	/// Represents an <see cref="IInstance"/> that holds a constant value.
 	/// </summary>
 	public interface IConstantInstance : IInstance {
 
@@ -17,7 +17,7 @@ namespace MCSharp.Compilation.Instancing {
 	}
 
 	/// <summary>
-	/// Represents an <see cref="IInstance"/> with a constant value of a known type.
+	/// Represents an <see cref="IInstance"/> that holds a constant value of a known type.
 	/// </summary>
 	/// <typeparam name="TValue">Represents the value this <see cref="IConstantInstance"/> stores.</typeparam>
 	public interface IConstantInstance<TValue> : IConstantInstance {

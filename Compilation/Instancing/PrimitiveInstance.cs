@@ -16,11 +16,11 @@ namespace MCSharp.Compilation.Instancing {
 		public IType Type { get; }
 		
 		/// <inheritdoc/>
-		public ITerminalNode Identifier { get; }
+		public string Identifier { get; }
 
 
-		// Private to disallow extensions to make primitive types.
-		private PrimitiveInstance(IType type, ITerminalNode identifier) {
+		// Private to disallow extensions to make primitive types because that is not supported.
+		private PrimitiveInstance(IType type, string identifier) {
 
 			if(type.ClassType != ClassType.Primitive)
 				throw new IInstance.InvalidTypeException(type, "a specific primitive");
@@ -50,7 +50,7 @@ namespace MCSharp.Compilation.Instancing {
 			/// <param name="type"></param>
 			/// <param name="identifier"></param>
 			/// <param name="value"></param>
-			public ObjectiveInstance(IType type, ITerminalNode identifier, Objective value) : base(type, identifier) {
+			public ObjectiveInstance(IType type, string identifier, Objective value) : base(type, identifier) {
 				Value = value ?? throw new ArgumentNullException(nameof(value));
 			}
 
@@ -67,7 +67,7 @@ namespace MCSharp.Compilation.Instancing {
 			public Objective Objective { get; }
 
 
-			public IntegerInstance(IType type, ITerminalNode identifier, Objective objective) : base(type, identifier) {
+			public IntegerInstance(IType type, string identifier, Objective objective) : base(type, identifier) {
 				Objective = objective;
 			}
 
@@ -91,7 +91,7 @@ namespace MCSharp.Compilation.Instancing {
 				/// <param name="type"></param>
 				/// <param name="identifier"></param>
 				/// <param name="value"></param>
-				public Constant(IType type, ITerminalNode identifier, int value) : base(type, identifier) {
+				public Constant(IType type, string identifier, int value) : base(type, identifier) {
 					Value = value;
 				}
 
@@ -110,7 +110,7 @@ namespace MCSharp.Compilation.Instancing {
 			public Objective Objective { get; }
 
 
-			public BooleanInstance(IType type, ITerminalNode identifier, Objective objective) : base(type, identifier) {
+			public BooleanInstance(IType type, string identifier, Objective objective) : base(type, identifier) {
 				Objective = objective;
 			}
 
@@ -134,10 +134,30 @@ namespace MCSharp.Compilation.Instancing {
 				/// <param name="type"></param>
 				/// <param name="identifier"></param>
 				/// <param name="value"></param>
-				public Constant(IType type, ITerminalNode identifier, bool value) : base(type, identifier) {
+				public Constant(IType type, string identifier, bool value) : base(type, identifier) {
 					Value = value;
 				}
 
+			}
+
+		}
+
+		public class StringInstance : PrimitiveInstance, IConstantInstance<string> {
+
+			/// <inheritdoc/>
+			public string Value { get; }
+			/// <inheritdoc/>
+			object IConstantInstance.Value => Value;
+
+
+			/// <summary>
+			/// Creates a new <see cref="StringInstance"/> that holds <paramref name="value"/>.
+			/// </summary>
+			/// <param name="type"></param>
+			/// <param name="identifier"></param>
+			/// <param name="value"></param>
+			public StringInstance(IType type, string identifier, string value) : base(type, identifier) {
+				Value = value;
 			}
 
 		}

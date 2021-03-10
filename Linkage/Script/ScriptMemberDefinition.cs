@@ -56,7 +56,7 @@ namespace MCSharp.Linkage.Script {
 						}
 
 						// Construct the 'get' function.
-						getFunction = new StandaloneStatementFunction(writer, new ScriptGenericParameter[] { }, new ScriptMethodParameter[] { }, statements, member.ReturnTypeIdentifier.GetText());
+						getFunction = new StandaloneStatementFunction(writer, new Scope("get", member.Scope, null), new ScriptGenericParameter[] { }, new ScriptMethodParameter[] { }, statements, member.ReturnTypeIdentifier.GetText());
 
 					}
 
@@ -84,7 +84,7 @@ namespace MCSharp.Linkage.Script {
 						}
 
 						// Construct the 'set' function.
-						setFunction = new StandaloneStatementFunction(writer, new ScriptGenericParameter[] { }, new ScriptMethodParameter[] { }, statements, member.ReturnTypeIdentifier.GetText());
+						setFunction = new StandaloneStatementFunction(writer, new Scope("set", member.Scope, null), new ScriptGenericParameter[] { }, new ScriptMethodParameter[] { }, statements, member.ReturnTypeIdentifier.GetText());
 
 					}
 
@@ -114,7 +114,7 @@ namespace MCSharp.Linkage.Script {
 					}
 
 					// Construct the function.
-					var function = new StandaloneStatementFunction(writer, generics, parameters, statements, member.ReturnTypeIdentifier.GetText());
+					var function = new StandaloneStatementFunction(writer, new Scope(null, member.Scope, null), generics, parameters, statements, member.ReturnTypeIdentifier.GetText());
 
 					// Construct and return the method.
 					return new Method(function);

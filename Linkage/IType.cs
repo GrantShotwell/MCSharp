@@ -8,7 +8,7 @@ namespace MCSharp.Linkage {
 	/// <summary>
 	/// Represents a type definition.
 	/// </summary>
-	public interface IType : IDisposable {
+	public interface IType : Compilation.IScopeHolder, IDisposable {
 
 		/// <summary>
 		/// The modifiers that affect this type definition.
@@ -24,6 +24,11 @@ namespace MCSharp.Linkage {
 		/// The local identifier for this type definition.
 		/// </summary>
 		public string Identifier { get; }
+
+		/// <summary>
+		/// The <see cref="IType"/>(s) that this <see cref="IType"/> inherits from.
+		/// </summary>
+		public ICollection<IType> Inheritance { get; }
 
 		/// <summary>
 		/// The members defined by this type definition.
@@ -52,7 +57,7 @@ namespace MCSharp.Linkage {
 		/// <param name="scope"></param>
 		/// <param name="identifier"></param>
 		/// <returns></returns>
-		public IInstance InitializeInstance(Compilation.FunctionWriter writer, Compilation.Scope scope, Antlr4.Runtime.Tree.ITerminalNode identifier);
+		public IInstance InitializeInstance(Compilation.FunctionWriter writer, Compilation.Scope scope, string identifier);
 
 	}
 

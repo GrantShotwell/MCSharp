@@ -12,7 +12,7 @@ namespace MCSharp.Linkage.Minecraft {
 	/// </summary>
 	public class CustomFunction : IFunction {
 
-		public delegate IInstance InvokeDelegate(Compiler.CompileArguments compile, IType[] genericArguments, IInstance[] methodArguments);
+		public delegate ResultInfo InvokeDelegate(Compiler.CompileArguments compile, IType[] generic, IInstance[] arguments, out IInstance result);
 
 		private InvokeDelegate Delegate { get; }
 
@@ -42,8 +42,8 @@ namespace MCSharp.Linkage.Minecraft {
 		}
 
 
-		public IInstance Invoke(Compiler.CompileArguments compile, IType[] genericArguments, IInstance[] methodArguments) {
-			return Delegate.Invoke(compile, genericArguments, methodArguments);
+		public ResultInfo Invoke(Compiler.CompileArguments compile, IType[] generic, IInstance[] arguments, out IInstance result) {
+			return Delegate.Invoke(compile, generic, arguments, out result);
 		}
 
 		public void Dispose() {

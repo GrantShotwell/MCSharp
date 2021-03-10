@@ -120,7 +120,7 @@ literal
 	| STRING
 	;
 identifier
-	: '@'? ( NAME ) ( DOT NAME )* generic_arguments?
+	: '@'? NAME ( DOT NAME )*
 	;
 
 // Statements

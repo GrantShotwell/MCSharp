@@ -11,6 +11,7 @@ namespace MCSharp.Compilation {
 		public VirtualMachine VirtualMachine { get; }
 
 		public string Name { get; }
+		public string LocalDirectory { get; }
 		public string LocalFilePath { get; }
 		public string FilePath { get; }
 		public string GamePath { get; }
@@ -24,10 +25,10 @@ namespace MCSharp.Compilation {
 			VirtualMachine = virtualMachine;
 
 			Name = NameStyleConverter.PascalToSnake(name);
-			path = NameStyleConverter.PascalToSnake(path);
-			LocalFilePath = $"{path}\\{Name}.mcfunction";
+			LocalDirectory = NameStyleConverter.PascalToSnake(path);
+			LocalFilePath = $"{LocalDirectory}\\{Name}.mcfunction";
 			FilePath = $"{datapack.FunctionDirectory}\\{LocalFilePath}";
-			GamePath = $"{datapack.Name}:{path}\\{Name}";
+			GamePath = $"{datapack.Name}:{LocalDirectory}\\{Name}".Replace('\\', '/');
 
 			StreamWriter = datapack.CreateFunctionFile(LocalFilePath);
 

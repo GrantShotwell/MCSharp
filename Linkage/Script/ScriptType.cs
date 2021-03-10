@@ -28,6 +28,12 @@ namespace MCSharp.Linkage.Script {
 		/// <inheritdoc/>
 		string IType.Identifier => Identifier.GetText();
 
+		/// <inheritdoc/>
+		public ICollection<IType> Inheritance { get; } = new List<IType>();
+
+		/// <inheritdoc/>
+		public Scope Scope { get; set; }
+
 		/// <summary>
 		/// The members defined by this type definition.
 		/// </summary>
@@ -89,7 +95,7 @@ namespace MCSharp.Linkage.Script {
 		}
 
 
-		public IInstance InitializeInstance(FunctionWriter function, Scope scope, ITerminalNode identifier) {
+		public IInstance InitializeInstance(FunctionWriter function, Scope scope, string identifier) {
 
 			throw new NotImplementedException("Initializing script types has not been implemented.");
 

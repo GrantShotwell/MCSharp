@@ -63,14 +63,18 @@ namespace MCSharp.Compilation {
 	public class Compiler : IDisposable {
 
 		public Settings Settings { get; }
+
 		public VirtualMachine VirtualMachine { get; private set; }
+
 		public ICollection<Assembly> Assemblies { get; }
+
 
 		public Compiler(Settings settings, ICollection<Assembly> assemblies) {
 			Settings = settings;
 			VirtualMachine = new VirtualMachine();
 			Assemblies = assemblies;
 		}
+
 
 		#region Data
 
@@ -119,7 +123,7 @@ namespace MCSharp.Compilation {
 			}
 
 
-			// Add linker extensions.
+			// Find linker extensions.
 			void AddLinkerExtensions() {
 				foreach(Assembly assembly in Assemblies) {
 					foreach(Type type in assembly.ExportedTypes) {
@@ -173,12 +177,12 @@ namespace MCSharp.Compilation {
 
 
 			// Compile 'Program.Load()' and 'Program.Tick()'.
-			Scope rootScope = new Scope(null, null);
+			Scope rootScope = new Scope(null, null, null);
 			foreach(IType type in DefinedTypes.Values) {
 
 				if(type.Identifier != "Program") continue;
 
-				Scope typeScope = new Scope(type.Identifier, rootScope);
+				Scope typeScope = new Scope(type.Identifier, rootScope, type);
 				foreach(IMember member in type.Members) {
 
 					if(member.Identifier != "Load" && member.Identifier != "Tick") continue;
@@ -199,7 +203,7 @@ namespace MCSharp.Compilation {
 
 		#region Member Compilation
 
-		private ResultInfo CompileStandaloneMethod(Scope typeScope, IMember member) {
+		public ResultInfo CompileStandaloneMethod(Scope typeScope, IMember member) {
 
 			#region Argument Checks
 			if(typeScope is null)
@@ -210,7 +214,7 @@ namespace MCSharp.Compilation {
 				throw new ArgumentOutOfRangeException(nameof(member), $"The given {member.MemberType} is not {nameof(MemberType.Method)}.");
 			#endregion
 
-			Scope methodScope = new Scope(member.Identifier, typeScope);
+			Scope methodScope = new Scope(member.Identifier, typeScope, member);
 			IMethod method = member.Definition as IMethod;
 			StandaloneStatementFunction invoker = method.Invoker as StandaloneStatementFunction;
 
@@ -222,7 +226,7 @@ namespace MCSharp.Compilation {
 
 		#region Statement Compilation
 
-		private ResultInfo CompileStatements(StandaloneStatementFunction function, Scope scope, ICollection<IStatement> statements) {
+		public ResultInfo CompileStatements(StandaloneStatementFunction function, Scope scope, ICollection<IStatement> statements) {
 
 			#region Argument Checks
 			if(function is null)
@@ -237,13 +241,13 @@ namespace MCSharp.Compilation {
 
 				if(statement is ScriptStatement) {
 
-					ResultInfo result = CompileStatement(function, scope, statement.Context, false);
+					ResultInfo result = CompileStatement(new CompileArguments(this, function, scope, false), statement.Context);
 					if(result.Failure) return result;
 
 				} else if(statement is PredefinedStatement) {
 
-					ResultInfo result = CompileStatement(function, scope, statement.Context, true);
-					// todo: Send exception and say this is a bug if result is failed.
+					ResultInfo result = CompileStatement(new CompileArguments(this, function, scope, true), statement.Context);
+					// TODO: Send exception and say this is a bug if result is failed.
 					if(result.Failure) return result;
 
 				} else {
@@ -259,24 +263,18 @@ namespace MCSharp.Compilation {
 
 		}
 
-		private ResultInfo CompileStatement(StandaloneStatementFunction function, Scope scope, StatementContext context, bool predefined) {
+		public ResultInfo CompileStatement(CompileArguments compile, StatementContext context) {
 
 			#region Argument Checks
-			if(function is null)
-				throw new ArgumentNullException(nameof(function));
-			if(scope is null)
-				throw new ArgumentNullException(nameof(scope));
 			if(context is null)
 				throw new ArgumentNullException(nameof(context));
 			#endregion
-
-			CompileArguments compile = new CompileArguments(function.Writer, scope, predefined);
 
 			CodeBlockContext code_block = context.code_block();
 			if(code_block != null) {
 
 				StatementContext[] statements = code_block.statement();
-				return CompileStatements(function, scope, CreateIStatements(statements, predefined));
+				return CompileStatements(compile.Function, compile.Scope, CreateIStatements(statements, compile.Predefined));
 
 			}
 
@@ -295,19 +293,35 @@ namespace MCSharp.Compilation {
 					ResultInfo conditionResult = CompileExpression(compile, condition, out IInstance value);
 					if(conditionResult.Failure) return conditionResult;
 
-					Scope statement1Scope = new Scope(null, scope);
-					StandaloneStatementFunction statement1Function = function.CreateChildFunction(CreateIStatements(statement1, predefined), Settings);
-					ResultInfo statement1Result = CompileStatement(statement1Function, statement1Scope, statement1, predefined);
+					Scope statement1Scope = new Scope(null, compile.Scope, null);
+					StandaloneStatementFunction statement1Function = compile.Function.CreateChildFunction(CreateIStatements(statement1, compile.Predefined), Settings);
+					ResultInfo statement1Result = CompileStatement(compile, statement1);
 					if(statement1Result.Failure) return statement1Result;
 
-					if(statement2 != null) {
-						Scope statement2Scope = new Scope(null, scope);
-						StandaloneStatementFunction statement2Function = function.CreateChildFunction(CreateIStatements(statement2, predefined), Settings);
-						ResultInfo statement2Result = CompileStatement(statement2Function, statement2Scope, statement2, predefined);
-						if(statement2Result.Failure) return statement2Result;
-					}
+					if(value is PrimitiveInstance.BooleanInstance valueBool) {
 
-					throw new NotImplementedException("'if' statements have not been implemented.");
+						compile.Function.Writer.WriteCommand($"execute if score {MCSharpLinkerExtension.StorageSelector} {valueBool.Objective.Name} matches 1.. " +
+							$"run function {statement1Function.Writer.GamePath}");
+
+						if(statement2 != null) {
+
+							Scope statement2Scope = new Scope(null, compile.Scope, null);
+							StandaloneStatementFunction statement2Function = compile.Function.CreateChildFunction(CreateIStatements(statement2, compile.Predefined), Settings);
+							ResultInfo statement2Result = CompileStatement(compile, statement2);
+							if(statement2Result.Failure) return statement2Result;
+
+							compile.Function.Writer.WriteCommand($"execute if score {MCSharpLinkerExtension.StorageSelector} {valueBool.Objective.Name} matches ..0 " +
+								$"run function {statement2Function.Writer.GamePath}");
+
+						}
+
+						return ResultInfo.DefaultSuccess;
+
+					} else {
+
+						throw new NotImplementedException("Casting has not been implemented.");
+
+					}
 
 				}
 
@@ -371,7 +385,7 @@ namespace MCSharp.Compilation {
 				ITerminalNode identifier = names[1];
 
 				IType type = DefinedTypes[typeName.GetText()];
-				IInstance instance = type.InitializeInstance(function.Writer, scope, identifier);
+				IInstance instance = type.InitializeInstance(compile.Function.Writer, compile.Scope, identifier.GetText());
 
 				ExpressionContext assignment = initialization_expression.expression();
 				if(assignment != null) {
@@ -380,7 +394,7 @@ namespace MCSharp.Compilation {
 					if(assignment_result.Failure) return assignment_result;
 
 					ResultInfo assign_result = CompileSimpleOperation(compile, Operation.Assign, instance, assignment_value, out _);
-					if(assign_result.Failure) return assign_result;
+					if(assign_result.Failure) return compile.GetLocation(initialization_expression.ASSIGN()) + assign_result;
 
 					return ResultInfo.DefaultSuccess;
 
@@ -409,7 +423,7 @@ namespace MCSharp.Compilation {
 
 		#region Expression Compilation
 
-		private ResultInfo CompileSimpleOperation(CompileArguments compile, Operation op, IInstance operand1, IInstance operand2, out IInstance result) {
+		public ResultInfo CompileSimpleOperation(CompileArguments compile, Operation op, IInstance operand1, IInstance operand2, out IInstance result) {
 
 			IType type1 = operand1.Type;
 			IType type2 = operand2.Type;
@@ -461,28 +475,10 @@ namespace MCSharp.Compilation {
 				}
 
 				// Invoke the operation.
-				IFunction function = operation.Function;
-				ResultInfo functionResult = InvokeFunction(function, compile, new IType[] { }, new IInstance[] { operand1, operand2 }, out result);
+				ResultInfo functionResult = operation.Function.Invoke(compile, new IType[] { }, new IInstance[] { operand1, operand2 }, out result);
 				if(functionResult.Failure) return functionResult;
 
 				return ResultInfo.DefaultSuccess;
-
-			}
-
-		}
-
-		private ResultInfo InvokeFunction(IFunction function, CompileArguments compile, IType[] genericArguments, IInstance[] methodArguments, out IInstance result) {
-
-			switch(function) {
-
-				case IStatementFunction statement:
-					throw new NotImplementedException("Invoking a statement function through this method has not been implemented.");
-
-				case CustomFunction custom:
-					result = custom.Invoke(compile, genericArguments, methodArguments);
-					return ResultInfo.DefaultSuccess;
-
-				default: throw new ArgumentOutOfRangeException(nameof(function), $"This type does not have an implemented path for invoking.");
 
 			}
 
@@ -637,6 +633,7 @@ namespace MCSharp.Compilation {
 			#endregion
 
 			ConditionalAndExpressionContext[] expressions = conditional_or_expression.conditional_and_expression();
+			ITerminalNode[] operators = conditional_or_expression.BOOLEAN_OR();
 
 			ResultInfo firstResult = CompileConditionalAndExpression(compile, expressions[0], out value);
 			if(firstResult.Failure) return firstResult;
@@ -650,7 +647,7 @@ namespace MCSharp.Compilation {
 				if(exResult.Failure) return exResult;
 
 				ResultInfo opResult = CompileSimpleOperation(compile, Operation.BooleanOR, value, expressionValue, out value);
-				if(opResult.Failure) return opResult;
+				if(opResult.Failure) return compile.GetLocation(operators[i - 1]) + opResult;
 
 			}
 
@@ -666,6 +663,7 @@ namespace MCSharp.Compilation {
 			#endregion
 
 			InclusiveOrExpressionContext[] expressions = conditional_and_expression.inclusive_or_expression();
+			ITerminalNode[] operators = conditional_and_expression.BOOLEAN_AND();
 
 			ResultInfo firstResult = CompileInclusiveOrExpression(compile, expressions[0], out value);
 			if(firstResult.Failure) return firstResult;
@@ -679,7 +677,7 @@ namespace MCSharp.Compilation {
 				if(exResult.Failure) return exResult;
 
 				ResultInfo opResult = CompileSimpleOperation(compile, Operation.BooleanAND, value, expressionValue, out value);
-				if(opResult.Failure) return opResult;
+				if(opResult.Failure) return compile.GetLocation(operators[i - 1]) + opResult;
 
 			}
 
@@ -695,6 +693,7 @@ namespace MCSharp.Compilation {
 			#endregion
 
 			ExclusiveOrExpressionContext[] expressions = inclusive_or_expression.exclusive_or_expression();
+			ITerminalNode[] operators = inclusive_or_expression.BITWISE_OR();
 
 			ResultInfo firstResult = CompileExclusiveOrExpression(compile, expressions[0], out value);
 			if(firstResult.Failure) return firstResult;
@@ -706,7 +705,7 @@ namespace MCSharp.Compilation {
 				if(exResult.Failure) return exResult;
 
 				ResultInfo opResult = CompileSimpleOperation(compile, Operation.BitwiseOR, value, expressionValue, out value);
-				if(opResult.Failure) return opResult;
+				if(opResult.Failure) return compile.GetLocation(operators[i - 1]) + opResult;
 
 			}
 
@@ -722,6 +721,7 @@ namespace MCSharp.Compilation {
 			#endregion
 
 			AndExpressionContext[] expressions = exclusive_or_expression.and_expression();
+			ITerminalNode[] operators = exclusive_or_expression.BITWISE_XOR();
 
 			ResultInfo firstResult = CompileAndExpression(compile, expressions[0], out value);
 			if(firstResult.Failure) return firstResult;
@@ -733,7 +733,7 @@ namespace MCSharp.Compilation {
 				if(exResult.Failure) return exResult;
 
 				ResultInfo opResult = CompileSimpleOperation(compile, Operation.BitwiseXOR, value, expressionValue, out value);
-				if(opResult.Failure) return opResult;
+				if(opResult.Failure) return compile.GetLocation(operators[i - 1]) + opResult;
 
 			}
 
@@ -749,6 +749,7 @@ namespace MCSharp.Compilation {
 			#endregion
 
 			EqualityExpressionContext[] expressions = and_expression.equality_expression();
+			ITerminalNode[] operators = and_expression.BITWISE_AND();
 
 			ResultInfo firstResult = CompileEqualityExpression(compile, expressions[0], out value);
 			if(firstResult.Failure) return firstResult;
@@ -760,7 +761,7 @@ namespace MCSharp.Compilation {
 				if(exResult.Failure) return exResult;
 
 				ResultInfo opResult = CompileSimpleOperation(compile, Operation.BitwiseAND, value, expressionValue, out value);
-				if(opResult.Failure) return opResult;
+				if(opResult.Failure) return compile.GetLocation(operators[i - 1]) + opResult;
 
 			}
 
@@ -793,7 +794,7 @@ namespace MCSharp.Compilation {
 				else op = Operation.Inequality;
 
 				ResultInfo opResult = CompileSimpleOperation(compile, op, value, expressionValue, out value);
-				if(opResult.Failure) return opResult;
+				if(opResult.Failure) return compile.GetLocation(equality_operator) + opResult;
 
 			}
 
@@ -890,7 +891,7 @@ namespace MCSharp.Compilation {
 				else op = Operation.Subtraction;
 
 				ResultInfo opResult = CompileSimpleOperation(compile, op, value, expressionValue, out value);
-				if(opResult.Failure) return opResult;
+				if(opResult.Failure) return compile.GetLocation(additive_operator) + opResult;
 
 			}
 
@@ -924,7 +925,7 @@ namespace MCSharp.Compilation {
 				else op = Operation.Modulo;
 
 				ResultInfo opResult = CompileSimpleOperation(compile, op, value, expressionValue, out value);
-				if(opResult.Failure) return opResult;
+				if(opResult.Failure) return compile.GetLocation(multiplicative_operator) + opResult;
 
 			}
 
@@ -1208,7 +1209,7 @@ namespace MCSharp.Compilation {
 					IType type = DefinedTypes[MCSharpLinkerExtension.IntIdentifier];
 					value = new PrimitiveInstance.IntegerInstance.Constant(type, null, _value);
 					ResultInfo scopeResult = compile.Scope.AddInstance(value);
-					if(scopeResult.Failure) return scopeResult;
+					if(scopeResult.Failure) return compile.GetLocation(integer_literal) + scopeResult;
 
 					return ResultInfo.DefaultSuccess;
 
@@ -1222,8 +1223,8 @@ namespace MCSharp.Compilation {
 
 					IType type = DefinedTypes[MCSharpLinkerExtension.BoolIdentifier];
 					value = new PrimitiveInstance.BooleanInstance.Constant(type, null, _value);
-					ResultInfo scoprResult = compile.Scope.AddInstance(value);
-					if(scoprResult.Failure) return scoprResult;
+					ResultInfo scopeResult = compile.Scope.AddInstance(value);
+					if(scopeResult.Failure) return compile.GetLocation(boolean_literal) + scopeResult;
 
 					return ResultInfo.DefaultSuccess;
 
@@ -1236,8 +1237,11 @@ namespace MCSharp.Compilation {
 					string _value = text[1..^1];
 
 					IType type = DefinedTypes[MCSharpLinkerExtension.StringIdentifier];
+					value = new PrimitiveInstance.StringInstance(type, null, _value);
+					ResultInfo scopeResult = compile.Scope.AddInstance(value);
+					if(scopeResult.Failure) return compile.GetLocation(string_literal) + scopeResult;
 
-					throw new NotImplementedException("String literals have not been implemented.");
+					return ResultInfo.DefaultSuccess;
 
 				}
 
@@ -1261,30 +1265,26 @@ namespace MCSharp.Compilation {
 			if(identifier != null) {
 
 				ITerminalNode[] names = identifier.NAME();
-				MCSharpParser.Generic_argumentsContext generic_arguments = identifier.generic_arguments();
 
-				if(generic_arguments != null) {
-					
-					throw new NotImplementedException("Generic arguments for identifiers have not been implemented.");
+				if(names.Length > 1) {
 
-				} else if(names.Length > 1) {
+					Scope scope = compile.Scope;
+					for(int current = 0; current < names.Length; current++) {
 
-					throw new NotImplementedException("Access identifiers have not been implemented.");
+						if(current > 0) throw new NotImplementedException($"{compile.GetLocation(identifier)}Accessing namespaces has not been implemented.");
+						string name = names[current].GetText();
+						IInstance instance = scope.FindFirstInstanceByName(name);
+
+					}
 
 				} else {
 
 					string name = names[0].GetText();
 
-					Scope scope = compile.Scope;
-					var instances = scope.Instances;
+					value = compile.Scope.FindFirstInstanceByName(name);
+					if(value == null) return new ResultInfo(false, $"{compile.GetLocation(identifier)}Instance '{name}' does not exist yet in this scope.");
 
-					if(instances.ContainsKey(name)) {
-						value = instances[name];
-						return ResultInfo.DefaultSuccess;
-					} else {
-						value = null;
-						return new ResultInfo(false, $"Identifier '{name}' does not exist.");
-					}
+					return ResultInfo.DefaultSuccess;
 
 				}
 
@@ -1303,7 +1303,58 @@ namespace MCSharp.Compilation {
 			MCSharpParser.Member_accessContext member_access = primary_no_array_creation_expression.member_access();
 			if(member_access != null) {
 
-				throw new NotImplementedException("Member access evaluation have not been implemented.");
+				PrimaryExpressionContext primary_expression = member_access.primary_expression();
+				MCSharpParser.IdentifierContext member_identifier = member_access.identifier();
+				MCSharpParser.Generic_argumentsContext generic_arguments = member_access.generic_arguments();
+				MCSharpParser.Method_argumentsContext method_arguments = member_access.method_arguments();
+				MCSharpParser.Indexer_argumentsContext indexer_arguments = member_access.indexer_arguments();
+
+				if(primary_expression != null) {
+
+					ResultInfo primary_result = CompilePrimaryExpression(compile, primary_expression, out value);
+					if(primary_result.Failure) return primary_result;
+
+					throw new NotImplementedException("Member access evaluation of expressions has not been implemented.");
+
+				} else {
+
+					IScopeHolder holder = compile.Scope.Holder;
+					if(holder is IType typeHolder) {
+
+						IMember accessedMember = null;
+
+						foreach(IMember member in typeHolder.Members) {
+							if(member.Identifier == member_identifier.GetText()) {
+								accessedMember = member;
+							}
+						}
+						
+						// TODO: Check inherited types.
+
+						if(accessedMember == null) {
+
+							value = null;
+							return new ResultInfo(false, $"{compile.GetLocation(member_identifier)}'{member_identifier.GetText()}' does not exist in type '{typeHolder.Identifier}'.");
+
+						} else {
+
+							
+
+						}
+
+					} else if(holder is IMember memberHolder) {
+
+
+
+					} else {
+
+						throw new Exception($"Unsupported type of {nameof(IScopeHolder)} '{holder.GetType().FullName}'.");
+
+					}
+
+				}
+
+				throw new NotImplementedException("Member access evaluation has not been implemented.");
 
 			}
 
@@ -1395,20 +1446,46 @@ namespace MCSharp.Compilation {
 
 		}
 
+		#region Subtypes
 
 		public struct CompileArguments {
 
-			public FunctionWriter Writer { get; }
+			public Compiler Compiler { get; }
+
+			public StandaloneStatementFunction Function { get; }
+
+			public FunctionWriter Writer => Function.Writer;
 
 			public Scope Scope { get; }
 
 			public bool Predefined { get; }
 
-			public CompileArguments(FunctionWriter writer, Scope scope, bool predefined) {
-				Writer = writer ?? throw new ArgumentNullException(nameof(writer));
+
+			public CompileArguments(Compiler compiler, StandaloneStatementFunction function, Scope scope, bool predefined) {
+				Compiler = compiler ?? throw new ArgumentNullException(nameof(compiler));
+				Function = function ?? throw new ArgumentNullException(nameof(function));
 				Scope = scope ?? throw new ArgumentNullException(nameof(scope));
 				Predefined = predefined;
 			}
+
+
+			public string GetLocation(ParserRuleContext context) => GetLocation(context.Start);
+
+			public string GetLocation(ITerminalNode node) => GetLocation(node.Symbol);
+
+			public string GetLocation(IToken token) {
+				if(Predefined) {
+					int line = token.Line;
+					int column = token.Column;
+					return $"Predefined line {line}:{column} ";
+				} else {
+					string file = token.InputStream.SourceName;
+					int line = token.Line;
+					int column = token.Column;
+					return $"{file} {line}:{column} ";
+				}
+			}
+
 		}
 
 		public class ScriptClassWalker : MCSharpBaseListener {
@@ -1465,6 +1542,8 @@ namespace MCSharp.Compilation {
 			}
 
 		}
+
+		#endregion
 
 	}
 

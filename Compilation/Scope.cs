@@ -17,10 +17,16 @@ namespace MCSharp.Compilation {
 		/// </summary>
 		public string Name { get; }
 
+		private readonly Func<IScopeHolder> getHolder = null;
+		private IScopeHolder holder = null;
 		/// <summary>
-		/// The root of this <see cref="Scope"/>.
+		/// The <see cref="IScopeHolder"/> that holds this <see cref="Scope"/>, if any.
 		/// </summary>
-		/// <exception cref="StackOverflowException">Thrown when the tree is (somehow) circular.</exception>
+		public IScopeHolder Holder => holder ?? (holder = getHolder.Invoke()) ?? Parent?.Holder;
+
+		/// <summary>
+		/// The root of this <see cref="Scope"/>, found recursively.
+		/// </summary>
 		public Scope Root => Parent?.Root ?? this;
 
 		/// <summary>
@@ -54,18 +60,24 @@ namespace MCSharp.Compilation {
 		/// Creates a new <see cref="Scope"/> that is a child of <paramref name="parent"/>.
 		/// </summary>
 		/// <param name="name">The name of this <see cref="Scope"/>. Can be <see langword="null"/> to make this anonymous.</param>
-		/// <param name="parent">The parent of the new scope. Can be <see langword="null"/> to make this a root.</param>
-		/// <exception cref="InvalidOperationException">Thrown when <paramref name="parent"/> already contains a child called </exception>
-		public Scope(string name, Scope parent) {
+		/// <param name="parent">The parent of the new <see cref="Scope"/>. Can be <see langword="null"/> to make this a root.</param>
+		/// <param name="holder">The <see cref="IScopeHolder"/> to hold this <see cref="Scope"/>.</param>
+		/// <exception cref="InvalidOperationException">Thrown when <paramref name="parent"/> already contains an immediate child called <paramref name="name"/>.</exception>
+		public Scope(string name, Scope parent, IScopeHolder holder) {
 
 			Name = name;
 
 			Parent = parent;
 			if(Parent != null) {
-				foreach(Scope child in Parent.Children)
-					if(child.Name == Name) throw new InvalidOperationException($"'{nameof(parent)}' already contains a child called '{Name}'.");
+				if(name != null) {
+					foreach(Scope child in Parent.Children)
+						if(child.Name == Name) throw new InvalidOperationException($"'{nameof(parent)}' already contains a child called '{Name}'.");
+				}
 				Parent.children.Add(this);
 			}
+
+			this.holder = holder;
+			if(holder != null) holder.Scope = this;
 
 		}
 
@@ -77,7 +89,7 @@ namespace MCSharp.Compilation {
 		/// <returns>Returns a <see cref="ResultInfo"/> based on if there is already an <see cref="IInstance"/> with <paramref name="instance"/>'s <see cref="IInstance.Identifier"/>'s <see cref="string"/>.</returns>
 		public ResultInfo AddInstance(IInstance instance) {
 
-			string identifier = instance.Identifier?.GetText();
+			string identifier = instance.Identifier;
 			if(identifier == null) {
 				anonymousInstances.Add(instance);
 				return ResultInfo.DefaultSuccess;
@@ -90,16 +102,21 @@ namespace MCSharp.Compilation {
 
 		}
 
-		private int anonInsts = 0;
-		public ITerminalNode MakeAnonymousInstanceName() {
+		/// <summary>
+		/// Starting with <see langword="this"/>, goes through parents' <see cref="Instances"/> to find the <see cref="IInstance"/> from <paramref name="identifier"/>.
+		/// </summary>
+		/// <param name="identifier">The key in <see cref="Instances"/> to look for.</param>
+		/// <returns>Returns the <see cref="IInstance"/> found or <see langword="null"/> when not found.</returns>
+		public IInstance FindFirstInstanceByName(string identifier) {
 
-			string text = $"__{anonInsts++}";
-			ICharStream stream = CharStreams.fromString(text);
-			ITokenSource lexer = new MCSharpLexer(stream);
-			ITokenStream tokens = new CommonTokenStream(lexer);
-			var parser = new MCSharpParser(tokens) { BuildParseTree = true };
-			MCSharpParser.IdentifierContext identifier = parser.identifier();
-			return identifier.NAME()[0];
+			Scope current = this;
+			while(current != null) {
+				IReadOnlyDictionary<string, IInstance> instances = current.Instances;
+				if(instances.ContainsKey(identifier)) return instances[identifier];
+				else current = current.Parent;
+			}
+
+			return null;
 
 		}
 
@@ -108,13 +125,10 @@ namespace MCSharp.Compilation {
 		/// </summary>
 		/// <param name="name">The <see cref="Name"/> to check for.</param>
 		/// <returns>Returns the <see cref="Scope"/> found.</returns>
-		public Scope GetFirstParentScopeByName(string name) {
+		public Scope FindFirstParentScopeByName(string name) {
 
-			if(Parent.Name == name) {
-				return Parent;
-			} else {
-				return Parent.GetFirstParentScopeByName(name);
-			}
+			if(Parent.Name == name) return Parent;
+			else return Parent.FindFirstParentScopeByName(name);
 
 		}
 
@@ -123,24 +137,17 @@ namespace MCSharp.Compilation {
 		/// </summary>
 		/// <param name="name">The <see cref="Name"/> to check for.</param>
 		/// <returns>Returns the <see cref="Scope"/> found.</returns>
-		public Scope GetLastParentScopeByName(string name) {
+		public Scope FindLastParentScopeByName(string name) {
 
-			if(Root.Name == name) {
-				return Root;
-			} else {
+			Scope match = null;
 
-				Scope current = this;
-				while((current = current.Parent) != null) {
-					if(current.Name == name) {
-						return current;
-					} else {
-						continue;
-					}
-				}
-
-				return null;
-
+			Scope current = Parent;
+			while(current != null) {
+				if(current.Name == name) match = current;
+				current = current.Parent;
 			}
+
+			return match;
 
 		}
 
@@ -150,13 +157,10 @@ namespace MCSharp.Compilation {
 		/// <returns>Returns the <see cref="Scope"/> found.</returns>
 		public Scope GetFirstNamedParent() {
 
-			Scope current = this;
-			while((current = current.Parent) != null) {
-				if(current.Name != null) {
-					return current;
-				} else {
-					continue;
-				}
+			Scope current = Parent;
+			while(current != null) {
+				if(current.Name != null) return current;
+				else current = current.Parent;
 			}
 
 			return null;

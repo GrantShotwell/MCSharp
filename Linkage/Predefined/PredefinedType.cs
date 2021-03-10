@@ -24,6 +24,12 @@ namespace MCSharp.Linkage.Predefined {
 		/// <inheritdoc/>
 		public string Identifier { get; }
 
+		/// <inheritdoc/>
+		public ICollection<IType> Inheritance { get; } = new List<IType>();
+
+		/// <inheritdoc/>
+		public Scope Scope { get; set; }
+
 		/// <summary>
 		/// The members defined by this type definition.
 		/// </summary>
@@ -72,14 +78,14 @@ namespace MCSharp.Linkage.Predefined {
 		}
 
 
-		public delegate IInstance InitializeInstanceDelegate(FunctionWriter writer, Scope scope, ITerminalNode identifier);
+		public delegate IInstance InitializeInstanceDelegate(FunctionWriter writer, Scope scope, string identifier);
 
 		/// <inheritdoc/>
-		public IInstance InitializeInstance(FunctionWriter writer, Scope scope, ITerminalNode identifier) {
+		public IInstance InitializeInstance(FunctionWriter writer, Scope scope, string identifier) {
 
-			IInstance value = Init(writer, scope, identifier);
-			scope.AddInstance(value);
-			return value;
+			IInstance result = Init(writer, scope, identifier);
+			scope.AddInstance(result);
+			return result;
 			
 		}
 

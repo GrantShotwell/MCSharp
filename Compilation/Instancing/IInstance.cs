@@ -17,7 +17,7 @@ namespace MCSharp.Compilation.Instancing {
 		/// <summary>
 		/// The local identifier for this instance.
 		/// </summary>
-		public ITerminalNode Identifier { get; }
+		public string Identifier { get; }
 
 
 		public class InvalidTypeException : Exception {
