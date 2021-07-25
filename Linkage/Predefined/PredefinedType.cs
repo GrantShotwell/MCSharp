@@ -78,13 +78,13 @@ namespace MCSharp.Linkage.Predefined {
 		}
 
 
-		public delegate IInstance InitializeInstanceDelegate(FunctionWriter writer, Scope scope, string identifier);
+		public delegate IInstance InitializeInstanceDelegate(Compiler.CompileArguments location, string identifier);
 
 		/// <inheritdoc/>
-		public IInstance InitializeInstance(FunctionWriter writer, Scope scope, string identifier) {
+		public IInstance InitializeInstance(Compiler.CompileArguments location, string identifier) {
 
-			IInstance result = Init(writer, scope, identifier);
-			scope.AddInstance(result);
+			IInstance result = Init(location, identifier);
+			location.Scope.AddInstance(result);
 			return result;
 			
 		}

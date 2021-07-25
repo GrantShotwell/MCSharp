@@ -27,7 +27,7 @@ namespace MCSharp.Linkage.Minecraft {
 
 		private ICollection<StandaloneStatementFunction> ChildFunctions { get; } = new LinkedList<StandaloneStatementFunction>();
 
-		private bool Compiled { get; set; }
+		public bool Compiled { get; set; }
 
 		public Scope Scope { get; }
 
@@ -82,8 +82,8 @@ namespace MCSharp.Linkage.Minecraft {
 		public ResultInfo Invoke(Compiler.CompileArguments location, IType[] generic, IInstance[] arguments, out IInstance result) {
 
 			if(!Compiled) {
-				location.Compiler.CompileStatements(this, Scope, Statements);
 				Compiled = true;
+				location.Compiler.CompileStatements(this, Scope, Statements);
 			}
 
 			result = null;

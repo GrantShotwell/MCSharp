@@ -1,5 +1,6 @@
 ﻿using Antlr4.Runtime.Tree;
 using MCSharp.Linkage;
+using MCSharp.Linkage.Extensions;
 using MCSharp.Linkage.Minecraft;
 using System;
 using System.Collections.Generic;
@@ -30,6 +31,9 @@ namespace MCSharp.Compilation.Instancing {
 
 		}
 
+		/// <inheritdoc/>
+		public abstract IInstance Copy(Compiler.CompileArguments compile, string identifier);
+
 
 		/// <summary>
 		/// Represents an <see cref="IConstantInstance"/> of an objective.
@@ -54,6 +58,12 @@ namespace MCSharp.Compilation.Instancing {
 				Value = value ?? throw new ArgumentNullException(nameof(value));
 			}
 
+
+			/// <inheritdoc/>
+			public override IInstance Copy(Compiler.CompileArguments compile, string identifier) {
+				throw new NotImplementedException();
+			}
+
 		}
 
 		/// <summary>
@@ -69,6 +79,12 @@ namespace MCSharp.Compilation.Instancing {
 
 			public IntegerInstance(IType type, string identifier, Objective objective) : base(type, identifier) {
 				Objective = objective;
+			}
+
+
+			/// <inheritdoc/>
+			public override IInstance Copy(Compiler.CompileArguments compile, string identifier) {
+				throw new NotImplementedException();
 			}
 
 
@@ -95,6 +111,15 @@ namespace MCSharp.Compilation.Instancing {
 					Value = value;
 				}
 
+
+				/// <inheritdoc/>
+				public override IInstance Copy(Compiler.CompileArguments location, string identifier) {
+					Objective objective = Objective.AddObjective(location.Writer, null, "dummy");
+					IntegerInstance instance = new IntegerInstance(Type, identifier, objective);
+					location.Writer.WriteCommand($"scoreboard players set {MCSharpLinkerExtension.StorageSelector} {instance.Objective.Name} {Value}");
+					return instance;
+				}
+
 			}
 
 		}
@@ -112,6 +137,12 @@ namespace MCSharp.Compilation.Instancing {
 
 			public BooleanInstance(IType type, string identifier, Objective objective) : base(type, identifier) {
 				Objective = objective;
+			}
+
+
+			/// <inheritdoc/>
+			public override IInstance Copy(Compiler.CompileArguments location, string identifier) {
+				throw new NotImplementedException();
 			}
 
 
@@ -138,6 +169,12 @@ namespace MCSharp.Compilation.Instancing {
 					Value = value;
 				}
 
+
+				/// <inheritdoc/>
+				public override IInstance Copy(Compiler.CompileArguments location, string identifier) {
+					throw new NotImplementedException();
+				}
+
 			}
 
 		}
@@ -158,6 +195,12 @@ namespace MCSharp.Compilation.Instancing {
 			/// <param name="value"></param>
 			public StringInstance(IType type, string identifier, string value) : base(type, identifier) {
 				Value = value;
+			}
+
+
+			/// <inheritdoc/>
+			public override IInstance Copy(Compiler.CompileArguments location, string identifier) {
+				throw new NotImplementedException();
 			}
 
 		}

@@ -71,9 +71,7 @@ namespace MCSharp.Linkage.Script {
 		public ScriptType(TypeDefinitionContext typeContext, MemberDefinitionContext[] memberContexts, ConstructorDefinitionContext[] constructorContexts, Settings settings, VirtualMachine virtualMachine) {
 
 			Modifiers = EnumLinker.LinkModifiers(typeContext.modifier());
-
 			ClassType = EnumLinker.LinkClassType(typeContext.class_type());
-
 			Identifier = typeContext.NAME();
 
 			ScriptMember[] members = new ScriptMember[memberContexts.Length];
@@ -95,7 +93,19 @@ namespace MCSharp.Linkage.Script {
 		}
 
 
-		public IInstance InitializeInstance(FunctionWriter function, Scope scope, string identifier) {
+		public IInstance InitializeInstance(Compiler.CompileArguments location, string identifier) {
+
+			switch(ClassType) {
+
+				case ClassType.Class:
+					throw new NotImplementedException($"Initializing script-defined {ClassType.Class} types have not been implemented.");
+				case ClassType.Struct:
+					return new StructInstance(location, this, identifier);
+				case ClassType.Primitive:
+					throw new InvalidOperationException($"Script-defined types cannot be primitive ({nameof(ClassType)} is {ClassType.Primitive}).");
+				default:
+					throw new InvalidOperationException($"Unknown {nameof(Linkage.ClassType)} '{ClassType}'.");
+			}
 
 			throw new NotImplementedException("Initializing script types has not been implemented.");
 

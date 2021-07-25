@@ -217,7 +217,7 @@ namespace MCSharp.Compilation {
 			Scope methodScope = new Scope(member.Identifier, typeScope, member);
 			IMethod method = member.Definition as IMethod;
 			StandaloneStatementFunction invoker = method.Invoker as StandaloneStatementFunction;
-
+			invoker.Compiled = true;
 			return CompileStatements(invoker, methodScope, invoker.Statements);
 
 		}
@@ -385,7 +385,7 @@ namespace MCSharp.Compilation {
 				ITerminalNode identifier = names[1];
 
 				IType type = DefinedTypes[typeName.GetText()];
-				IInstance instance = type.InitializeInstance(compile.Function.Writer, compile.Scope, identifier.GetText());
+				IInstance instance = type.InitializeInstance(compile, identifier.GetText());
 
 				ExpressionContext assignment = initialization_expression.expression();
 				if(assignment != null) {
@@ -1309,52 +1309,113 @@ namespace MCSharp.Compilation {
 				MCSharpParser.Method_argumentsContext method_arguments = member_access.method_arguments();
 				MCSharpParser.Indexer_argumentsContext indexer_arguments = member_access.indexer_arguments();
 
+				// Get the instance to access from.
+				IScopeHolder holder;
 				if(primary_expression != null) {
 
-					ResultInfo primary_result = CompilePrimaryExpression(compile, primary_expression, out value);
-					if(primary_result.Failure) return primary_result;
+					// Access from primary expression.
+					ResultInfo primary_result = CompilePrimaryExpression(compile, primary_expression, out IInstance instance);
+					if(primary_result.Failure) {
+						value = null;
+						return primary_result;
+					}
 
-					throw new NotImplementedException("Member access evaluation of expressions has not been implemented.");
+					holder = instance.Type;
 
 				} else {
 
-					IScopeHolder holder = compile.Scope.Holder;
-					if(holder is IType typeHolder) {
+					// Access from implicit 'this'.
+					holder = compile.Scope.Holder;
 
-						IMember accessedMember = null;
+				}
 
-						foreach(IMember member in typeHolder.Members) {
-							if(member.Identifier == member_identifier.GetText()) {
-								accessedMember = member;
-							}
+				ResultInfo Access(IType type, out IInstance value) {
+
+					IMember accessedMember = null;
+					foreach(IMember member in type.Members) {
+						if(member.Identifier == member_identifier.GetText()) {
+							accessedMember = member;
 						}
-						
-						// TODO: Check inherited types.
+					}
 
-						if(accessedMember == null) {
+					// TODO: Check inherited types.
 
-							value = null;
-							return new ResultInfo(false, $"{compile.GetLocation(member_identifier)}'{member_identifier.GetText()}' does not exist in type '{typeHolder.Identifier}'.");
-
-						} else {
-
-							
-
-						}
-
-					} else if(holder is IMember memberHolder) {
-
-
-
+					if(accessedMember == null) {
+						value = null;
+						return new ResultInfo(false, $"{compile.GetLocation(member_identifier)}'{member_identifier.GetText()}' does not exist in type '{type.Identifier}'.");
 					} else {
 
-						throw new Exception($"Unsupported type of {nameof(IScopeHolder)} '{holder.GetType().FullName}'.");
+						IMemberDefinition definition = accessedMember.Definition;
+
+						switch(definition) {
+
+							case IField field: {
+								throw new NotImplementedException("Accessing fields has not been implemented.");
+							}
+
+							case IProperty property: {
+
+								// Get getter.
+								var getter = property.Getter;
+								if(getter == null) {
+									value = null;
+									return new ResultInfo(false, $"{compile.GetLocation(member_identifier)}This property is not get-able.");
+								}
+
+								// Invoke 'get' method.
+								ResultInfo result = property.Getter.Invoke(compile, new IType[] { }, new IInstance[] { }, out value);
+								if(result.Failure) return compile.GetLocation(member_identifier) + result;
+
+								return ResultInfo.DefaultSuccess;
+
+							}
+
+							case IMethod method: {
+
+								// Get generic arguments.
+								IType[] generics;
+								if(generic_arguments == null) {
+									generics = new IType[] { };
+								} else {
+									throw new NotImplementedException($"{compile.GetLocation(generic_arguments)}Invoking methods with generic arguments has not been implemented.");
+								}
+
+								// Get method arguments.
+								IInstance[] arguments;
+								if(method_arguments == null) {
+									value = null;
+									return new ResultInfo(false, $"{compile.GetLocation(member_access)}Expected method arguments for accessing method.");
+								} else {
+									MCSharpParser.Argument_listContext argument_list = method_arguments.argument_list();
+									if(argument_list == null) {
+										arguments = new IInstance[] { };
+									} else {
+										throw new NotImplementedException("Accessing methods with more than zero parameters has not been implemented.");
+									}
+								}
+
+								// Invoke method.
+								ResultInfo result = method.Invoker.Invoke(compile, generics, arguments, out value);
+								if(result.Failure) return compile.GetLocation(member_access) + result;
+
+								return ResultInfo.DefaultSuccess;
+
+							}
+
+							default: throw new Exception($"Unsupported type of {nameof(IMember)} '{definition.GetType().FullName}'.");
+						}
 
 					}
 
 				}
 
-				throw new NotImplementedException("Member access evaluation has not been implemented.");
+				if(holder is IType typeHolder) {
+					return Access(typeHolder, out value);
+				} else if(holder is IMember memberHolder) {
+					return Access(memberHolder.Declarer, out value);
+				} else {
+					throw new Exception($"Unsupported type of {nameof(IScopeHolder)} '{holder?.GetType().FullName ?? "null"}'.");
+				}
 
 			}
 

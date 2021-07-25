@@ -14,26 +14,29 @@ namespace MCSharp.Compilation.Instancing {
 		/// <inheritdoc/>
 		public IType Type { get; }
 
-		/// <summary>
-		/// The local identifier of this instance.
-		/// </summary>
-		public ITerminalNode Identifier { get; }
 		/// <inheritdoc/>
-		string IInstance.Identifier => Identifier.GetText();
+		public string Identifier { get; }
 
 		public PrimitiveInstance.IntegerInstance.Constant ObjectId { get; }
 
 
-		public ClassInstance(IType type, ITerminalNode identifier, PrimitiveInstance.IntegerInstance.Constant objectId) {
+		public ClassInstance(IType type, string identifier, PrimitiveInstance.IntegerInstance.Constant objectId) {
 
+			#region Argument Checks
 			if(type.ClassType != ClassType.Class)
 				throw new IInstance.InvalidTypeException(type, "any class");
+			#endregion
+
 			Type = type ?? throw new ArgumentNullException(nameof(type));
-
 			Identifier = identifier ?? throw new ArgumentNullException(nameof(identifier));
-
 			ObjectId = objectId ?? throw new ArgumentNullException(nameof(objectId));
 
+		}
+
+
+		/// <inheritdoc/>
+		public IInstance Copy(Compiler.CompileArguments compile, string identifier) {
+			throw new NotImplementedException();
 		}
 
 	}

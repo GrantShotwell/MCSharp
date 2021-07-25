@@ -1,4 +1,5 @@
 ﻿using MCSharp.Collections;
+using MCSharp.Compilation;
 using MCSharp.Compilation.Instancing;
 using System;
 using System.Collections.Generic;
@@ -57,7 +58,7 @@ namespace MCSharp.Linkage {
 		/// <param name="scope"></param>
 		/// <param name="identifier"></param>
 		/// <returns></returns>
-		public IInstance InitializeInstance(Compilation.FunctionWriter writer, Compilation.Scope scope, string identifier);
+		public IInstance InitializeInstance(Compiler.CompileArguments location, string identifier);
 
 	}
 

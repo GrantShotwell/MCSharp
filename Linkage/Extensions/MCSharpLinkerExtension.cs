@@ -110,19 +110,19 @@ namespace MCSharp.Linkage.Extensions {
 					PrimitiveInstance.IntegerInstance.Constant result = new PrimitiveInstance.IntegerInstance.Constant(predefinedType, null, value);
 					return result;
 				} else if(leftConstant != null) {
-					PrimitiveInstance.IntegerInstance result = predefinedType.InitializeInstance(writer, scope, null) as PrimitiveInstance.IntegerInstance;
+					PrimitiveInstance.IntegerInstance result = predefinedType.InitializeInstance(compile, null) as PrimitiveInstance.IntegerInstance;
 					writer.WriteCommand($"scoreboard players set {selector} {result.Objective.Name} {leftConstant.Value}");
 					writer.WriteCommand($"scoreboard players operation {selector} {result.Objective.Name} {op} {selector} {right.Objective.Name}");
 					return result;
 				} else if(rightConstant != null) {
-					PrimitiveInstance.IntegerInstance result = predefinedType.InitializeInstance(writer, scope, null) as PrimitiveInstance.IntegerInstance;
+					PrimitiveInstance.IntegerInstance result = predefinedType.InitializeInstance(compile, null) as PrimitiveInstance.IntegerInstance;
 					writer.WriteCommand($"scoreboard players operation {selector} {result.Objective.Name} = {selector} {left.Objective.Name}");
-					right = predefinedType.InitializeInstance(writer, scope, null) as PrimitiveInstance.IntegerInstance;
+					right = predefinedType.InitializeInstance(compile, null) as PrimitiveInstance.IntegerInstance;
 					writer.WriteCommand($"scoreboard players set {selector} {right.Objective.Name} {rightConstant.Value}");
 					writer.WriteCommand($"scoreboard players operation {selector} {result.Objective.Name} {op} {selector} {right.Objective.Name}");
 					return result;
 				} else {
-					PrimitiveInstance.IntegerInstance result = predefinedType.InitializeInstance(writer, scope, null) as PrimitiveInstance.IntegerInstance;
+					PrimitiveInstance.IntegerInstance result = predefinedType.InitializeInstance(compile, null) as PrimitiveInstance.IntegerInstance;
 					writer.WriteCommand($"scoreboard players operation {selector} {result.Objective.Name} = {selector} {left.Objective.Name}");
 					writer.WriteCommand($"scoreboard players operation {selector} {result.Objective.Name} {op} {selector} {right.Objective.Name}");
 					return result;
@@ -281,10 +281,10 @@ namespace MCSharp.Linkage.Extensions {
 
 			#endregion
 
-			PredefinedType.InitializeInstanceDelegate init = (writer, scope, identifier) => {
+			PredefinedType.InitializeInstanceDelegate init = (location, identifier) => {
 
 				if(predefinedType is null) throw new Exception();
-				var objective = Objective.AddObjective(writer, identifier, "dummy");
+				var objective = Objective.AddObjective(location.Writer, identifier, "dummy");
 				return new PrimitiveInstance.IntegerInstance(predefinedType, identifier, objective);
 
 			};
@@ -419,19 +419,19 @@ namespace MCSharp.Linkage.Extensions {
 							if(!leftConstant.Value) {
 								result = leftConstant;
 							} else {
-								PrimitiveInstance.BooleanInstance instance = (result = predefinedType.InitializeInstance(compile.Writer, compile.Scope, null)) as PrimitiveInstance.BooleanInstance;
+								PrimitiveInstance.BooleanInstance instance = (result = predefinedType.InitializeInstance(compile, null)) as PrimitiveInstance.BooleanInstance;
 								compile.Writer.WriteCommand($"scoreboard players set {selector} {instance.Objective.Name} {(leftConstant.Value ? 1 : 0)}");
 							}
 						} else if(rightConstant != null) {
 							if(!rightConstant.Value) {
 								result = rightConstant;
 							} else {
-								PrimitiveInstance.BooleanInstance instance = (result = predefinedType.InitializeInstance(compile.Writer, compile.Scope, null)) as PrimitiveInstance.BooleanInstance;
+								PrimitiveInstance.BooleanInstance instance = (result = predefinedType.InitializeInstance(compile, null)) as PrimitiveInstance.BooleanInstance;
 								compile.Writer.WriteCommand($"scoreboard players set {selector} {instance.Objective.Name} {(rightConstant.Value ? 1 : 0)}");
 								result = instance;
 							}
 						} else {
-							PrimitiveInstance.BooleanInstance instance = (result = predefinedType.InitializeInstance(compile.Writer, compile.Scope, null)) as PrimitiveInstance.BooleanInstance;
+							PrimitiveInstance.BooleanInstance instance = (result = predefinedType.InitializeInstance(compile, null)) as PrimitiveInstance.BooleanInstance;
 							compile.Writer.WriteCommand($"scoreboard players set {selector} {instance.Objective.Name} 0");
 							compile.Writer.WriteCommand($"execute if score {selector} {left.Objective.Name} matches 1.. if score {selector} {right.Objective.Name} matches 1.. " +
 								$"run scoreboard players set {selector} {instance.Objective.Name} 1");
@@ -473,18 +473,18 @@ namespace MCSharp.Linkage.Extensions {
 							if(leftConstant.Value) {
 								result = leftConstant;
 							} else {
-								PrimitiveInstance.BooleanInstance instance = (result = predefinedType.InitializeInstance(compile.Writer, compile.Scope, null)) as PrimitiveInstance.BooleanInstance;
+								PrimitiveInstance.BooleanInstance instance = (result = predefinedType.InitializeInstance(compile, null)) as PrimitiveInstance.BooleanInstance;
 								compile.Writer.WriteCommand($"scoreboard players set {selector} {instance.Objective.Name} {(leftConstant.Value ? 1 : 0)}");
 							}
 						} else if(rightConstant != null) {
 							if(rightConstant.Value) {
 								result = rightConstant;
 							} else {
-								PrimitiveInstance.BooleanInstance instance = (result = predefinedType.InitializeInstance(compile.Writer, compile.Scope, null)) as PrimitiveInstance.BooleanInstance;
+								PrimitiveInstance.BooleanInstance instance = (result = predefinedType.InitializeInstance(compile, null)) as PrimitiveInstance.BooleanInstance;
 								compile.Writer.WriteCommand($"scoreboard players set {selector} {instance.Objective.Name} {(rightConstant.Value ? 1 : 0)}");
 							}
 						} else {
-							PrimitiveInstance.BooleanInstance instance = (result = predefinedType.InitializeInstance(compile.Writer, compile.Scope, null)) as PrimitiveInstance.BooleanInstance;
+							PrimitiveInstance.BooleanInstance instance = (result = predefinedType.InitializeInstance(compile, null)) as PrimitiveInstance.BooleanInstance;
 							compile.Writer.WriteCommand($"scoreboard players set {selector} {instance.Objective.Name} 1");
 							compile.Writer.WriteCommand($"execute if score {selector} {left.Objective.Name} matches ..0 if score {selector} {right.Objective.Name} matches ..0 " +
 								$"run scoreboard players set {selector} {instance.Objective.Name} 0");
@@ -501,10 +501,10 @@ namespace MCSharp.Linkage.Extensions {
 			}
 
 			#endregion
-			PredefinedType.InitializeInstanceDelegate init = (writer, scope, identifier) => {
+			PredefinedType.InitializeInstanceDelegate init = (location, identifier) => {
 
 				if(predefinedType is null) throw new Exception();
-				var objective = Objective.AddObjective(writer, identifier, "dummy");
+				var objective = Objective.AddObjective(location.Writer, identifier, "dummy");
 				return new PrimitiveInstance.BooleanInstance(predefinedType, identifier, objective);
 
 			};
@@ -580,7 +580,7 @@ namespace MCSharp.Linkage.Extensions {
 
 			#endregion
 
-			PredefinedType.InitializeInstanceDelegate init = (writer, scope, identifier) => {
+			PredefinedType.InitializeInstanceDelegate init = (location, identifier) => {
 
 				throw new NotImplementedException("'objective' initialization has not been implemented.");
 
@@ -630,7 +630,7 @@ namespace MCSharp.Linkage.Extensions {
 
 			#endregion
 
-			PredefinedType.InitializeInstanceDelegate init = (writer, scope, identifier) => {
+			PredefinedType.InitializeInstanceDelegate init = (location, identifier) => {
 
 				throw new NotImplementedException("'string' initialization has not been implemented.");
 

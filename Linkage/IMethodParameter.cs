@@ -25,41 +25,19 @@ namespace MCSharp.Linkage {
 
 	public static class IMethodParameterExtensions {
 
-		public static IInstance MakeOrGetInstance(this IMethodParameter link, Compiler compiler, FunctionWriter writer, Scope scope) {
-
-			#region Argument Checks
-			if(link is null)
-				throw new System.ArgumentNullException(nameof(link));
-			if(compiler is null)
-				throw new System.ArgumentNullException(nameof(compiler));
-			if(writer is null)
-				throw new System.ArgumentNullException(nameof(writer));
-			if(scope is null)
-				throw new System.ArgumentNullException(nameof(scope));
-			#endregion
+		public static IInstance MakeOrGetInstance(this IMethodParameter link, Compiler.CompileArguments location) {
 
 			IInstance instance = link.Instance;
 			if(instance != null) return instance;
-			else return link.Instance = compiler.DefinedTypes[link.TypeIdentifier].InitializeInstance(writer, scope, link.Identifier);
+			else return link.Instance = location.Compiler.DefinedTypes[link.TypeIdentifier].InitializeInstance(location, link.Identifier);
 
 		}
 
-		public static IInstance[] MakeOrGetInstances(this IReadOnlyList<IMethodParameter> links, Compiler compiler, FunctionWriter writer, Scope scope) {
-
-			#region Argument Checks
-			if(links is null)
-				throw new System.ArgumentNullException(nameof(links));
-			if(compiler is null)
-				throw new System.ArgumentNullException(nameof(compiler));
-			if(writer is null)
-				throw new System.ArgumentNullException(nameof(writer));
-			if(scope is null)
-				throw new System.ArgumentNullException(nameof(scope));
-			#endregion
+		public static IInstance[] MakeOrGetInstances(this IReadOnlyList<IMethodParameter> links, Compiler.CompileArguments location) {
 
 			int count = links.Count;
 			IInstance[] instances = new IInstance[count];
-			for(int i = 0; i < count; i++) instances[i] = links[i].MakeOrGetInstance(compiler, writer, scope);
+			for(int i = 0; i < count; i++) instances[i] = links[i].MakeOrGetInstance(location);
 			return instances;
 
 		}
