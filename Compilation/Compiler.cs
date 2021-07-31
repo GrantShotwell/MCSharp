@@ -1271,6 +1271,7 @@ namespace MCSharp.Compilation {
 					Scope scope = compile.Scope;
 					for(int current = 0; current < names.Length; current++) {
 
+						// PROBLEM: 'member_access' and 'identifier' have overlap which collide here.
 						if(current > 0) throw new NotImplementedException($"{compile.GetLocation(identifier)}Accessing namespaces has not been implemented.");
 						string name = names[current].GetText();
 						IInstance instance = scope.FindFirstInstanceByName(name);

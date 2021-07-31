@@ -21,6 +21,11 @@ namespace MCSharp.Compilation.Instancing {
 
 
 		// Private to disallow extensions to make primitive types because that is not supported.
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="type">The <see cref="IType"/> that defines this instance.</param>
+		/// <param name="identifier">The local identifier for this instance.</param>
 		private PrimitiveInstance(IType type, string identifier) {
 
 			if(type.ClassType != ClassType.Primitive)
@@ -51,8 +56,8 @@ namespace MCSharp.Compilation.Instancing {
 			/// <summary>
 			/// Creates a new <see cref="ObjectiveInstance"/> that holds <paramref name="value"/>.
 			/// </summary>
-			/// <param name="type"></param>
-			/// <param name="identifier"></param>
+			/// <param name="type">The <see cref="IType"/> that defines this instance.</param>
+			/// <param name="identifier">The local identifier for this instance.</param>
 			/// <param name="value"></param>
 			public ObjectiveInstance(IType type, string identifier, Objective value) : base(type, identifier) {
 				Value = value ?? throw new ArgumentNullException(nameof(value));
@@ -104,8 +109,8 @@ namespace MCSharp.Compilation.Instancing {
 				/// <summary>
 				/// Creates a new <see cref="Constant"/> that holds <paramref name="value"/>.
 				/// </summary>
-				/// <param name="type"></param>
-				/// <param name="identifier"></param>
+				/// <param name="type">The <see cref="IType"/> that defines this instance.</param>
+				/// <param name="identifier">The local identifier for this instance.</param>
 				/// <param name="value"></param>
 				public Constant(IType type, string identifier, int value) : base(type, identifier) {
 					Value = value;
@@ -162,8 +167,8 @@ namespace MCSharp.Compilation.Instancing {
 				/// <summary>
 				/// Creates a new <see cref="Constant"/> that holds <paramref name="value"/>.
 				/// </summary>
-				/// <param name="type"></param>
-				/// <param name="identifier"></param>
+				/// <param name="type">The <see cref="IType"/> that defines this instance.</param>
+				/// <param name="identifier">The local identifier for this instance.</param>
 				/// <param name="value"></param>
 				public Constant(IType type, string identifier, bool value) : base(type, identifier) {
 					Value = value;
@@ -190,8 +195,8 @@ namespace MCSharp.Compilation.Instancing {
 			/// <summary>
 			/// Creates a new <see cref="StringInstance"/> that holds <paramref name="value"/>.
 			/// </summary>
-			/// <param name="type"></param>
-			/// <param name="identifier"></param>
+			/// <param name="type">The <see cref="IType"/> that defines this instance.</param>
+			/// <param name="identifier">The local identifier for this instance.</param>
 			/// <param name="value"></param>
 			public StringInstance(IType type, string identifier, string value) : base(type, identifier) {
 				Value = value;
