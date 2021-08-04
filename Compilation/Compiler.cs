@@ -1142,7 +1142,10 @@ namespace MCSharp.Compilation {
 			ResultInfo expression_result = CompileExpression(compile, expression, out IInstance expression_value);
 			if(expression_result.Failure) return expression_result;
 
-			throw new NotImplementedException("Assignment expression evaluation has not been implemented.");
+			ResultInfo simple_operation_result = CompileSimpleOperation(compile, Operation.Assign, unary_value, expression_value, out value);
+			if(simple_operation_result.Failure) return compile.GetLocation(assignment_expression) + simple_operation_result;
+
+			return ResultInfo.DefaultSuccess;
 
 		}
 
