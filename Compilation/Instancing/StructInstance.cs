@@ -56,6 +56,8 @@ namespace MCSharp.Compilation.Instancing {
 
 			}
 
+			location.Scope.AddInstance(this);
+
 		}
 
 
