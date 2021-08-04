@@ -1200,94 +1200,20 @@ namespace MCSharp.Compilation {
 			MCSharpParser.LiteralContext literal = primary_no_array_creation_expression.literal();
 			if(literal != null) {
 
-				ITerminalNode integer_literal = literal.INTEGER();
-				if(integer_literal != null) {
+				ResultInfo result = CompileLiteral(compile, literal, out value);
+				if(result.Failure) return result;
 
-					string text = integer_literal.GetText();
-					int _value = int.Parse(text);
-
-					IType type = DefinedTypes[MCSharpLinkerExtension.IntIdentifier];
-					value = new PrimitiveInstance.IntegerInstance.Constant(type, null, _value);
-					ResultInfo scopeResult = compile.Scope.AddInstance(value);
-					if(scopeResult.Failure) return compile.GetLocation(integer_literal) + scopeResult;
-
-					return ResultInfo.DefaultSuccess;
-
-				}
-
-				ITerminalNode boolean_literal = literal.BOOLEAN();
-				if(boolean_literal != null) {
-
-					string text = boolean_literal.GetText();
-					bool _value = bool.Parse(text);
-
-					IType type = DefinedTypes[MCSharpLinkerExtension.BoolIdentifier];
-					value = new PrimitiveInstance.BooleanInstance.Constant(type, null, _value);
-					ResultInfo scopeResult = compile.Scope.AddInstance(value);
-					if(scopeResult.Failure) return compile.GetLocation(boolean_literal) + scopeResult;
-
-					return ResultInfo.DefaultSuccess;
-
-				}
-
-				ITerminalNode string_literal = literal.STRING();
-				if(string_literal != null) {
-
-					string text = string_literal.GetText();
-					string _value = text[1..^1];
-
-					IType type = DefinedTypes[MCSharpLinkerExtension.StringIdentifier];
-					value = new PrimitiveInstance.StringInstance(type, null, _value);
-					ResultInfo scopeResult = compile.Scope.AddInstance(value);
-					if(scopeResult.Failure) return compile.GetLocation(string_literal) + scopeResult;
-
-					return ResultInfo.DefaultSuccess;
-
-				}
-
-				ITerminalNode decimal_literal = literal.DECIMAL();
-				if(decimal_literal != null) {
-
-					string text = decimal_literal.GetText();
-					double _value = double.Parse(text);
-
-					// type
-
-					throw new NotImplementedException("Decimal/double/floats literals have not been implemented.");
-
-				}
-
-				throw new NotImplementedException("Literal context could not be determined.");
+				return ResultInfo.DefaultSuccess;
 
 			}
 
-			MCSharpParser.IdentifierContext identifier = primary_no_array_creation_expression.identifier();
+			MCSharpParser.Short_identifierContext identifier = primary_no_array_creation_expression.short_identifier();
 			if(identifier != null) {
 
-				ITerminalNode[] names = identifier.NAME();
+				ResultInfo result = CompileShortIdentifier(compile, identifier, out value);
+				if(result.Failure) return result;
 
-				if(names.Length > 1) {
-
-					Scope scope = compile.Scope;
-					for(int current = 0; current < names.Length; current++) {
-
-						// PROBLEM: 'member_access' and 'identifier' have overlap which collide here.
-						if(current > 0) throw new NotImplementedException($"{compile.GetLocation(identifier)}Accessing namespaces has not been implemented.");
-						string name = names[current].GetText();
-						IInstance instance = scope.FindFirstInstanceByName(name);
-
-					}
-
-				} else {
-
-					string name = names[0].GetText();
-
-					value = compile.Scope.FindFirstInstanceByName(name);
-					if(value == null) return new ResultInfo(false, $"{compile.GetLocation(identifier)}Instance '{name}' does not exist yet in this scope.");
-
-					return ResultInfo.DefaultSuccess;
-
-				}
+				return ResultInfo.DefaultSuccess;
 
 			}
 
@@ -1304,24 +1230,146 @@ namespace MCSharp.Compilation {
 			MCSharpParser.Member_accessContext member_access = primary_no_array_creation_expression.member_access();
 			if(member_access != null) {
 
-				PrimaryExpressionContext primary_expression = member_access.primary_expression();
-				MCSharpParser.IdentifierContext member_identifier = member_access.identifier();
+				MCSharpParser.Member_access_prefixContext[] member_access_prefixes = member_access.member_access_prefix();
+				MCSharpParser.Short_identifierContext member_identifier = member_access.short_identifier();
 				MCSharpParser.Generic_argumentsContext generic_arguments = member_access.generic_arguments();
 				MCSharpParser.Method_argumentsContext method_arguments = member_access.method_arguments();
 				MCSharpParser.Indexer_argumentsContext indexer_arguments = member_access.indexer_arguments();
 
 				// Get the instance to access from.
 				IScopeHolder holder;
-				if(primary_expression != null) {
+				if(member_access_prefixes != null && member_access_prefixes.Length > 0) {
 
-					// Access from primary expression.
-					ResultInfo primary_result = CompilePrimaryExpression(compile, primary_expression, out IInstance instance);
-					if(primary_result.Failure) {
-						value = null;
-						return primary_result;
+					value = null;
+
+					// Evaluate chain.
+					holder = null;
+					for(int i = 0; i < member_access_prefixes.Length; i++) {
+
+						var prefix = member_access_prefixes[i];
+
+						if(holder == null) {
+
+							// Start of chain (set holder).
+
+							ArrayCreationExpressionContext prefix_array_creation_expression = prefix.array_creation_expression();
+							if(prefix_array_creation_expression != null) {
+
+								ResultInfo prefixResult = CompileArrayCreationExpression(compile, prefix_array_creation_expression, out IInstance instance);
+								if(prefixResult.Failure) return compile.GetLocation(prefix_array_creation_expression) + prefixResult;
+
+								holder = instance.Type;
+								continue;
+
+							}
+
+							MCSharpParser.LiteralContext prefix_literal = prefix.literal();
+							if(prefix_literal != null) {
+
+								ResultInfo prefixResult = CompileLiteral(compile, prefix_literal, out IInstance instance);
+								if(prefixResult.Failure) return compile.GetLocation(prefix_literal) + prefixResult;
+
+								holder = instance.Type;
+								continue;
+
+							}
+
+							MCSharpParser.Short_identifierContext prefix_short_identifier = prefix.short_identifier();
+							if(prefix_short_identifier != null) {
+
+								ResultInfo result = CompileShortIdentifier(compile, prefix_short_identifier, out IInstance instance);
+								if(result.Failure) return result;
+
+								// TODO: generic_arguments? ( method_arguments | indexer_arguments )?
+
+								holder = instance.Type;
+								continue;
+
+							}
+
+							ExpressionContext prefix_expression = prefix.expression();
+							if(prefix_expression != null) {
+
+								ResultInfo prefixResult = CompileExpression(compile, prefix_expression, out IInstance instance);
+								if(prefixResult.Failure) return compile.GetLocation(prefix_expression) + prefixResult;
+
+								holder = instance.Type;
+								continue;
+
+							}
+
+							PostStepExpressionContext prefix_post_step_expression = prefix.post_step_expression();
+							if(prefix_post_step_expression != null) {
+
+								ResultInfo prefixResult = CompilePostStepExpression(compile, prefix_post_step_expression, out IInstance instance);
+								if(prefixResult.Failure) return compile.GetLocation(prefix_post_step_expression) + prefixResult;
+
+								holder = instance.Type;
+								continue;
+
+							}
+
+							KeywordExpressionContext prefix_keyword_expression = prefix.keyword_expression();
+							if(prefix_keyword_expression != null) {
+
+								throw new NotImplementedException(compile.GetLocation(prefix_keyword_expression) + "Keyword expression evaluation in member access have not been implemented.");
+
+							}
+
+						} else {
+
+							// Access from last (holder).
+
+							ArrayCreationExpressionContext prefix_array_creation_expression = prefix.array_creation_expression();
+							if(prefix_array_creation_expression != null) {
+
+								ResultInfo prefixResult = CompileArrayCreationExpression(compile, prefix_array_creation_expression, out IInstance instance);
+								if(prefixResult.Failure) return compile.GetLocation(prefix_array_creation_expression) + prefixResult;
+
+								throw new NotImplementedException("TODO");
+
+							}
+
+							MCSharpParser.LiteralContext prefix_literal = prefix.literal();
+							if(prefix_literal != null) {
+
+								ResultInfo prefixResult = CompileLiteral(compile, prefix_literal, out IInstance instance);
+								if(prefixResult.Failure) return compile.GetLocation(prefix_literal) + prefixResult;
+
+								throw new NotImplementedException("TODO");
+
+							}
+
+							ExpressionContext prefix_expression = prefix.expression();
+							if(prefix_expression != null) {
+
+								ResultInfo prefixResult = CompileExpression(compile, prefix_expression, out IInstance instance);
+								if(prefixResult.Failure) return compile.GetLocation(prefix_expression) + prefixResult;
+
+								throw new NotImplementedException("TODO");
+
+							}
+
+							PostStepExpressionContext prefix_post_step_expression = prefix.post_step_expression();
+							if(prefix_post_step_expression != null) {
+
+								ResultInfo prefixResult = CompilePostStepExpression(compile, prefix_post_step_expression, out IInstance instance);
+								if(prefixResult.Failure) return compile.GetLocation(prefix_post_step_expression) + prefixResult;
+
+								throw new NotImplementedException("TODO");
+
+							}
+
+							KeywordExpressionContext prefix_keyword_expression = prefix.keyword_expression();
+							if(prefix_keyword_expression != null) {
+
+								throw new NotImplementedException(compile.GetLocation(prefix_keyword_expression) + "Keyword expression evaluation in member access have not been implemented.");
+
+							}
+
+						}
+
 					}
-
-					holder = instance.Type;
 
 				} else {
 
@@ -1435,6 +1483,80 @@ namespace MCSharp.Compilation {
 			}
 
 			throw new Exception("Primary no-array-creation expression could not be determined.");
+
+		}
+
+		private ResultInfo CompileShortIdentifier(CompileArguments compile, MCSharpParser.Short_identifierContext identifier, out IInstance value) {
+
+			string name = identifier.NAME().GetText();
+
+			value = compile.Scope.FindFirstInstanceByName(name);
+			if(value == null) return new ResultInfo(false, $"{compile.GetLocation(identifier)}Instance '{name}' does not exist yet in this scope.");
+
+			return ResultInfo.DefaultSuccess;
+
+		}
+
+		private ResultInfo CompileLiteral(CompileArguments compile, MCSharpParser.LiteralContext literal, out IInstance value) {
+
+			ITerminalNode integer_literal = literal.INTEGER();
+			if(integer_literal != null) {
+
+				string text = integer_literal.GetText();
+				int _value = int.Parse(text);
+
+				IType type = DefinedTypes[MCSharpLinkerExtension.IntIdentifier];
+				value = new PrimitiveInstance.IntegerInstance.Constant(type, null, _value);
+				ResultInfo scopeResult = compile.Scope.AddInstance(value);
+				if(scopeResult.Failure) return compile.GetLocation(integer_literal) + scopeResult;
+
+				return ResultInfo.DefaultSuccess;
+
+			}
+
+			ITerminalNode boolean_literal = literal.BOOLEAN();
+			if(boolean_literal != null) {
+
+				string text = boolean_literal.GetText();
+				bool _value = bool.Parse(text);
+
+				IType type = DefinedTypes[MCSharpLinkerExtension.BoolIdentifier];
+				value = new PrimitiveInstance.BooleanInstance.Constant(type, null, _value);
+				ResultInfo scopeResult = compile.Scope.AddInstance(value);
+				if(scopeResult.Failure) return compile.GetLocation(boolean_literal) + scopeResult;
+
+				return ResultInfo.DefaultSuccess;
+
+			}
+
+			ITerminalNode string_literal = literal.STRING();
+			if(string_literal != null) {
+
+				string text = string_literal.GetText();
+				string _value = text[1..^1];
+
+				IType type = DefinedTypes[MCSharpLinkerExtension.StringIdentifier];
+				value = new PrimitiveInstance.StringInstance(type, null, _value);
+				ResultInfo scopeResult = compile.Scope.AddInstance(value);
+				if(scopeResult.Failure) return compile.GetLocation(string_literal) + scopeResult;
+
+				return ResultInfo.DefaultSuccess;
+
+			}
+
+			ITerminalNode decimal_literal = literal.DECIMAL();
+			if(decimal_literal != null) {
+
+				string text = decimal_literal.GetText();
+				double _value = double.Parse(text);
+
+				// type
+
+				throw new NotImplementedException("Decimal/double/floats literals have not been implemented.");
+
+			}
+
+			throw new NotImplementedException("Literal context could not be determined.");
 
 		}
 

@@ -351,6 +351,16 @@ public interface IMCSharpListener : IParseTreeListener {
 	/// <param name="context">The parse tree.</param>
 	void ExitIdentifier([NotNull] MCSharpParser.IdentifierContext context);
 	/// <summary>
+	/// Enter a parse tree produced by <see cref="MCSharpParser.short_identifier"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterShort_identifier([NotNull] MCSharpParser.Short_identifierContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="MCSharpParser.short_identifier"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitShort_identifier([NotNull] MCSharpParser.Short_identifierContext context);
+	/// <summary>
 	/// Enter a parse tree produced by <see cref="MCSharpParser.statement"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
@@ -890,6 +900,16 @@ public interface IMCSharpListener : IParseTreeListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	void ExitPrimary_no_array_creation_expression([NotNull] MCSharpParser.Primary_no_array_creation_expressionContext context);
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="MCSharpParser.member_access_prefix"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterMember_access_prefix([NotNull] MCSharpParser.Member_access_prefixContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="MCSharpParser.member_access_prefix"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitMember_access_prefix([NotNull] MCSharpParser.Member_access_prefixContext context);
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="MCSharpParser.member_access"/>.
 	/// </summary>

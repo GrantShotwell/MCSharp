@@ -419,6 +419,18 @@ public partial class MCSharpBaseListener : IMCSharpListener {
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitIdentifier([NotNull] MCSharpParser.IdentifierContext context) { }
 	/// <summary>
+	/// Enter a parse tree produced by <see cref="MCSharpParser.short_identifier"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterShort_identifier([NotNull] MCSharpParser.Short_identifierContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="MCSharpParser.short_identifier"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitShort_identifier([NotNull] MCSharpParser.Short_identifierContext context) { }
+	/// <summary>
 	/// Enter a parse tree produced by <see cref="MCSharpParser.statement"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>
@@ -1066,6 +1078,18 @@ public partial class MCSharpBaseListener : IMCSharpListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitPrimary_no_array_creation_expression([NotNull] MCSharpParser.Primary_no_array_creation_expressionContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="MCSharpParser.member_access_prefix"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterMember_access_prefix([NotNull] MCSharpParser.Member_access_prefixContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="MCSharpParser.member_access_prefix"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitMember_access_prefix([NotNull] MCSharpParser.Member_access_prefixContext context) { }
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="MCSharpParser.member_access"/>.
 	/// <para>The default implementation does nothing.</para>

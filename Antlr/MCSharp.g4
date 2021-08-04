@@ -122,6 +122,9 @@ literal
 identifier
 	: '@'? NAME ( DOT NAME )*
 	;
+short_identifier
+	: '@'? NAME
+	;
 
 // Statements
 statement
@@ -291,14 +294,22 @@ variable_initializer
 	;
 primary_no_array_creation_expression
 	: literal
-	| identifier
+	| short_identifier
 	| OP expression CP
 	| member_access
 	| post_step_expression
 	| keyword_expression
 	;
+member_access_prefix
+	: array_creation_expression DOT
+	| literal DOT
+	| short_identifier generic_arguments? ( method_arguments | indexer_arguments )? DOT
+	| OP expression CP DOT
+	| post_step_expression DOT
+	| keyword_expression DOT
+	;
 member_access
-	: ( OP primary_expression CP DOT )? identifier generic_arguments? ( method_arguments | indexer_arguments )?
+	: member_access_prefix* short_identifier generic_arguments? ( method_arguments | indexer_arguments )?
 	;
 keyword_expression
 	: new_keyword_expression
