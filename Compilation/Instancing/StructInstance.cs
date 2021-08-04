@@ -42,7 +42,7 @@ namespace MCSharp.Compilation.Instancing {
 					case MemberType.Field: {
 						var field = member.Definition as IField;
 						compile.Compiler.CompileExpression(compile, field.Initializer.Context, out IInstance value);
-						value = value.Copy(compile, member.Identifier);
+						field.Value = value = value.Copy(compile, member.Identifier);
 						fieldInstances.Add(value);
 						break;
 					}

@@ -1,4 +1,5 @@
-﻿using MCSharp.Linkage.Minecraft;
+﻿using MCSharp.Compilation.Instancing;
+using MCSharp.Linkage.Minecraft;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -11,6 +12,9 @@ namespace MCSharp.Linkage.Predefined {
 
 			public PredefinedExpression Initializer { get; }
 			IExpression IField.Initializer => Initializer;
+
+			/// </inheritdoc>
+			public IInstance Value { get; set; }
 
 			public Field(PredefinedExpression initializer) {
 				Initializer = initializer;

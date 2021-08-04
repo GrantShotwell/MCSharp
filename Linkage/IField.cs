@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MCSharp.Compilation.Instancing;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -13,6 +14,11 @@ namespace MCSharp.Linkage {
 		/// The expression to evaluate to set the initial value for this field.
 		/// </summary>
 		public IExpression Initializer { get; }
+
+		/// <summary>
+		/// 
+		/// </summary>
+		public IInstance Value { get; set; }
 
 	}
 

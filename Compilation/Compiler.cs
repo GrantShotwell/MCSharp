@@ -1402,7 +1402,12 @@ namespace MCSharp.Compilation {
 						switch(definition) {
 
 							case IField field: {
-								throw new NotImplementedException("Accessing fields has not been implemented.");
+
+								value = field.Value;
+								if(value == null) throw new Exception();
+
+								return ResultInfo.DefaultSuccess;
+
 							}
 
 							case IProperty property: {
