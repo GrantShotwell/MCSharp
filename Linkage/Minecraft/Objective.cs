@@ -52,6 +52,10 @@ namespace MCSharp.Linkage.Minecraft {
 			return $"mcs.{anonCount++}";
 		}
 
+		public static void ClearAnonymousNames() {
+			anonCount = 0;
+		}
+
 		public void WriteRemove(FunctionWriter function) {
 
 			string comment =

@@ -1142,7 +1142,22 @@ namespace MCSharp.Compilation {
 			ResultInfo expression_result = CompileExpression(compile, expression, out IInstance expression_value);
 			if(expression_result.Failure) return expression_result;
 
-			ResultInfo simple_operation_result = CompileSimpleOperation(compile, Operation.Assign, unary_value, expression_value, out value);
+			Operation op;
+			var assignment_operator = assignment_expression.assignment_operator();
+			if(assignment_operator.ASSIGN() != null) op = Operation.Assign;
+			else if(assignment_operator.ASSIGN_PLUS() != null) op = Operation.AssignAddition;
+			else if(assignment_operator.ASSIGN_MINUS() != null) op = Operation.AssignSubtraction;
+			else if(assignment_operator.ASSIGN_MULTIPLY() != null) op = Operation.AssignMultiplication;
+			else if(assignment_operator.ASSIGN_DIVIDE() != null) op = Operation.AssignDivision;
+			else if(assignment_operator.ASSIGN_MODULUS() != null) op = Operation.AssignModulo;
+			else if(assignment_operator.ASSIGN_ACCESS() != null) op = Operation.AssignAccess;
+			else if(assignment_operator.ASSIGN_AND() != null) op = Operation.AssignBitwiseAND;
+			else if(assignment_operator.ASSIGN_OR() != null) op = Operation.AssignBitwiseOR;
+			else if(assignment_operator.ASSIGN_XOR() != null) op = Operation.AssignBitwiseXOR;
+			else if(assignment_operator.ASSIGN_LEFT() != null) op = Operation.AssignShiftLeft;
+			else op = Operation.AssignShiftRight;
+
+			ResultInfo simple_operation_result = CompileSimpleOperation(compile, op, unary_value, expression_value, out value);
 			if(simple_operation_result.Failure) return compile.GetLocation(assignment_expression) + simple_operation_result;
 
 			return ResultInfo.DefaultSuccess;
@@ -1648,6 +1663,8 @@ namespace MCSharp.Compilation {
 			foreach(var type in DefinedTypes.Values) {
 				type.Dispose();
 			}
+
+			Objective.ClearAnonymousNames();
 
 		}
 

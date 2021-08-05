@@ -8,6 +8,17 @@ namespace MCSharp.Linkage {
 
 		// Assign
 		Assign,
+		AssignAddition,
+		AssignSubtraction,
+		AssignMultiplication,
+		AssignDivision,
+		AssignModulo,
+		AssignAccess,
+		AssignBitwiseAND,
+		AssignBitwiseOR,
+		AssignBitwiseXOR,
+		AssignShiftLeft,
+		AssignShiftRight,
 
 		// Conditional Expression
 		Conditional,

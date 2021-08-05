@@ -130,6 +130,35 @@ namespace MCSharp.Linkage.Extensions {
 
 			}
 
+			static IInstance ScoreboardDirectOperation(Compiler.CompileArguments compile, IInstance[] method, PredefinedType predefinedType, string op, string compact) {
+
+				Scope scope = compile.Scope;
+				FunctionWriter writer = compile.Writer;
+				string selector = StorageSelector;
+
+				PrimitiveInstance.IntegerInstance left = method[0] as PrimitiveInstance.IntegerInstance;
+				PrimitiveInstance.IntegerInstance.Constant leftConstant = left is null ? method[0] as PrimitiveInstance.IntegerInstance.Constant : null;
+				PrimitiveInstance.IntegerInstance right = method[1] as PrimitiveInstance.IntegerInstance;
+				PrimitiveInstance.IntegerInstance.Constant rightConstant = right is null ? method[1] as PrimitiveInstance.IntegerInstance.Constant : null;
+
+				if(leftConstant != null) {
+					throw new InvalidOperationException("Cannot assign to a constant.");
+				} else if(rightConstant != null) {
+					if(compact != null) {
+						writer.WriteCommand($"scoreboard players {compact} {selector} {left.Objective.Name} {rightConstant.Value}");
+					} else {
+						right = predefinedType.InitializeInstance(compile, null) as PrimitiveInstance.IntegerInstance;
+						writer.WriteCommand($"scoreboard players set {selector} {right.Objective.Name} {rightConstant.Value}");
+						writer.WriteCommand($"scoreboard players operation {selector} {left.Objective.Name} {op} {selector} {right.Objective.Name}");
+					}
+					return left;
+				} else {
+					writer.WriteCommand($"scoreboard players operation {selector} {left.Objective.Name} {op} {selector} {right.Objective.Name}");
+					return left;
+				}
+
+			}
+
 			// Assign
 			{
 
@@ -191,6 +220,28 @@ namespace MCSharp.Linkage.Extensions {
 
 			}
 
+			// Addition (Assign)
+			{
+
+				CustomFunction function = new CustomFunction(IntIdentifier,
+					new PredefinedGenericParameter[] {
+
+					},
+					new PredefinedMethodParameter[] {
+						new PredefinedMethodParameter(IntIdentifier, "left"),
+						new PredefinedMethodParameter(IntIdentifier, "right")
+					},
+					(Compiler.CompileArguments compile, IType[] generic, IInstance[] arguments, out IInstance result) => {
+						result = ScoreboardDirectOperation(compile, arguments, predefinedType, "+=", "add");
+						return ResultInfo.DefaultSuccess;
+					}
+				);
+
+				Operation op = Operation.AssignAddition;
+				operations.Add(op, new PredefinedOperation(op, function));
+
+			}
+
 			// Subtraction
 			{
 				
@@ -209,6 +260,28 @@ namespace MCSharp.Linkage.Extensions {
 				);
 
 				Operation op = Operation.Subtraction;
+				operations.Add(op, new PredefinedOperation(op, function));
+
+			}
+
+			// Subtraction (Assign)
+			{
+				
+				CustomFunction function = new CustomFunction(IntIdentifier,
+					new PredefinedGenericParameter[] {
+
+					},
+					new PredefinedMethodParameter[] {
+						new PredefinedMethodParameter(IntIdentifier, "left"),
+						new PredefinedMethodParameter(IntIdentifier, "right")
+					},
+					(Compiler.CompileArguments compile, IType[] generic, IInstance[] arguments, out IInstance result) => {
+						result = ScoreboardDirectOperation(compile, arguments, predefinedType, "-=", "remove");
+						return ResultInfo.DefaultSuccess;
+					}
+				);
+
+				Operation op = Operation.AssignSubtraction;
 				operations.Add(op, new PredefinedOperation(op, function));
 
 			}
@@ -235,6 +308,28 @@ namespace MCSharp.Linkage.Extensions {
 
 			}
 
+			// Multiplication (Assign)
+			{
+
+				CustomFunction function = new CustomFunction(IntIdentifier,
+					new PredefinedGenericParameter[] {
+
+					},
+					new PredefinedMethodParameter[] {
+						new PredefinedMethodParameter(IntIdentifier, "left"),
+						new PredefinedMethodParameter(IntIdentifier, "right")
+					},
+					(Compiler.CompileArguments compile, IType[] generic, IInstance[] arguments, out IInstance result) => {
+						result = ScoreboardDirectOperation(compile, arguments, predefinedType, "*=", null);
+						return ResultInfo.DefaultSuccess;
+					}
+				);
+
+				Operation op = Operation.AssignMultiplication;
+				operations.Add(op, new PredefinedOperation(op, function));
+
+			}
+
 			// Division
 			{
 
@@ -257,6 +352,28 @@ namespace MCSharp.Linkage.Extensions {
 
 			}
 
+			// Division (Assign)
+			{
+
+				CustomFunction function = new CustomFunction(IntIdentifier,
+					new PredefinedGenericParameter[] {
+
+					},
+					new PredefinedMethodParameter[] {
+						new PredefinedMethodParameter(IntIdentifier, "left"),
+						new PredefinedMethodParameter(IntIdentifier, "right")
+					},
+					(Compiler.CompileArguments compile, IType[] generic, IInstance[] arguments, out IInstance result) => {
+						result = ScoreboardDirectOperation(compile, arguments, predefinedType, "/=", null);
+						return ResultInfo.DefaultSuccess;
+					}
+				);
+
+				Operation op = Operation.AssignDivision;
+				operations.Add(op, new PredefinedOperation(op, function));
+
+			}
+
 			// Modulo
 			{
 
@@ -275,6 +392,28 @@ namespace MCSharp.Linkage.Extensions {
 				);
 
 				Operation op = Operation.Modulo;
+				operations.Add(op, new PredefinedOperation(op, function));
+
+			}
+
+			// Modulo (Assign)
+			{
+
+				CustomFunction function = new CustomFunction(IntIdentifier,
+					new PredefinedGenericParameter[] {
+
+					},
+					new PredefinedMethodParameter[] {
+						new PredefinedMethodParameter(IntIdentifier, "left"),
+						new PredefinedMethodParameter(IntIdentifier, "right")
+					},
+					(Compiler.CompileArguments compile, IType[] generic, IInstance[] arguments, out IInstance result) => {
+						result = ScoreboardDirectOperation(compile, arguments, predefinedType, "%=", null);
+						return ResultInfo.DefaultSuccess;
+					}
+				);
+
+				Operation op = Operation.AssignModulo;
 				operations.Add(op, new PredefinedOperation(op, function));
 
 			}
