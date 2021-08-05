@@ -71,7 +71,7 @@ namespace MCSharp.Linkage.Extensions {
 
 				var getStatements = new IStatement[] { new PredefinedStatement("return objective;") };
 				InlineStatementFunction getDefinition = new InlineStatementFunction(new IGenericParameter[] { }, new IMethodParameter[] { }, getStatements, returnType);
-				PredefinedMemberDefinition definition = new	PredefinedMemberDefinition.Property(getDefinition, null);
+				PredefinedMemberDefinition definition = new PredefinedMemberDefinition.Property(getDefinition, null);
 
 				PredefinedMember member = new PredefinedMember(null, member_modifiers, returnType, member_identifier, MemberType.Property, definition);
 				members.Add(member);

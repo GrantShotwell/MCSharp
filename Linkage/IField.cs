@@ -15,11 +15,6 @@ namespace MCSharp.Linkage {
 		/// </summary>
 		public IExpression Initializer { get; }
 
-		/// <summary>
-		/// 
-		/// </summary>
-		public IInstance Value { get; set; }
-
 	}
 
 }

@@ -2,6 +2,7 @@
 using MCSharp.Compilation.Instancing;
 using MCSharp.Linkage.Minecraft;
 using System;
+using System.Collections.Generic;
 
 namespace MCSharp.Linkage.Script {
 
@@ -134,9 +135,6 @@ namespace MCSharp.Linkage.Script {
 
 			public ScriptExpression Initializer { get; }
 			IExpression IField.Initializer => Initializer;
-
-			/// </inheritdoc>
-			public IInstance Value { get; set; }
 
 			public Field(MCSharpParser.ExpressionContext initialize) {
 				Initializer = new ScriptExpression(initialize);

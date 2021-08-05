@@ -13,9 +13,6 @@ namespace MCSharp.Linkage.Predefined {
 			public PredefinedExpression Initializer { get; }
 			IExpression IField.Initializer => Initializer;
 
-			/// </inheritdoc>
-			public IInstance Value { get; set; }
-
 			public Field(PredefinedExpression initializer) {
 				Initializer = initializer;
 			}

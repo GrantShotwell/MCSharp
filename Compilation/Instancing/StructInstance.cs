@@ -17,7 +17,7 @@ namespace MCSharp.Compilation.Instancing {
 		/// <inheritdoc/>
 		public string Identifier { get; }
 
-		public IReadOnlyList<IInstance> FieldInstances { get; }
+		public IReadOnlyDictionary<IField, IInstance> FieldInstances { get; }
 
 		public Scope Scope { get; set; }
 
@@ -31,8 +31,8 @@ namespace MCSharp.Compilation.Instancing {
 			Type = type;
 			Identifier = identifier;
 			Scope = new Scope(null, type.Scope, this);
-			IList<IInstance> fieldInstances = new List<IInstance>(type.Members.Count);
-			FieldInstances = (IReadOnlyList<IInstance>)fieldInstances;
+			IDictionary<IField, IInstance> fieldInstances = new Dictionary<IField, IInstance>(type.Members.Count);
+			FieldInstances = (IReadOnlyDictionary<IField, IInstance>)fieldInstances;
 
 			var compile = new Compiler.CompileArguments(location.Compiler, location.Function, Scope, location.Predefined);
 			foreach(IMember member in type.Members) {
@@ -42,8 +42,7 @@ namespace MCSharp.Compilation.Instancing {
 					case MemberType.Field: {
 						var field = member.Definition as IField;
 						compile.Compiler.CompileExpression(compile, field.Initializer.Context, out IInstance value);
-						field.Value = value = value.Copy(compile, member.Identifier);
-						fieldInstances.Add(value);
+						fieldInstances.Add(field, value.Copy(compile, member.Identifier));
 						break;
 					}
 

@@ -1239,8 +1239,98 @@ namespace MCSharp.Compilation {
 				MCSharpParser.Method_argumentsContext method_arguments = member_access.method_arguments();
 				MCSharpParser.Indexer_argumentsContext indexer_arguments = member_access.indexer_arguments();
 
+				IInstance holder;
+				ResultInfo Access(IInstance holder, out IInstance value) {
+
+					IMember accessedMember = null;
+					foreach(IMember member in holder.Type.Members) {
+						if(member.Identifier == member_identifier.GetText()) {
+							accessedMember = member;
+						}
+					}
+
+					// TODO: Check inherited types.
+
+					if(accessedMember == null) {
+						value = null;
+						return new ResultInfo(false, $"{compile.GetLocation(member_identifier)}'{member_identifier.GetText()}' does not exist in type '{holder.Type.Identifier}'.");
+					} else {
+
+						IMemberDefinition definition = accessedMember.Definition;
+
+						switch(definition) {
+
+							case IField field: {
+
+								switch(holder) {
+
+									case StructInstance structHolder: {
+										value = structHolder.FieldInstances[field];
+										return ResultInfo.DefaultSuccess;
+									}
+
+									default: throw new Exception($"Unsupported type of {nameof(IInstance)}: '{holder.GetType().FullName}'.");
+								}
+
+							}
+
+							case IProperty property: {
+
+								// Get getter.
+								var getter = property.Getter;
+								if(getter == null) {
+									value = null;
+									return new ResultInfo(false, $"{compile.GetLocation(member_identifier)}This property is not get-able.");
+								}
+
+								// Invoke 'get' method.
+								ResultInfo result = property.Getter.Invoke(compile, new IType[] { }, new IInstance[] { }, out value);
+								if(result.Failure) return compile.GetLocation(member_identifier) + result;
+
+								return ResultInfo.DefaultSuccess;
+
+							}
+
+							case IMethod method: {
+
+								// Get generic arguments.
+								IType[] generics;
+								if(generic_arguments == null) {
+									generics = new IType[] { };
+								} else {
+									throw new NotImplementedException($"{compile.GetLocation(generic_arguments)}Invoking methods with generic arguments has not been implemented.");
+								}
+
+								// Get method arguments.
+								IInstance[] arguments;
+								if(method_arguments == null) {
+									value = null;
+									return new ResultInfo(false, $"{compile.GetLocation(member_access)}Expected method arguments for accessing method.");
+								} else {
+									MCSharpParser.Argument_listContext argument_list = method_arguments.argument_list();
+									if(argument_list == null) {
+										arguments = new IInstance[] { };
+									} else {
+										throw new NotImplementedException("Accessing methods with more than zero parameters has not been implemented.");
+									}
+								}
+
+								// Invoke method.
+								ResultInfo result = method.Invoker.Invoke(compile, generics, arguments, out value);
+								if(result.Failure) return compile.GetLocation(member_access) + result;
+
+								return ResultInfo.DefaultSuccess;
+
+							}
+
+							default: throw new Exception($"Unsupported type of {nameof(IMember)}: '{definition.GetType().FullName}'.");
+						}
+
+					}
+
+				}
+
 				// Get the instance to access from.
-				IScopeHolder holder;
 				if(member_access_prefixes != null && member_access_prefixes.Length > 0) {
 
 					value = null;
@@ -1261,7 +1351,7 @@ namespace MCSharp.Compilation {
 								ResultInfo prefixResult = CompileArrayCreationExpression(compile, prefix_array_creation_expression, out IInstance instance);
 								if(prefixResult.Failure) return compile.GetLocation(prefix_array_creation_expression) + prefixResult;
 
-								holder = instance.Type;
+								holder = instance;
 								continue;
 
 							}
@@ -1272,7 +1362,7 @@ namespace MCSharp.Compilation {
 								ResultInfo prefixResult = CompileLiteral(compile, prefix_literal, out IInstance instance);
 								if(prefixResult.Failure) return compile.GetLocation(prefix_literal) + prefixResult;
 
-								holder = instance.Type;
+								holder = instance;
 								continue;
 
 							}
@@ -1285,7 +1375,7 @@ namespace MCSharp.Compilation {
 
 								// TODO: generic_arguments? ( method_arguments | indexer_arguments )?
 
-								holder = instance.Type;
+								holder = instance;
 								continue;
 
 							}
@@ -1296,7 +1386,7 @@ namespace MCSharp.Compilation {
 								ResultInfo prefixResult = CompileExpression(compile, prefix_expression, out IInstance instance);
 								if(prefixResult.Failure) return compile.GetLocation(prefix_expression) + prefixResult;
 
-								holder = instance.Type;
+								holder = instance;
 								continue;
 
 							}
@@ -1307,7 +1397,7 @@ namespace MCSharp.Compilation {
 								ResultInfo prefixResult = CompilePostStepExpression(compile, prefix_post_step_expression, out IInstance instance);
 								if(prefixResult.Failure) return compile.GetLocation(prefix_post_step_expression) + prefixResult;
 
-								holder = instance.Type;
+								holder = instance;
 								continue;
 
 							}
@@ -1315,7 +1405,11 @@ namespace MCSharp.Compilation {
 							KeywordExpressionContext prefix_keyword_expression = prefix.keyword_expression();
 							if(prefix_keyword_expression != null) {
 
-								throw new NotImplementedException(compile.GetLocation(prefix_keyword_expression) + "Keyword expression evaluation in member access have not been implemented.");
+								ResultInfo prefixResult = CompileKeywordExpression(compile, prefix_keyword_expression, out IInstance instance);
+								if(prefixResult.Failure) return prefixResult;
+
+								holder = instance;
+								continue;
 
 							}
 
@@ -1377,102 +1471,12 @@ namespace MCSharp.Compilation {
 				} else {
 
 					// Access from implicit 'this'.
-					holder = compile.Scope.Holder;
+					throw new NotImplementedException(compile.GetLocation(member_access) + "Implicit 'this' has not been implemented.");
 
 				}
 
-				ResultInfo Access(IType type, out IInstance value) {
 
-					IMember accessedMember = null;
-					foreach(IMember member in type.Members) {
-						if(member.Identifier == member_identifier.GetText()) {
-							accessedMember = member;
-						}
-					}
-
-					// TODO: Check inherited types.
-
-					if(accessedMember == null) {
-						value = null;
-						return new ResultInfo(false, $"{compile.GetLocation(member_identifier)}'{member_identifier.GetText()}' does not exist in type '{type.Identifier}'.");
-					} else {
-
-						IMemberDefinition definition = accessedMember.Definition;
-
-						switch(definition) {
-
-							case IField field: {
-
-								value = field.Value;
-								if(value == null) throw new Exception();
-
-								return ResultInfo.DefaultSuccess;
-
-							}
-
-							case IProperty property: {
-
-								// Get getter.
-								var getter = property.Getter;
-								if(getter == null) {
-									value = null;
-									return new ResultInfo(false, $"{compile.GetLocation(member_identifier)}This property is not get-able.");
-								}
-
-								// Invoke 'get' method.
-								ResultInfo result = property.Getter.Invoke(compile, new IType[] { }, new IInstance[] { }, out value);
-								if(result.Failure) return compile.GetLocation(member_identifier) + result;
-
-								return ResultInfo.DefaultSuccess;
-
-							}
-
-							case IMethod method: {
-
-								// Get generic arguments.
-								IType[] generics;
-								if(generic_arguments == null) {
-									generics = new IType[] { };
-								} else {
-									throw new NotImplementedException($"{compile.GetLocation(generic_arguments)}Invoking methods with generic arguments has not been implemented.");
-								}
-
-								// Get method arguments.
-								IInstance[] arguments;
-								if(method_arguments == null) {
-									value = null;
-									return new ResultInfo(false, $"{compile.GetLocation(member_access)}Expected method arguments for accessing method.");
-								} else {
-									MCSharpParser.Argument_listContext argument_list = method_arguments.argument_list();
-									if(argument_list == null) {
-										arguments = new IInstance[] { };
-									} else {
-										throw new NotImplementedException("Accessing methods with more than zero parameters has not been implemented.");
-									}
-								}
-
-								// Invoke method.
-								ResultInfo result = method.Invoker.Invoke(compile, generics, arguments, out value);
-								if(result.Failure) return compile.GetLocation(member_access) + result;
-
-								return ResultInfo.DefaultSuccess;
-
-							}
-
-							default: throw new Exception($"Unsupported type of {nameof(IMember)} '{definition.GetType().FullName}'.");
-						}
-
-					}
-
-				}
-
-				if(holder is IType typeHolder) {
-					return Access(typeHolder, out value);
-				} else if(holder is IMember memberHolder) {
-					return Access(memberHolder.Declarer, out value);
-				} else {
-					throw new Exception($"Unsupported type of {nameof(IScopeHolder)} '{holder?.GetType().FullName ?? "null"}'.");
-				}
+				return Access(holder, out value);
 
 			}
 
@@ -1486,7 +1490,10 @@ namespace MCSharp.Compilation {
 			KeywordExpressionContext keyword_expression = primary_no_array_creation_expression.keyword_expression();
 			if(keyword_expression != null) {
 
-				throw new NotImplementedException("Keyword expression evaluation have not been implemented.");
+				ResultInfo result = CompileKeywordExpression(compile, keyword_expression, out value);
+				if(result.Failure) return result;
+
+				return ResultInfo.DefaultSuccess;
 
 			}
 
@@ -1494,7 +1501,7 @@ namespace MCSharp.Compilation {
 
 		}
 
-		private ResultInfo CompileShortIdentifier(CompileArguments compile, MCSharpParser.Short_identifierContext identifier, out IInstance value) {
+		public ResultInfo CompileShortIdentifier(CompileArguments compile, MCSharpParser.Short_identifierContext identifier, out IInstance value) {
 
 			string name = identifier.NAME().GetText();
 
@@ -1505,7 +1512,7 @@ namespace MCSharp.Compilation {
 
 		}
 
-		private ResultInfo CompileLiteral(CompileArguments compile, MCSharpParser.LiteralContext literal, out IInstance value) {
+		public ResultInfo CompileLiteral(CompileArguments compile, MCSharpParser.LiteralContext literal, out IInstance value) {
 
 			ITerminalNode integer_literal = literal.INTEGER();
 			if(integer_literal != null) {
@@ -1565,6 +1572,12 @@ namespace MCSharp.Compilation {
 			}
 
 			throw new NotImplementedException("Literal context could not be determined.");
+
+		}
+
+		public ResultInfo CompileKeywordExpression(CompileArguments compile, KeywordExpressionContext keyword_expression, out IInstance value) {
+
+			throw new NotImplementedException("Keyword expression evaluation have not been implemented.");
 
 		}
 

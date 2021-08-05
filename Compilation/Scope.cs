@@ -17,17 +17,16 @@ namespace MCSharp.Compilation {
 		/// </summary>
 		public string Name { get; }
 
-		private readonly Func<IScopeHolder> getHolder = null;
-		private IScopeHolder holder = null;
+		private readonly IScopeHolder holder = null;
 		/// <summary>
 		/// The <see cref="IScopeHolder"/> that holds this <see cref="Scope"/>, if any.
 		/// </summary>
-		public IScopeHolder Holder => holder ?? (holder = getHolder.Invoke()) ?? Parent?.Holder;
+		public IScopeHolder Holder => holder ?? Parent?.Holder;
 
 		/// <summary>
 		/// The root of this <see cref="Scope"/>, found recursively.
 		/// </summary>
-		public Scope Root => Parent?.Root ?? this;
+		public Scope Root => Parent == null ? this : Parent?.Root ?? Parent;
 
 		/// <summary>
 		/// The parent of this <see cref="Scope"/> (or <see langword="null"/> if root).
