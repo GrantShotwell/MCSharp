@@ -449,7 +449,9 @@ STRUCT: 'struct';
 
 // Whitespace
 WHITESPACE: [ \t\r]+ -> skip;
+SINGLELINE_COMMENT: '//' ~[\n]* -> skip;
 NEWLINE: [\n]+ -> skip;
+MULTILINE_COMMENT: '/*' .*? '*/' -> skip;
 
 // Literals
 fragment ESCAPE: '\\';

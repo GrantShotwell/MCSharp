@@ -432,6 +432,7 @@ namespace MCSharp.Linkage.Extensions {
 			foreach(PredefinedMember member in members) member.Declarer = predefinedType;
 			foreach(PredefinedConstructor constructor in constructors) constructor.Declarer = predefinedType;
 			return predefinedType;
+
 		}
 
 		private static PredefinedType CreatePredefinedBool() {
@@ -640,6 +641,7 @@ namespace MCSharp.Linkage.Extensions {
 			}
 
 			#endregion
+
 			PredefinedType.InitializeInstanceDelegate init = (location, identifier) => {
 
 				if(predefinedType is null) throw new Exception();
@@ -721,7 +723,7 @@ namespace MCSharp.Linkage.Extensions {
 
 			PredefinedType.InitializeInstanceDelegate init = (location, identifier) => {
 
-				throw new NotImplementedException("'objective' initialization has not been implemented.");
+				throw new NotImplementedException($"'{ObjectiveIdentifier}' initialization has not been implemented.");
 
 			};
 
@@ -771,7 +773,7 @@ namespace MCSharp.Linkage.Extensions {
 
 			PredefinedType.InitializeInstanceDelegate init = (location, identifier) => {
 
-				throw new NotImplementedException("'string' initialization has not been implemented.");
+				throw new NotImplementedException($"'{StringIdentifier}' initialization has not been implemented.");
 
 			};
 

@@ -582,6 +582,9 @@ namespace MCSharp.Compilation {
 				expression_results[1] = CompileExpression(compile, expressions[1], out expression_values[1]);
 				if(expression_results[1].Failure) return expression_results[1];
 
+				//var condition = DefinedTypes[MCSharpLinkerExtension.BoolIdentifier].InitializeInstance(compile, null) as PrimitiveInstance.BooleanInstance;
+
+
 				throw new NotImplementedException("Conditional expressions have not been implemented.");
 
 			} else {
@@ -1277,12 +1280,18 @@ namespace MCSharp.Compilation {
 
 							case IField field: {
 
+								// Struct, Class, and Predefined all have different ways of storing fields.
 								switch(holder) {
 
+									// Get IInstance value from StructInstance.FieldInstances.
 									case StructInstance structHolder: {
 										value = structHolder.FieldInstances[field];
 										return ResultInfo.DefaultSuccess;
 									}
+
+									// TODO: ClassInstance
+
+									// TODO: PredefinedInstance
 
 									default: throw new Exception($"Unsupported type of {nameof(IInstance)}: '{holder.GetType().FullName}'.");
 								}
@@ -1475,7 +1484,10 @@ namespace MCSharp.Compilation {
 							KeywordExpressionContext prefix_keyword_expression = prefix.keyword_expression();
 							if(prefix_keyword_expression != null) {
 
-								throw new NotImplementedException(compile.GetLocation(prefix_keyword_expression) + "Keyword expression evaluation in member access have not been implemented.");
+								ResultInfo prefixResult = CompileKeywordExpression(compile, prefix_keyword_expression, out IInstance instance);
+								if(prefixResult.Failure) return prefixResult;
+
+								throw new NotImplementedException("TODO");
 
 							}
 
@@ -1582,7 +1594,7 @@ namespace MCSharp.Compilation {
 
 				// type
 
-				throw new NotImplementedException("Decimal/double/floats literals have not been implemented.");
+				throw new NotImplementedException("Decimal/double/float literals have not been implemented.");
 
 			}
 
