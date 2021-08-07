@@ -65,6 +65,9 @@ namespace MCSharp.Linkage.Minecraft {
 
 		}
 
+		/// </inheritdoc>
+		public override string ToString() => $"{Name} ({Criterion})";
+
 	}
 
 }

@@ -152,7 +152,7 @@ namespace MCSharp.Compilation {
 
 			{
 
-				// Create threads.
+				// Prepare threads.
 				ResultInfo? failure = null;
 				Thread threadFirstPassWalk = new Thread(new ThreadStart(() => {
 					failure = FirstPassWalk();
@@ -263,7 +263,7 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public ResultInfo CompileStatement(CompileArguments compile, StatementContext context) {
+		public ResultInfo CompileStatement(CompileArguments location, StatementContext context) {
 
 			#region Argument Checks
 			if(context is null)
@@ -274,7 +274,7 @@ namespace MCSharp.Compilation {
 			if(code_block != null) {
 
 				StatementContext[] statements = code_block.statement();
-				return CompileStatements(compile.Function, compile.Scope, CreateIStatements(statements, compile.Predefined));
+				return CompileStatements(location.Function, location.Scope, CreateIStatements(statements, location.Predefined));
 
 			}
 
@@ -290,27 +290,31 @@ namespace MCSharp.Compilation {
 					StatementContext statement1 = if_stmts[0];
 					StatementContext statement2 = if_stmts.Length > 1 ? if_stmts[1] : null;
 
-					ResultInfo conditionResult = CompileExpression(compile, condition, out IInstance value);
+					ResultInfo conditionResult = CompileExpression(location, condition, out IInstance value);
 					if(conditionResult.Failure) return conditionResult;
 
-					Scope statement1Scope = new Scope(null, compile.Scope, null);
-					StandaloneStatementFunction statement1Function = compile.Function.CreateChildFunction(CreateIStatements(statement1, compile.Predefined), Settings);
-					ResultInfo statement1Result = CompileStatement(compile, statement1);
+					Scope statement1Scope = new Scope(null, location.Scope, null);
+					StandaloneStatementFunction statement1Function = location.Function.CreateChildFunction(CreateIStatements(statement1, location.Predefined), Settings);
+					CompileArguments statement1Location = new CompileArguments(location.Compiler, statement1Function, statement1Scope, location.Predefined);
+
+					ResultInfo statement1Result = CompileStatement(statement1Location, statement1);
 					if(statement1Result.Failure) return statement1Result;
 
 					if(value is PrimitiveInstance.BooleanInstance valueBool) {
 
-						compile.Function.Writer.WriteCommand($"execute if score {MCSharpLinkerExtension.StorageSelector} {valueBool.Objective.Name} matches 1.. " +
+						location.Function.Writer.WriteCommand($"execute if score {MCSharpLinkerExtension.StorageSelector} {valueBool.Objective.Name} matches 1.. " +
 							$"run function {statement1Function.Writer.GamePath}");
 
 						if(statement2 != null) {
 
-							Scope statement2Scope = new Scope(null, compile.Scope, null);
-							StandaloneStatementFunction statement2Function = compile.Function.CreateChildFunction(CreateIStatements(statement2, compile.Predefined), Settings);
-							ResultInfo statement2Result = CompileStatement(compile, statement2);
+							Scope statement2Scope = new Scope(null, location.Scope, null);
+							StandaloneStatementFunction statement2Function = location.Function.CreateChildFunction(CreateIStatements(statement2, location.Predefined), Settings);
+							CompileArguments statement2Location = new CompileArguments(location.Compiler, statement2Function, statement2Scope, location.Predefined);
+
+							ResultInfo statement2Result = CompileStatement(statement2Location, statement2);
 							if(statement2Result.Failure) return statement2Result;
 
-							compile.Function.Writer.WriteCommand($"execute if score {MCSharpLinkerExtension.StorageSelector} {valueBool.Objective.Name} matches ..0 " +
+							location.Function.Writer.WriteCommand($"execute if score {MCSharpLinkerExtension.StorageSelector} {valueBool.Objective.Name} matches ..0 " +
 								$"run function {statement2Function.Writer.GamePath}");
 
 						}
@@ -328,7 +332,57 @@ namespace MCSharp.Compilation {
 				ForStatementContext for_statement = language_function.for_statement();
 				if(for_statement != null) {
 
-					throw new NotImplementedException("'for' statements have not been implemented.");
+					InitializationExpressionContext for_initialization_expression = for_statement.initialization_expression();
+					ExpressionContext[] for_expressions = for_statement.expression();
+					ExpressionContext condition = for_expressions[0];
+					ExpressionContext increment = for_expressions[1];
+					StatementContext statement = for_statement.statement();
+
+					Scope scopeOuter = new Scope(null, location.Scope, null);
+					CompileArguments locationOuter = new CompileArguments(location.Compiler, location.Function, scopeOuter, location.Predefined);
+
+					Scope scopeInner = new Scope(null, scopeOuter, null);
+					StandaloneStatementFunction statementFunction = locationOuter.Function.CreateChildFunction(CreateIStatements(statement, locationOuter.Predefined), Settings);
+					CompileArguments locationInner = new CompileArguments(locationOuter.Compiler, statementFunction, scopeInner, locationOuter.Predefined);
+
+					ResultInfo initializationResult = CompileInitializationExpression(locationOuter, for_initialization_expression, out _);
+					if(initializationResult.Failure) return initializationResult;
+
+					ResultInfo conditionResult1 = CompileExpression(locationOuter, condition, out IInstance conditionValue1);
+					if(conditionResult1.Failure) return conditionResult1;
+
+					if(conditionValue1 is PrimitiveInstance.BooleanInstance conditionValue1Bool) {
+
+						locationOuter.Function.Writer.WriteCommand($"execute if score {MCSharpLinkerExtension.StorageSelector} {conditionValue1Bool.Objective.Name} matches 1.. " +
+							$"run function {statementFunction.Writer.GamePath}");
+
+					} else {
+
+						throw new NotImplementedException("Casting has not been implemented.");
+
+					}
+
+					ResultInfo statementResult = CompileStatement(locationInner, statement);
+					if(statementResult.Failure) return statementResult;
+
+					ResultInfo incrementResult = CompileExpression(locationInner, increment, out _);
+					if(incrementResult.Failure) return incrementResult;
+
+					ResultInfo conditionResult2 = CompileExpression(locationInner, condition, out IInstance conditionValue2);
+					if(conditionResult2.Failure) return conditionResult2;
+
+					if(conditionValue2 is PrimitiveInstance.BooleanInstance conditionValue2Bool) {
+
+						locationInner.Function.Writer.WriteCommand($"execute if score {MCSharpLinkerExtension.StorageSelector} {conditionValue2Bool.Objective.Name} matches 1.. " +
+							$"run function {statementFunction.Writer.GamePath}");
+
+					} else {
+
+						throw new NotImplementedException("Casting has not been implemented.");
+
+					}
+
+					return ResultInfo.DefaultSuccess;
 
 				}
 
@@ -380,27 +434,7 @@ namespace MCSharp.Compilation {
 			InitializationExpressionContext initialization_expression = context.initialization_expression();
 			if(initialization_expression != null) {
 
-				ITerminalNode[] names = initialization_expression.NAME();
-				ITerminalNode typeName = names[0];
-				ITerminalNode identifier = names[1];
-
-				IType type = DefinedTypes[typeName.GetText()];
-				IInstance instance = type.InitializeInstance(compile, identifier.GetText());
-
-				ExpressionContext assignment = initialization_expression.expression();
-				if(assignment != null) {
-
-					ResultInfo assignment_result = CompileExpression(compile, assignment, out IInstance assignment_value);
-					if(assignment_result.Failure) return assignment_result;
-
-					ResultInfo assign_result = CompileSimpleOperation(compile, Operation.Assign, instance, assignment_value, out _);
-					if(assign_result.Failure) return compile.GetLocation(initialization_expression.ASSIGN()) + assign_result;
-
-					return ResultInfo.DefaultSuccess;
-
-				}
-
-				return ResultInfo.DefaultSuccess;
+				return CompileInitializationExpression(location, initialization_expression, out _);
 
 			}
 
@@ -408,7 +442,7 @@ namespace MCSharp.Compilation {
 			ExpressionContext expression = context.expression();
 			if(expression != null) {
 
-				ResultInfo expression_result = CompileExpression(compile, expression, out _);
+				ResultInfo expression_result = CompileExpression(location, expression, out _);
 				if(expression_result.Failure) return expression_result;
 
 				return ResultInfo.DefaultSuccess;
@@ -416,6 +450,32 @@ namespace MCSharp.Compilation {
 			}
 
 			throw new Exception("Statement context could not be determined.");
+
+		}
+
+		public ResultInfo CompileInitializationExpression(CompileArguments location, InitializationExpressionContext initialization_expression, out IInstance value) {
+
+			ITerminalNode[] names = initialization_expression.NAME();
+			ITerminalNode typeName = names[0];
+			ITerminalNode identifier = names[1];
+
+			IType type = DefinedTypes[typeName.GetText()];
+			value = type.InitializeInstance(location, identifier.GetText());
+
+			ExpressionContext expression = initialization_expression.expression();
+			if(expression != null) {
+
+				ResultInfo expression_result = CompileExpression(location, expression, out IInstance assignment_value);
+				if(expression_result.Failure) return expression_result;
+
+				ResultInfo assign_result = CompileSimpleOperation(location, Operation.Assign, value, assignment_value, out _);
+				if(assign_result.Failure) return location.GetLocation(initialization_expression.ASSIGN()) + assign_result;
+
+				return ResultInfo.DefaultSuccess;
+
+			}
+
+			return ResultInfo.DefaultSuccess;
 
 		}
 
@@ -812,27 +872,67 @@ namespace MCSharp.Compilation {
 				throw new ArgumentNullException(nameof(relational_expression));
 			#endregion
 
-			value = null;
-			ShiftExpressionContext shift_expression = relational_expression.shift_expression();
-			ResultInfo shift_result = CompileShiftExpression(compile, shift_expression, out IInstance shift_value);
-			if(shift_result.Failure) return shift_result;
-			RelationOrTypeCheckContext[] relation_or_type_check = relational_expression.relation_or_type_check();
-			if(relation_or_type_check.Length > 0) {
-				throw new NotImplementedException("Relation/type check has not been implemented.");
+			ResultInfo shift_result = CompileShiftExpression(compile, relational_expression.shift_expression(), out value);
+			if(shift_result.Failure) { value = null; return shift_result; }
+
+			RelationOrTypeCheckContext[] relation_or_type_checks = relational_expression.relation_or_type_check();
+			int count = relation_or_type_checks?.Length ?? 0;
+			for(int i = 0; i < count; i++) {
+
+				ResultInfo rotcResult = CompileRelationOrTypeCheck(compile, value, relation_or_type_checks[i], out value);
+				if(rotcResult.Failure) return rotcResult;
+
 			}
-			value = shift_value;
+
 			return ResultInfo.DefaultSuccess;
 
 		}
 
-		public ResultInfo CompileRelationOrTypeCheck(CompileArguments compile, RelationOrTypeCheckContext relation_or_type_check, out IInstance value) {
+		public ResultInfo CompileRelationOrTypeCheck(CompileArguments compile, IInstance operandLeft, RelationOrTypeCheckContext relation_or_type_check, out IInstance value) {
 
 			#region Argument Checks
 			if(relation_or_type_check is null)
 				throw new ArgumentNullException(nameof(relation_or_type_check));
 			#endregion
 
-			throw new NotImplementedException($"{MethodBase.GetCurrentMethod().Name} has not been implemented.");
+			MCSharpParser.Relation_operatorContext relation_operator = relation_or_type_check.relation_operator();
+			if(relation_operator != null) {
+
+				ShiftExpressionContext shift_expression = relation_or_type_check.shift_expression();
+				ResultInfo expressionResult = CompileShiftExpression(compile, shift_expression, out IInstance operandRight);
+				if(expressionResult.Failure) { value = null; return expressionResult; }
+
+				Operation op;
+				if(relation_operator.LESS_THAN() != null) op = Operation.LessThan;
+				else if(relation_operator.GREATER_THAN() != null) op = Operation.GreaterThan;
+				else if(relation_operator.LESS_THAN_EQUAL() != null) op = Operation.LessThanOrEqual;
+				else op = Operation.GreaterThanOrEqual;
+
+				ResultInfo relationResult = CompileSimpleOperation(compile, op, operandLeft, operandRight, out value);
+				if(relationResult.Failure) return compile.GetLocation(relation_or_type_check) + relationResult;
+
+				return ResultInfo.DefaultSuccess;
+
+			}
+
+			bool type_check_is = relation_or_type_check.IS() != null;
+			bool type_check_as = relation_or_type_check.AS() != null;
+
+			if(type_check_is) {
+
+				value = null;
+				return new ResultInfo(false, "'is' operations have not been implemented.");
+
+			}
+
+			if(type_check_as) {
+
+				value = null;
+				return new ResultInfo(false, "'as' operations have not been implemented.");
+
+			}
+
+			throw new Exception("Relation-or-type-check could not be determined.");
 
 		}
 
@@ -983,7 +1083,7 @@ namespace MCSharp.Compilation {
 				unary_results[1] = CompileUnaryExpression(compile, unary_expressions[1], out unary_values[1]);
 				if(unary_results[1].Failure) return unary_results[1];
 
-				throw new NotImplementedException("Range expressions have been been implemented.");
+				throw new NotImplementedException("Range expressions have not been implemented.");
 
 			} else {
 

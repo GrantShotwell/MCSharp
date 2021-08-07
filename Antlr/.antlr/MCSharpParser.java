@@ -4086,7 +4086,9 @@ public class MCSharpParser extends Parser {
 		public Shift_expressionContext shift_expression() {
 			return getRuleContext(Shift_expressionContext.class,0);
 		}
-		public TerminalNode NAME() { return getToken(MCSharpParser.NAME, 0); }
+		public IdentifierContext identifier() {
+			return getRuleContext(IdentifierContext.class,0);
+		}
 		public TerminalNode IS() { return getToken(MCSharpParser.IS, 0); }
 		public TerminalNode AS() { return getToken(MCSharpParser.AS, 0); }
 		public Relation_or_type_checkContext(ParserRuleContext parent, int invokingState) {
@@ -4130,7 +4132,7 @@ public class MCSharpParser extends Parser {
 					consume();
 				}
 				setState(706);
-				match(NAME);
+				identifier();
 				}
 				break;
 			default:
@@ -6209,8 +6211,8 @@ public class MCSharpParser extends Parser {
 		"F\2\u02bb\u02ba\3\2\2\2\u02bc\u02bf\3\2\2\2\u02bd\u02bb\3\2\2\2\u02bd"+
 		"\u02be\3\2\2\2\u02be\u0089\3\2\2\2\u02bf\u02bd\3\2\2\2\u02c0\u02c1\5V"+
 		",\2\u02c1\u02c2\5\u008cG\2\u02c2\u02c6\3\2\2\2\u02c3\u02c4\t\20\2\2\u02c4"+
-		"\u02c6\7`\2\2\u02c5\u02c0\3\2\2\2\u02c5\u02c3\3\2\2\2\u02c6\u008b\3\2"+
-		"\2\2\u02c7\u02cd\5\u008eH\2\u02c8\u02c9\5R*\2\u02c9\u02ca\5\u008eH\2\u02ca"+
+		"\u02c6\5@!\2\u02c5\u02c0\3\2\2\2\u02c5\u02c3\3\2\2\2\u02c6\u008b\3\2\2"+
+		"\2\u02c7\u02cd\5\u008eH\2\u02c8\u02c9\5R*\2\u02c9\u02ca\5\u008eH\2\u02ca"+
 		"\u02cc\3\2\2\2\u02cb\u02c8\3\2\2\2\u02cc\u02cf\3\2\2\2\u02cd\u02cb\3\2"+
 		"\2\2\u02cd\u02ce\3\2\2\2\u02ce\u008d\3\2\2\2\u02cf\u02cd\3\2\2\2\u02d0"+
 		"\u02d6\5\u0090I\2\u02d1\u02d2\5H%\2\u02d2\u02d3\5\u0090I\2\u02d3\u02d5"+

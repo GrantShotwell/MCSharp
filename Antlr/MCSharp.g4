@@ -232,7 +232,7 @@ relational_expression
 	;
 relation_or_type_check
 	: relation_operator shift_expression
-	| ( IS | AS ) NAME
+	| ( IS | AS ) identifier
 	;
 shift_expression
 	: additive_expression ( shift_operator additive_expression )*

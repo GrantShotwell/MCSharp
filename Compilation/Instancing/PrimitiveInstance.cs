@@ -4,6 +4,7 @@ using MCSharp.Linkage.Extensions;
 using MCSharp.Linkage.Minecraft;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 
 namespace MCSharp.Compilation.Instancing {
@@ -11,6 +12,7 @@ namespace MCSharp.Compilation.Instancing {
 	/// <summary>
 	/// Represents an instance of a primitive type.
 	/// </summary>
+	[DebuggerDisplay("{Type.Identifier,nq} {Identifier,nq}")]
 	public abstract class PrimitiveInstance : IInstance {
 
 		/// <inheritdoc/>
@@ -43,6 +45,7 @@ namespace MCSharp.Compilation.Instancing {
 		/// <summary>
 		/// Represents an <see cref="IConstantInstance"/> of an objective.
 		/// </summary>
+		[DebuggerDisplay("const {Type.Identifier,nq} {Identifier,nq} = {Value,nq}")]
 		public class ObjectiveInstance : PrimitiveInstance, IConstantInstance<Objective> {
 
 			/// <summary>
@@ -96,6 +99,7 @@ namespace MCSharp.Compilation.Instancing {
 			/// <summary>
 			/// Represents the <see cref="IConstantInstance"/> version of <see cref="IntegerInstance"/>.
 			/// </summary>
+			[DebuggerDisplay("const {Type.Identifier,nq} {Identifier,nq} = {Value,nq}")]
 			public class Constant : PrimitiveInstance, IConstantInstance<int> {
 
 				/// <summary>
@@ -154,6 +158,7 @@ namespace MCSharp.Compilation.Instancing {
 			/// <summary>
 			/// Represents the <see cref="IConstantInstance"/> version of <see cref="BooleanInstance"/>.
 			/// </summary>
+			[DebuggerDisplay("const {Type.Identifier,nq} {Identifier,nq} = {Value,nq}")]
 			public class Constant : PrimitiveInstance, IConstantInstance<bool> {
 
 				/// <summary>
@@ -184,6 +189,7 @@ namespace MCSharp.Compilation.Instancing {
 
 		}
 
+		[DebuggerDisplay("const {Type.Identifier,nq} {Identifier,nq} = {Value,nq}")]
 		public class StringInstance : PrimitiveInstance, IConstantInstance<string> {
 
 			/// <inheritdoc/>

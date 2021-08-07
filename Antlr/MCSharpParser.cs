@@ -4500,7 +4500,9 @@ public partial class MCSharpParser : Parser {
 		public Shift_expressionContext shift_expression() {
 			return GetRuleContext<Shift_expressionContext>(0);
 		}
-		public ITerminalNode NAME() { return GetToken(MCSharpParser.NAME, 0); }
+		public IdentifierContext identifier() {
+			return GetRuleContext<IdentifierContext>(0);
+		}
 		public ITerminalNode IS() { return GetToken(MCSharpParser.IS, 0); }
 		public ITerminalNode AS() { return GetToken(MCSharpParser.AS, 0); }
 		public Relation_or_type_checkContext(ParserRuleContext parent, int invokingState)
@@ -4550,7 +4552,7 @@ public partial class MCSharpParser : Parser {
 					ErrorHandler.ReportMatch(this);
 				    Consume();
 				}
-				State = 706; Match(NAME);
+				State = 706; identifier();
 				}
 				break;
 			default:
@@ -7156,7 +7158,7 @@ public partial class MCSharpParser : Parser {
 		'\x2', '\x2', '\x2', '\x2C0', '\x2C1', '\x5', 'V', ',', '\x2', '\x2C1', 
 		'\x2C2', '\x5', '\x8C', 'G', '\x2', '\x2C2', '\x2C6', '\x3', '\x2', '\x2', 
 		'\x2', '\x2C3', '\x2C4', '\t', '\x10', '\x2', '\x2', '\x2C4', '\x2C6', 
-		'\a', '`', '\x2', '\x2', '\x2C5', '\x2C0', '\x3', '\x2', '\x2', '\x2', 
+		'\x5', '@', '!', '\x2', '\x2C5', '\x2C0', '\x3', '\x2', '\x2', '\x2', 
 		'\x2C5', '\x2C3', '\x3', '\x2', '\x2', '\x2', '\x2C6', '\x8B', '\x3', 
 		'\x2', '\x2', '\x2', '\x2C7', '\x2CD', '\x5', '\x8E', 'H', '\x2', '\x2C8', 
 		'\x2C9', '\x5', 'R', '*', '\x2', '\x2C9', '\x2CA', '\x5', '\x8E', 'H', 

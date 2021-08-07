@@ -159,6 +159,41 @@ namespace MCSharp.Linkage.Extensions {
 
 			}
 
+			static IInstance ExecuteScoreComparison(Compiler.CompileArguments compile, IInstance[] method, PredefinedType predefinedType, string op,
+				Func<int, string> matchConstant, Func<int, string> matchConstantFlipped, Func<int, int, bool> evaluateConstants) {
+				
+				Scope scope = compile.Scope;
+				FunctionWriter writer = compile.Writer;
+				string selector = StorageSelector;
+
+				PrimitiveInstance.IntegerInstance left = method[0] as PrimitiveInstance.IntegerInstance;
+				PrimitiveInstance.IntegerInstance.Constant leftConstant = left is null ? method[0] as PrimitiveInstance.IntegerInstance.Constant : null;
+				PrimitiveInstance.IntegerInstance right = method[1] as PrimitiveInstance.IntegerInstance;
+				PrimitiveInstance.IntegerInstance.Constant rightConstant = right is null ? method[1] as PrimitiveInstance.IntegerInstance.Constant : null;
+
+				if(leftConstant != null && rightConstant != null) {
+					bool value = evaluateConstants(leftConstant.Value, rightConstant.Value);
+					PrimitiveInstance.BooleanInstance.Constant result = new PrimitiveInstance.BooleanInstance.Constant(predefinedType, null, value);
+					return result;
+				} else if(leftConstant != null) {
+					PrimitiveInstance.BooleanInstance result = predefinedType.InitializeInstance(compile, null) as PrimitiveInstance.BooleanInstance;
+					writer.WriteCommand($"scoreboard players set {selector} {result.Objective.Name} 0");
+					writer.WriteCommand($"execute if score {selector} {right.Objective.Name} matches {matchConstantFlipped(leftConstant.Value)} run scoreboard players set {selector} {result.Objective.Name} 1");
+					return result;
+				} else if(rightConstant != null) {
+					PrimitiveInstance.BooleanInstance result = predefinedType.InitializeInstance(compile, null) as PrimitiveInstance.BooleanInstance;
+					writer.WriteCommand($"scoreboard players set {selector} {result.Objective.Name} 0");
+					writer.WriteCommand($"execute if score {selector} {left.Objective.Name} matches {matchConstant(rightConstant.Value)} run scoreboard players set {selector} {result.Objective.Name} 1");
+					return result;
+				} else {
+					PrimitiveInstance.BooleanInstance result = predefinedType.InitializeInstance(compile, null) as PrimitiveInstance.BooleanInstance;
+					writer.WriteCommand($"scoreboard players set {selector} {result.Objective.Name} 0");
+					writer.WriteCommand($"execute if score {selector} {left.Objective.Name} {op} {selector} {right.Objective.Name} run scoreboard players set {selector} {result.Objective.Name} 1");
+					return result;
+				}
+
+			}
+
 			// Assign
 			{
 
@@ -414,6 +449,121 @@ namespace MCSharp.Linkage.Extensions {
 				);
 
 				Operation op = Operation.AssignModulo;
+				operations.Add(op, new PredefinedOperation(op, function));
+
+			}
+
+			// Comparison: '<'
+			{
+
+				CustomFunction function = new CustomFunction(IntIdentifier,
+					new PredefinedGenericParameter[] {
+
+					},
+					new PredefinedMethodParameter[] {
+						new PredefinedMethodParameter(IntIdentifier, "left"),
+						new PredefinedMethodParameter(IntIdentifier, "right")
+					},
+					(Compiler.CompileArguments compile, IType[] generic, IInstance[] arguments, out IInstance result) => {
+						result = ExecuteScoreComparison(compile, arguments, compile.Compiler.DefinedTypes[BoolIdentifier] as PredefinedType, "<",
+							(constant) => ".." + (constant + 1), (constant) => (constant - 1) + "..", (left, right) => left < right);
+						return ResultInfo.DefaultSuccess;
+					}
+				);
+
+				Operation op = Operation.LessThan;
+				operations.Add(op, new PredefinedOperation(op, function));
+
+			}
+
+			// Comparison: '<='
+			{
+
+				CustomFunction function = new CustomFunction(IntIdentifier,
+					new PredefinedGenericParameter[] {
+
+					},
+					new PredefinedMethodParameter[] {
+						new PredefinedMethodParameter(IntIdentifier, "left"),
+						new PredefinedMethodParameter(IntIdentifier, "right")
+					},
+					(Compiler.CompileArguments compile, IType[] generic, IInstance[] arguments, out IInstance result) => {
+						result = ExecuteScoreComparison(compile, arguments, compile.Compiler.DefinedTypes[BoolIdentifier] as PredefinedType, "<=",
+							(constant) => ".." + constant, (constant) => constant + "..", (left, right) => left <= right);
+						return ResultInfo.DefaultSuccess;
+					}
+				);
+
+				Operation op = Operation.LessThanOrEqual;
+				operations.Add(op, new PredefinedOperation(op, function));
+
+			}
+
+			// Comparison: '>'
+			{
+
+				CustomFunction function = new CustomFunction(IntIdentifier,
+					new PredefinedGenericParameter[] {
+
+					},
+					new PredefinedMethodParameter[] {
+						new PredefinedMethodParameter(IntIdentifier, "left"),
+						new PredefinedMethodParameter(IntIdentifier, "right")
+					},
+					(Compiler.CompileArguments compile, IType[] generic, IInstance[] arguments, out IInstance result) => {
+						result = ExecuteScoreComparison(compile, arguments, compile.Compiler.DefinedTypes[BoolIdentifier] as PredefinedType, ">",
+							(constant) => (constant - 1) + "..", (constant) => ".." + (constant + 1), (left, right) => left > right);
+						return ResultInfo.DefaultSuccess;
+					}
+				);
+
+				Operation op = Operation.GreaterThan;
+				operations.Add(op, new PredefinedOperation(op, function));
+
+			}
+
+			// Comparison: '>='
+			{
+
+				CustomFunction function = new CustomFunction(IntIdentifier,
+					new PredefinedGenericParameter[] {
+
+					},
+					new PredefinedMethodParameter[] {
+						new PredefinedMethodParameter(IntIdentifier, "left"),
+						new PredefinedMethodParameter(IntIdentifier, "right")
+					},
+					(Compiler.CompileArguments compile, IType[] generic, IInstance[] arguments, out IInstance result) => {
+						result = ExecuteScoreComparison(compile, arguments, compile.Compiler.DefinedTypes[BoolIdentifier] as PredefinedType, ">=",
+							(constant) => constant + "..", (constant) => ".." + constant, (left, right) => left >= right);
+						return ResultInfo.DefaultSuccess;
+					}
+				);
+
+				Operation op = Operation.GreaterThanOrEqual;
+				operations.Add(op, new PredefinedOperation(op, function));
+
+			}
+
+			// Comparison: '=='
+			{
+
+				CustomFunction function = new CustomFunction(IntIdentifier,
+					new PredefinedGenericParameter[] {
+
+					},
+					new PredefinedMethodParameter[] {
+						new PredefinedMethodParameter(IntIdentifier, "left"),
+						new PredefinedMethodParameter(IntIdentifier, "right")
+					},
+					(Compiler.CompileArguments compile, IType[] generic, IInstance[] arguments, out IInstance result) => {
+						result = ExecuteScoreComparison(compile, arguments, compile.Compiler.DefinedTypes[BoolIdentifier] as PredefinedType, "=",
+							(constant) => constant.ToString(), (constant) => constant.ToString(), (left, right) => left == right);
+						return ResultInfo.DefaultSuccess;
+					}
+				);
+
+				Operation op = Operation.Equality;
 				operations.Add(op, new PredefinedOperation(op, function));
 
 			}
