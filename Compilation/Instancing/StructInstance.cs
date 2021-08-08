@@ -61,7 +61,7 @@ namespace MCSharp.Compilation.Instancing {
 
 
 		/// <inheritdoc/>
-		public IInstance Copy(Compiler.CompileArguments compile, string identifier) {
+		public IInstance Copy(Compiler.CompileArguments location, string identifier) {
 			throw new NotImplementedException();
 		}
 

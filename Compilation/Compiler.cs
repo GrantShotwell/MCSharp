@@ -591,7 +591,7 @@ namespace MCSharp.Compilation {
 
 		#region Expression Compilation
 
-		public ResultInfo CompileSimpleOperation(CompileArguments compile, Operation op, IInstance operand1, IInstance operand2, out IInstance result) {
+		public ResultInfo CompileSimpleOperation(CompileArguments location, Operation op, IInstance operand1, IInstance operand2, out IInstance result) {
 
 			IType type1 = operand1.Type;
 			IType type2 = operand2.Type;
@@ -643,7 +643,7 @@ namespace MCSharp.Compilation {
 				}
 
 				// Invoke the operation.
-				ResultInfo functionResult = operation.Function.Invoke(compile, new IType[] { }, new IInstance[] { operand1, operand2 }, out result);
+				ResultInfo functionResult = operation.Function.Invoke(location, new IType[] { }, new IInstance[] { operand1, operand2 }, out result);
 				if(functionResult.Failure) return functionResult;
 
 				return ResultInfo.DefaultSuccess;
@@ -652,7 +652,7 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public ResultInfo CompileExpression(CompileArguments compile, ExpressionContext expression, out IInstance value) {
+		public ResultInfo CompileExpression(CompileArguments location, ExpressionContext expression, out IInstance value) {
 
 			#region Argument Checks
 			if(expression is null)
@@ -662,7 +662,7 @@ namespace MCSharp.Compilation {
 			NonAssignmentExpressionContext non_assignment_expression = expression.non_assignment_expression();
 			if(non_assignment_expression != null) {
 
-				ResultInfo non_assignment_result = CompileNonAssignmentExpression(compile, non_assignment_expression, out value);
+				ResultInfo non_assignment_result = CompileNonAssignmentExpression(location, non_assignment_expression, out value);
 				if(non_assignment_result.Failure) return non_assignment_result;
 
 				return ResultInfo.DefaultSuccess;
@@ -672,7 +672,7 @@ namespace MCSharp.Compilation {
 			AssignmentExpressionContext assignment_expression = expression.assignment_expression();
 			if(assignment_expression != null) {
 
-				ResultInfo assignment_result = CompileAssignmentExpression(compile, assignment_expression, out value);
+				ResultInfo assignment_result = CompileAssignmentExpression(location, assignment_expression, out value);
 				if(assignment_result.Failure) return assignment_result;
 
 				return ResultInfo.DefaultSuccess;
@@ -683,7 +683,7 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public ResultInfo CompileNonAssignmentExpression(CompileArguments compile, NonAssignmentExpressionContext non_assignment_expression, out IInstance value) {
+		public ResultInfo CompileNonAssignmentExpression(CompileArguments location, NonAssignmentExpressionContext non_assignment_expression, out IInstance value) {
 
 			#region Argument Checks
 			if(non_assignment_expression is null)
@@ -693,7 +693,7 @@ namespace MCSharp.Compilation {
 			ConditionalExpressionContext conditional_expression = non_assignment_expression.conditional_expression();
 			if(conditional_expression != null) {
 
-				ResultInfo conditional_result = CompileConditionalExpression(compile, conditional_expression, out value);
+				ResultInfo conditional_result = CompileConditionalExpression(location, conditional_expression, out value);
 				if(conditional_result.Failure) return conditional_result;
 
 				return ResultInfo.DefaultSuccess;
@@ -703,7 +703,7 @@ namespace MCSharp.Compilation {
 			LambdaExpressionContext lambda_expression = non_assignment_expression.lambda_expression();
 			if(lambda_expression != null) {
 
-				ResultInfo lambda_result = CompileLambdaExpression(compile, lambda_expression, out value);
+				ResultInfo lambda_result = CompileLambdaExpression(location, lambda_expression, out value);
 				if(lambda_result.Failure) return lambda_result;
 
 				return ResultInfo.DefaultSuccess;
@@ -714,7 +714,7 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public ResultInfo CompileLambdaExpression(CompileArguments compile, LambdaExpressionContext lambda_expression, out IInstance value) {
+		public ResultInfo CompileLambdaExpression(CompileArguments location, LambdaExpressionContext lambda_expression, out IInstance value) {
 
 			#region Argument Checks
 			if(lambda_expression is null)
@@ -725,7 +725,7 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public ResultInfo CompileConditionalExpression(CompileArguments compile, ConditionalExpressionContext conditional_expression, out IInstance value) {
+		public ResultInfo CompileConditionalExpression(CompileArguments location, ConditionalExpressionContext conditional_expression, out IInstance value) {
 
 			#region Argument Checks
 			if(conditional_expression is null)
@@ -735,7 +735,7 @@ namespace MCSharp.Compilation {
 			value = null;
 
 			NullCoalescingExpressionContext null_coalescing_expression = conditional_expression.null_coalescing_expression();
-			ResultInfo null_coalescing_result = CompileNullCoalescingExpression(compile, null_coalescing_expression, out IInstance null_coalescing_value);
+			ResultInfo null_coalescing_result = CompileNullCoalescingExpression(location, null_coalescing_expression, out IInstance null_coalescing_value);
 			if(null_coalescing_result.Failure) return null_coalescing_result;
 
 			ExpressionContext[] expressions = conditional_expression.expression();
@@ -744,10 +744,10 @@ namespace MCSharp.Compilation {
 				IInstance[] expression_values = new IInstance[2];
 				ResultInfo[] expression_results = new ResultInfo[2];
 
-				expression_results[0] = CompileExpression(compile, expressions[0], out expression_values[0]);
+				expression_results[0] = CompileExpression(location, expressions[0], out expression_values[0]);
 				if(expression_results[0].Failure) return expression_results[0];
 
-				expression_results[1] = CompileExpression(compile, expressions[1], out expression_values[1]);
+				expression_results[1] = CompileExpression(location, expressions[1], out expression_values[1]);
 				if(expression_results[1].Failure) return expression_results[1];
 
 				//var condition = DefinedTypes[MCSharpLinkerExtension.BoolIdentifier].InitializeInstance(compile, null) as PrimitiveInstance.BooleanInstance;
@@ -764,7 +764,7 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public ResultInfo CompileNullCoalescingExpression(CompileArguments compile, NullCoalescingExpressionContext null_coalescing_expression, out IInstance value) {
+		public ResultInfo CompileNullCoalescingExpression(CompileArguments location, NullCoalescingExpressionContext null_coalescing_expression, out IInstance value) {
 
 			#region Argument Checks
 			if(null_coalescing_expression is null)
@@ -774,7 +774,7 @@ namespace MCSharp.Compilation {
 			value = null;
 
 			ConditionalOrExpressionContext conditional_or_expression = null_coalescing_expression.conditional_or_expression();
-			ResultInfo conditional_or_result = CompileConditionalOrExpression(compile, conditional_or_expression, out IInstance conditional_or_value);
+			ResultInfo conditional_or_result = CompileConditionalOrExpression(location, conditional_or_expression, out IInstance conditional_or_value);
 			if(conditional_or_result.Failure) return conditional_or_result;
 
 			NullCoalescingExpressionContext null_coalescing_expression_second = null_coalescing_expression.null_coalescing_expression();
@@ -782,7 +782,7 @@ namespace MCSharp.Compilation {
 
 				value = null;
 
-				ResultInfo null_coalescing_second_result = CompileNullCoalescingExpression(compile, null_coalescing_expression_second, out IInstance null_coalescing_second_value);
+				ResultInfo null_coalescing_second_result = CompileNullCoalescingExpression(location, null_coalescing_expression_second, out IInstance null_coalescing_second_value);
 				if(null_coalescing_second_result.Failure) return null_coalescing_second_result;
 
 				throw new NotImplementedException("Null-coalescing expressions have not been implemented.");
@@ -796,7 +796,7 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public ResultInfo CompileConditionalOrExpression(CompileArguments compile, ConditionalOrExpressionContext conditional_or_expression, out IInstance value) {
+		public ResultInfo CompileConditionalOrExpression(CompileArguments location, ConditionalOrExpressionContext conditional_or_expression, out IInstance value) {
 
 			#region Argument Checks
 			if(conditional_or_expression is null)
@@ -806,7 +806,7 @@ namespace MCSharp.Compilation {
 			ConditionalAndExpressionContext[] expressions = conditional_or_expression.conditional_and_expression();
 			ITerminalNode[] operators = conditional_or_expression.BOOLEAN_OR();
 
-			ResultInfo firstResult = CompileConditionalAndExpression(compile, expressions[0], out value);
+			ResultInfo firstResult = CompileConditionalAndExpression(location, expressions[0], out value);
 			if(firstResult.Failure) return firstResult;
 
 			// TODO: Stop when any instance can evaluate to 'true'.
@@ -814,11 +814,11 @@ namespace MCSharp.Compilation {
 			int count = expressions.Length;
 			for(int i = 1; i < count; i++) {
 
-				ResultInfo exResult = CompileConditionalAndExpression(compile, expressions[i], out IInstance expressionValue);
+				ResultInfo exResult = CompileConditionalAndExpression(location, expressions[i], out IInstance expressionValue);
 				if(exResult.Failure) return exResult;
 
-				ResultInfo opResult = CompileSimpleOperation(compile, Operation.BooleanOR, value, expressionValue, out value);
-				if(opResult.Failure) return compile.GetLocation(operators[i - 1]) + opResult;
+				ResultInfo opResult = CompileSimpleOperation(location, Operation.BooleanOR, value, expressionValue, out value);
+				if(opResult.Failure) return location.GetLocation(operators[i - 1]) + opResult;
 
 			}
 
@@ -826,7 +826,7 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public ResultInfo CompileConditionalAndExpression(CompileArguments compile, ConditionalAndExpressionContext conditional_and_expression, out IInstance value) {
+		public ResultInfo CompileConditionalAndExpression(CompileArguments location, ConditionalAndExpressionContext conditional_and_expression, out IInstance value) {
 
 			#region Argument Checks
 			if(conditional_and_expression is null)
@@ -836,7 +836,7 @@ namespace MCSharp.Compilation {
 			InclusiveOrExpressionContext[] expressions = conditional_and_expression.inclusive_or_expression();
 			ITerminalNode[] operators = conditional_and_expression.BOOLEAN_AND();
 
-			ResultInfo firstResult = CompileInclusiveOrExpression(compile, expressions[0], out value);
+			ResultInfo firstResult = CompileInclusiveOrExpression(location, expressions[0], out value);
 			if(firstResult.Failure) return firstResult;
 
 			// TODO: Stop when any instance can evaluate to 'false'.
@@ -844,11 +844,11 @@ namespace MCSharp.Compilation {
 			int count = expressions.Length;
 			for(int i = 1; i < count; i++) {
 
-				ResultInfo exResult = CompileInclusiveOrExpression(compile, expressions[i], out IInstance expressionValue);
+				ResultInfo exResult = CompileInclusiveOrExpression(location, expressions[i], out IInstance expressionValue);
 				if(exResult.Failure) return exResult;
 
-				ResultInfo opResult = CompileSimpleOperation(compile, Operation.BooleanAND, value, expressionValue, out value);
-				if(opResult.Failure) return compile.GetLocation(operators[i - 1]) + opResult;
+				ResultInfo opResult = CompileSimpleOperation(location, Operation.BooleanAND, value, expressionValue, out value);
+				if(opResult.Failure) return location.GetLocation(operators[i - 1]) + opResult;
 
 			}
 
@@ -856,7 +856,7 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public ResultInfo CompileInclusiveOrExpression(CompileArguments compile, InclusiveOrExpressionContext inclusive_or_expression, out IInstance value) {
+		public ResultInfo CompileInclusiveOrExpression(CompileArguments location, InclusiveOrExpressionContext inclusive_or_expression, out IInstance value) {
 
 			#region Argument Checks
 			if(inclusive_or_expression is null)
@@ -866,17 +866,17 @@ namespace MCSharp.Compilation {
 			ExclusiveOrExpressionContext[] expressions = inclusive_or_expression.exclusive_or_expression();
 			ITerminalNode[] operators = inclusive_or_expression.BITWISE_OR();
 
-			ResultInfo firstResult = CompileExclusiveOrExpression(compile, expressions[0], out value);
+			ResultInfo firstResult = CompileExclusiveOrExpression(location, expressions[0], out value);
 			if(firstResult.Failure) return firstResult;
 
 			int count = expressions.Length;
 			for(int i = 1; i < count; i++) {
 
-				ResultInfo exResult = CompileExclusiveOrExpression(compile, expressions[i], out IInstance expressionValue);
+				ResultInfo exResult = CompileExclusiveOrExpression(location, expressions[i], out IInstance expressionValue);
 				if(exResult.Failure) return exResult;
 
-				ResultInfo opResult = CompileSimpleOperation(compile, Operation.BitwiseOR, value, expressionValue, out value);
-				if(opResult.Failure) return compile.GetLocation(operators[i - 1]) + opResult;
+				ResultInfo opResult = CompileSimpleOperation(location, Operation.BitwiseOR, value, expressionValue, out value);
+				if(opResult.Failure) return location.GetLocation(operators[i - 1]) + opResult;
 
 			}
 
@@ -884,7 +884,7 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public ResultInfo CompileExclusiveOrExpression(CompileArguments compile, ExclusiveOrExpressionContext exclusive_or_expression, out IInstance value) {
+		public ResultInfo CompileExclusiveOrExpression(CompileArguments location, ExclusiveOrExpressionContext exclusive_or_expression, out IInstance value) {
 
 			#region Argument Checks
 			if(exclusive_or_expression is null)
@@ -894,17 +894,17 @@ namespace MCSharp.Compilation {
 			AndExpressionContext[] expressions = exclusive_or_expression.and_expression();
 			ITerminalNode[] operators = exclusive_or_expression.BITWISE_XOR();
 
-			ResultInfo firstResult = CompileAndExpression(compile, expressions[0], out value);
+			ResultInfo firstResult = CompileAndExpression(location, expressions[0], out value);
 			if(firstResult.Failure) return firstResult;
 
 			int count = expressions.Length;
 			for(int i = 1; i < count; i++) {
 
-				ResultInfo exResult = CompileAndExpression(compile, expressions[i], out IInstance expressionValue);
+				ResultInfo exResult = CompileAndExpression(location, expressions[i], out IInstance expressionValue);
 				if(exResult.Failure) return exResult;
 
-				ResultInfo opResult = CompileSimpleOperation(compile, Operation.BitwiseXOR, value, expressionValue, out value);
-				if(opResult.Failure) return compile.GetLocation(operators[i - 1]) + opResult;
+				ResultInfo opResult = CompileSimpleOperation(location, Operation.BitwiseXOR, value, expressionValue, out value);
+				if(opResult.Failure) return location.GetLocation(operators[i - 1]) + opResult;
 
 			}
 
@@ -912,7 +912,7 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public ResultInfo CompileAndExpression(CompileArguments compile, AndExpressionContext and_expression, out IInstance value) {
+		public ResultInfo CompileAndExpression(CompileArguments location, AndExpressionContext and_expression, out IInstance value) {
 
 			#region Argument Checks
 			if(and_expression is null)
@@ -922,17 +922,17 @@ namespace MCSharp.Compilation {
 			EqualityExpressionContext[] expressions = and_expression.equality_expression();
 			ITerminalNode[] operators = and_expression.BITWISE_AND();
 
-			ResultInfo firstResult = CompileEqualityExpression(compile, expressions[0], out value);
+			ResultInfo firstResult = CompileEqualityExpression(location, expressions[0], out value);
 			if(firstResult.Failure) return firstResult;
 
 			int count = expressions.Length;
 			for(int i = 1; i < count; i++) {
 
-				ResultInfo exResult = CompileEqualityExpression(compile, expressions[i], out IInstance expressionValue);
+				ResultInfo exResult = CompileEqualityExpression(location, expressions[i], out IInstance expressionValue);
 				if(exResult.Failure) return exResult;
 
-				ResultInfo opResult = CompileSimpleOperation(compile, Operation.BitwiseAND, value, expressionValue, out value);
-				if(opResult.Failure) return compile.GetLocation(operators[i - 1]) + opResult;
+				ResultInfo opResult = CompileSimpleOperation(location, Operation.BitwiseAND, value, expressionValue, out value);
+				if(opResult.Failure) return location.GetLocation(operators[i - 1]) + opResult;
 
 			}
 
@@ -940,7 +940,7 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public ResultInfo CompileEqualityExpression(CompileArguments compile, EqualityExpressionContext equality_expression, out IInstance value) {
+		public ResultInfo CompileEqualityExpression(CompileArguments location, EqualityExpressionContext equality_expression, out IInstance value) {
 
 			#region Argument Checks
 			if(equality_expression is null)
@@ -950,13 +950,13 @@ namespace MCSharp.Compilation {
 			RelationalExpressionContext[] expressions = equality_expression.relational_expression();
 			MCSharpParser.Equality_operatorContext[] operators = equality_expression.equality_operator();
 
-			ResultInfo firstResult = CompileRelationalExpression(compile, expressions[0], out value);
+			ResultInfo firstResult = CompileRelationalExpression(location, expressions[0], out value);
 			if(firstResult.Failure) return firstResult;
 
 			int count = expressions.Length;
 			for(int i = 1; i < count; i++) {
 
-				ResultInfo exResult = CompileRelationalExpression(compile, expressions[i], out IInstance expressionValue);
+				ResultInfo exResult = CompileRelationalExpression(location, expressions[i], out IInstance expressionValue);
 				if(exResult.Failure) return exResult;
 
 				Operation op;
@@ -964,8 +964,8 @@ namespace MCSharp.Compilation {
 				if(equality_operator.EQUIVALENT() != null) op = Operation.Equality;
 				else op = Operation.Inequality;
 
-				ResultInfo opResult = CompileSimpleOperation(compile, op, value, expressionValue, out value);
-				if(opResult.Failure) return compile.GetLocation(equality_operator) + opResult;
+				ResultInfo opResult = CompileSimpleOperation(location, op, value, expressionValue, out value);
+				if(opResult.Failure) return location.GetLocation(equality_operator) + opResult;
 
 			}
 
@@ -973,21 +973,21 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public ResultInfo CompileRelationalExpression(CompileArguments compile, RelationalExpressionContext relational_expression, out IInstance value) {
+		public ResultInfo CompileRelationalExpression(CompileArguments location, RelationalExpressionContext relational_expression, out IInstance value) {
 
 			#region Argument Checks
 			if(relational_expression is null)
 				throw new ArgumentNullException(nameof(relational_expression));
 			#endregion
 
-			ResultInfo shift_result = CompileShiftExpression(compile, relational_expression.shift_expression(), out value);
+			ResultInfo shift_result = CompileShiftExpression(location, relational_expression.shift_expression(), out value);
 			if(shift_result.Failure) { value = null; return shift_result; }
 
 			RelationOrTypeCheckContext[] relation_or_type_checks = relational_expression.relation_or_type_check();
 			int count = relation_or_type_checks?.Length ?? 0;
 			for(int i = 0; i < count; i++) {
 
-				ResultInfo rotcResult = CompileRelationOrTypeCheck(compile, value, relation_or_type_checks[i], out value);
+				ResultInfo rotcResult = CompileRelationOrTypeCheck(location, value, relation_or_type_checks[i], out value);
 				if(rotcResult.Failure) return rotcResult;
 
 			}
@@ -996,7 +996,7 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public ResultInfo CompileRelationOrTypeCheck(CompileArguments compile, IInstance operandLeft, RelationOrTypeCheckContext relation_or_type_check, out IInstance value) {
+		public ResultInfo CompileRelationOrTypeCheck(CompileArguments location, IInstance operandLeft, RelationOrTypeCheckContext relation_or_type_check, out IInstance value) {
 
 			#region Argument Checks
 			if(relation_or_type_check is null)
@@ -1007,7 +1007,7 @@ namespace MCSharp.Compilation {
 			if(relation_operator != null) {
 
 				ShiftExpressionContext shift_expression = relation_or_type_check.shift_expression();
-				ResultInfo expressionResult = CompileShiftExpression(compile, shift_expression, out IInstance operandRight);
+				ResultInfo expressionResult = CompileShiftExpression(location, shift_expression, out IInstance operandRight);
 				if(expressionResult.Failure) { value = null; return expressionResult; }
 
 				Operation op;
@@ -1016,8 +1016,8 @@ namespace MCSharp.Compilation {
 				else if(relation_operator.LESS_THAN_EQUAL() != null) op = Operation.LessThanOrEqual;
 				else op = Operation.GreaterThanOrEqual;
 
-				ResultInfo relationResult = CompileSimpleOperation(compile, op, operandLeft, operandRight, out value);
-				if(relationResult.Failure) return compile.GetLocation(relation_or_type_check) + relationResult;
+				ResultInfo relationResult = CompileSimpleOperation(location, op, operandLeft, operandRight, out value);
+				if(relationResult.Failure) return location.GetLocation(relation_or_type_check) + relationResult;
 
 				return ResultInfo.DefaultSuccess;
 
@@ -1044,7 +1044,7 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public ResultInfo CompileShiftExpression(CompileArguments compile, ShiftExpressionContext shift_expression, out IInstance value) {
+		public ResultInfo CompileShiftExpression(CompileArguments location, ShiftExpressionContext shift_expression, out IInstance value) {
 
 			#region Argument Checks
 			if(shift_expression is null)
@@ -1058,12 +1058,12 @@ namespace MCSharp.Compilation {
 
 			value = null;
 
-			additive_results[0] = CompileAdditiveExpression(compile, additive_expressions[0], out additive_values[0]);
+			additive_results[0] = CompileAdditiveExpression(location, additive_expressions[0], out additive_values[0]);
 			if(additive_results[0].Failure) return additive_results[0];
 
 			if(count == 2 && additive_expressions[1] != null) {
 
-				additive_results[1] = CompileAdditiveExpression(compile, additive_expressions[1], out additive_values[1]);
+				additive_results[1] = CompileAdditiveExpression(location, additive_expressions[1], out additive_values[1]);
 				if(additive_results[1].Failure) return additive_results[1];
 
 				throw new NotImplementedException("Shift expressions have not been implemented.");
@@ -1077,7 +1077,7 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public ResultInfo CompileAdditiveExpression(CompileArguments compile, AdditiveExpressionContext additive_expression, out IInstance value) {
+		public ResultInfo CompileAdditiveExpression(CompileArguments location, AdditiveExpressionContext additive_expression, out IInstance value) {
 
 			#region Argument Checks
 			if(additive_expression is null)
@@ -1087,13 +1087,13 @@ namespace MCSharp.Compilation {
 			MultiplicativeExpressionContext[] expressions = additive_expression.multiplicative_expression();
 			MCSharpParser.Additive_operatorContext[] operators = additive_expression.additive_operator();
 
-			ResultInfo firstResult = CompileMultiplicativeExpression(compile, expressions[0], out value);
+			ResultInfo firstResult = CompileMultiplicativeExpression(location, expressions[0], out value);
 			if(firstResult.Failure) return firstResult;
 
 			int count = expressions.Length;
 			for(int i = 1; i < count; i++) {
 
-				ResultInfo exResult = CompileMultiplicativeExpression(compile, expressions[i], out IInstance expressionValue);
+				ResultInfo exResult = CompileMultiplicativeExpression(location, expressions[i], out IInstance expressionValue);
 				if(exResult.Failure) return exResult;
 
 				Operation op;
@@ -1101,8 +1101,8 @@ namespace MCSharp.Compilation {
 				if(additive_operator.PLUS() != null) op = Operation.Addition;
 				else op = Operation.Subtraction;
 
-				ResultInfo opResult = CompileSimpleOperation(compile, op, value, expressionValue, out value);
-				if(opResult.Failure) return compile.GetLocation(additive_operator) + opResult;
+				ResultInfo opResult = CompileSimpleOperation(location, op, value, expressionValue, out value);
+				if(opResult.Failure) return location.GetLocation(additive_operator) + opResult;
 
 			}
 
@@ -1110,7 +1110,7 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public ResultInfo CompileMultiplicativeExpression(CompileArguments compile, MultiplicativeExpressionContext multiplicative_expression, out IInstance value) {
+		public ResultInfo CompileMultiplicativeExpression(CompileArguments location, MultiplicativeExpressionContext multiplicative_expression, out IInstance value) {
 
 			#region Argument Checks
 			if(multiplicative_expression is null)
@@ -1120,13 +1120,13 @@ namespace MCSharp.Compilation {
 			WithExpressionContext[] expressions = multiplicative_expression.with_expression();
 			MCSharpParser.Multiplicative_operatorContext[] operators = multiplicative_expression.multiplicative_operator();
 
-			ResultInfo firstResult = CompileWithExpression(compile, expressions[0], out value);
+			ResultInfo firstResult = CompileWithExpression(location, expressions[0], out value);
 			if(firstResult.Failure) return firstResult;
 
 			int count = expressions.Length;
 			for(int i = 1; i < count; i++) {
 
-				ResultInfo exResult = CompileWithExpression(compile, expressions[i], out IInstance expressionValue);
+				ResultInfo exResult = CompileWithExpression(location, expressions[i], out IInstance expressionValue);
 				if(exResult.Failure) return exResult;
 
 				Operation op;
@@ -1135,8 +1135,8 @@ namespace MCSharp.Compilation {
 				else if(multiplicative_operator.DIVIDE() != null) op = Operation.Division;
 				else op = Operation.Modulo;
 
-				ResultInfo opResult = CompileSimpleOperation(compile, op, value, expressionValue, out value);
-				if(opResult.Failure) return compile.GetLocation(multiplicative_operator) + opResult;
+				ResultInfo opResult = CompileSimpleOperation(location, op, value, expressionValue, out value);
+				if(opResult.Failure) return location.GetLocation(multiplicative_operator) + opResult;
 
 			}
 
@@ -1144,7 +1144,7 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public ResultInfo CompileWithExpression(CompileArguments compile, WithExpressionContext with_expression, out IInstance value) {
+		public ResultInfo CompileWithExpression(CompileArguments location, WithExpressionContext with_expression, out IInstance value) {
 
 			#region Argument Checks
 			if(with_expression is null)
@@ -1154,7 +1154,7 @@ namespace MCSharp.Compilation {
 			value = null;
 
 			RangeExpressionContext range_expression = with_expression.range_expression();
-			ResultInfo range_result = CompileRangeExpression(compile, range_expression, out IInstance range_value);
+			ResultInfo range_result = CompileRangeExpression(location, range_expression, out IInstance range_value);
 			if(range_result.Failure) return range_result;
 
 			MCSharpParser.Anonymous_element_initializerContext anonymous_element_initializer = with_expression.anonymous_element_initializer();
@@ -1169,7 +1169,7 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public ResultInfo CompileRangeExpression(CompileArguments compile, RangeExpressionContext range_expression, out IInstance value) {
+		public ResultInfo CompileRangeExpression(CompileArguments location, RangeExpressionContext range_expression, out IInstance value) {
 
 			#region Argument Checks
 			if(range_expression is null)
@@ -1183,12 +1183,12 @@ namespace MCSharp.Compilation {
 
 			value = null;
 
-			unary_results[0] = CompileUnaryExpression(compile, unary_expressions[0], out unary_values[0]);
+			unary_results[0] = CompileUnaryExpression(location, unary_expressions[0], out unary_values[0]);
 			if(unary_results[0].Failure) return unary_results[0];
 
 			if(count == 2 && unary_expressions[1] != null) {
 
-				unary_results[1] = CompileUnaryExpression(compile, unary_expressions[1], out unary_values[1]);
+				unary_results[1] = CompileUnaryExpression(location, unary_expressions[1], out unary_values[1]);
 				if(unary_results[1].Failure) return unary_results[1];
 
 				throw new NotImplementedException("Range expressions have not been implemented.");
@@ -1202,7 +1202,7 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public ResultInfo CompilePreStepExpression(CompileArguments compile, PreStepExpressionContext pre_step_expression, out IInstance value) {
+		public ResultInfo CompilePreStepExpression(CompileArguments location, PreStepExpressionContext pre_step_expression, out IInstance value) {
 
 			#region Argument Checks
 			if(pre_step_expression is null)
@@ -1213,7 +1213,7 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public ResultInfo CompilePostStepExpression(CompileArguments compile, PostStepExpressionContext post_step_expression, out IInstance value) {
+		public ResultInfo CompilePostStepExpression(CompileArguments location, PostStepExpressionContext post_step_expression, out IInstance value) {
 
 			#region Argument Checks
 			if(post_step_expression is null)
@@ -1224,7 +1224,7 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public ResultInfo CompileUnaryExpression(CompileArguments compile, UnaryExpressionContext unary_expression, out IInstance value) {
+		public ResultInfo CompileUnaryExpression(CompileArguments location, UnaryExpressionContext unary_expression, out IInstance value) {
 
 			#region Argument Checks
 			if(unary_expression is null)
@@ -1234,7 +1234,7 @@ namespace MCSharp.Compilation {
 			PrimaryExpressionContext primary_expression = unary_expression.primary_expression();
 			if(primary_expression != null) {
 
-				ResultInfo result = CompilePrimaryExpression(compile, primary_expression, out value);
+				ResultInfo result = CompilePrimaryExpression(location, primary_expression, out value);
 				if(result.Failure) return result;
 
 				return ResultInfo.DefaultSuccess;
@@ -1246,7 +1246,7 @@ namespace MCSharp.Compilation {
 
 				value = null;
 
-				ResultInfo result = CompileUnaryExpression(compile, subunary_expression, out IInstance unary_value);
+				ResultInfo result = CompileUnaryExpression(location, subunary_expression, out IInstance unary_value);
 				if(result.Failure) return result;
 
 				throw new NotImplementedException("Unary expressions have not been implemented.");
@@ -1256,7 +1256,7 @@ namespace MCSharp.Compilation {
 			PreStepExpressionContext pre_step_expression = unary_expression.pre_step_expression();
 			if(pre_step_expression != null) {
 
-				ResultInfo result = CompilePreStepExpression(compile, pre_step_expression, out value);
+				ResultInfo result = CompilePreStepExpression(location, pre_step_expression, out value);
 				if(result.Failure) return result;
 
 				return ResultInfo.DefaultSuccess;
@@ -1266,7 +1266,7 @@ namespace MCSharp.Compilation {
 			CastExpressionContext cast_expression = unary_expression.cast_expression();
 			if(cast_expression != null) {
 
-				ResultInfo result = CompileCastExpression(compile, cast_expression, out value);
+				ResultInfo result = CompileCastExpression(location, cast_expression, out value);
 				if(result.Failure) return result;
 
 				return ResultInfo.DefaultSuccess;
@@ -1276,7 +1276,7 @@ namespace MCSharp.Compilation {
 			PointerIndirectionExpressionContext pointer_indirection_expression = unary_expression.pointer_indirection_expression();
 			if(pointer_indirection_expression != null) {
 
-				ResultInfo result = CompilePointerIndirectionExpression(compile, pointer_indirection_expression, out value);
+				ResultInfo result = CompilePointerIndirectionExpression(location, pointer_indirection_expression, out value);
 				if(result.Failure) return result;
 
 				return ResultInfo.DefaultSuccess;
@@ -1286,7 +1286,7 @@ namespace MCSharp.Compilation {
 			AddressofExpressionContext addressof_expression = unary_expression.addressof_expression();
 			if(addressof_expression != null) {
 
-				ResultInfo result = CompileAddressofExpression(compile, addressof_expression, out value);
+				ResultInfo result = CompileAddressofExpression(location, addressof_expression, out value);
 				if(result.Failure) return result;
 
 				return ResultInfo.DefaultSuccess;
@@ -1297,7 +1297,7 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public ResultInfo CompileCastExpression(CompileArguments compile, CastExpressionContext cast_expression, out IInstance value) {
+		public ResultInfo CompileCastExpression(CompileArguments location, CastExpressionContext cast_expression, out IInstance value) {
 
 			#region Argument Checks
 			if(cast_expression is null)
@@ -1308,7 +1308,7 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public ResultInfo CompilePointerIndirectionExpression(CompileArguments compile, PointerIndirectionExpressionContext pointer_indirection_expression, out IInstance value) {
+		public ResultInfo CompilePointerIndirectionExpression(CompileArguments location, PointerIndirectionExpressionContext pointer_indirection_expression, out IInstance value) {
 
 			#region Argument Checks
 			if(pointer_indirection_expression is null)
@@ -1319,7 +1319,7 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public ResultInfo CompileAddressofExpression(CompileArguments compile, AddressofExpressionContext addressof_expression, out IInstance value) {
+		public ResultInfo CompileAddressofExpression(CompileArguments location, AddressofExpressionContext addressof_expression, out IInstance value) {
 
 			#region Argument Checks
 			if(addressof_expression is null)
@@ -1329,14 +1329,14 @@ namespace MCSharp.Compilation {
 			value = null;
 
 			UnaryExpressionContext unary_expression = addressof_expression.unary_expression();
-			ResultInfo unary_result = CompileUnaryExpression(compile, unary_expression, out IInstance unary_value);
+			ResultInfo unary_result = CompileUnaryExpression(location, unary_expression, out IInstance unary_value);
 			if(unary_result.Failure) return unary_result;
 
 			throw new NotImplementedException("Addressof expressions have not been implemented.");
 
 		}
 
-		public ResultInfo CompileAssignmentExpression(CompileArguments compile, AssignmentExpressionContext assignment_expression, out IInstance value) {
+		public ResultInfo CompileAssignmentExpression(CompileArguments location, AssignmentExpressionContext assignment_expression, out IInstance value) {
 
 			#region Argument Checks
 			if(assignment_expression is null)
@@ -1346,11 +1346,11 @@ namespace MCSharp.Compilation {
 			value = null;
 
 			UnaryExpressionContext unary_expression = assignment_expression.unary_expression();
-			ResultInfo unary_result = CompileUnaryExpression(compile, unary_expression, out IInstance unary_value);
+			ResultInfo unary_result = CompileUnaryExpression(location, unary_expression, out IInstance unary_value);
 			if(unary_result.Failure) return unary_result;
 
 			ExpressionContext expression = assignment_expression.expression();
-			ResultInfo expression_result = CompileExpression(compile, expression, out IInstance expression_value);
+			ResultInfo expression_result = CompileExpression(location, expression, out IInstance expression_value);
 			if(expression_result.Failure) return expression_result;
 
 			Operation op;
@@ -1368,14 +1368,14 @@ namespace MCSharp.Compilation {
 			else if(assignment_operator.ASSIGN_LEFT() != null) op = Operation.AssignShiftLeft;
 			else op = Operation.AssignShiftRight;
 
-			ResultInfo simple_operation_result = CompileSimpleOperation(compile, op, unary_value, expression_value, out value);
-			if(simple_operation_result.Failure) return compile.GetLocation(assignment_expression) + simple_operation_result;
+			ResultInfo simple_operation_result = CompileSimpleOperation(location, op, unary_value, expression_value, out value);
+			if(simple_operation_result.Failure) return location.GetLocation(assignment_expression) + simple_operation_result;
 
 			return ResultInfo.DefaultSuccess;
 
 		}
 
-		public ResultInfo CompilePrimaryExpression(CompileArguments compile, PrimaryExpressionContext primary_expression, out IInstance value) {
+		public ResultInfo CompilePrimaryExpression(CompileArguments location, PrimaryExpressionContext primary_expression, out IInstance value) {
 
 			#region Argument Checks
 			if(primary_expression is null)
@@ -1387,7 +1387,7 @@ namespace MCSharp.Compilation {
 			ArrayCreationExpressionContext array_creation_expression = primary_expression.array_creation_expression();
 			if(array_creation_expression != null) {
 
-				ResultInfo result = CompileArrayCreationExpression(compile, array_creation_expression, out value);
+				ResultInfo result = CompileArrayCreationExpression(location, array_creation_expression, out value);
 				if(result.Failure) return result;
 
 				return ResultInfo.DefaultSuccess;
@@ -1397,7 +1397,7 @@ namespace MCSharp.Compilation {
 			PrimaryNoArrayCreationExpressionContext primary_no_array_creation_expression = primary_expression.primary_no_array_creation_expression();
 			if(primary_no_array_creation_expression != null) {
 
-				ResultInfo result = CompilePrimaryNoArrayCreationExpression(compile, primary_no_array_creation_expression, out value);
+				ResultInfo result = CompilePrimaryNoArrayCreationExpression(location, primary_no_array_creation_expression, out value);
 				if(result.Failure) return result;
 
 				return ResultInfo.DefaultSuccess;
@@ -1408,7 +1408,7 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public ResultInfo CompileArrayCreationExpression(CompileArguments compile, ArrayCreationExpressionContext array_creation_expression, out IInstance value) {
+		public ResultInfo CompileArrayCreationExpression(CompileArguments location, ArrayCreationExpressionContext array_creation_expression, out IInstance value) {
 
 			#region Argument Checks
 			if(array_creation_expression is null)
@@ -1419,7 +1419,7 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public ResultInfo CompilePrimaryNoArrayCreationExpression(CompileArguments compile, PrimaryNoArrayCreationExpressionContext primary_no_array_creation_expression, out IInstance value) {
+		public ResultInfo CompilePrimaryNoArrayCreationExpression(CompileArguments location, PrimaryNoArrayCreationExpressionContext primary_no_array_creation_expression, out IInstance value) {
 
 			#region Argument Checks
 			if(primary_no_array_creation_expression is null)
@@ -1429,7 +1429,7 @@ namespace MCSharp.Compilation {
 			MCSharpParser.LiteralContext literal = primary_no_array_creation_expression.literal();
 			if(literal != null) {
 
-				ResultInfo result = CompileLiteral(compile, literal, out value);
+				ResultInfo result = CompileLiteral(location, literal, out value);
 				if(result.Failure) return result;
 
 				return ResultInfo.DefaultSuccess;
@@ -1441,8 +1441,8 @@ namespace MCSharp.Compilation {
 
 				string name = identifier.NAME().GetText();
 
-				value = compile.Scope.FindFirstInstanceByName(name);
-				if(value == null) return new ResultInfo(false, $"{compile.GetLocation(identifier)}Instance '{name}' does not exist yet in this scope.");
+				value = location.Scope.FindFirstInstanceByName(name);
+				if(value == null) return new ResultInfo(false, $"{location.GetLocation(identifier)}Instance '{name}' does not exist yet in this scope.");
 
 				return ResultInfo.DefaultSuccess;
 
@@ -1451,7 +1451,7 @@ namespace MCSharp.Compilation {
 			ExpressionContext expression = primary_no_array_creation_expression.expression();
 			if(expression != null) {
 
-				ResultInfo result = CompileExpression(compile, expression, out value);
+				ResultInfo result = CompileExpression(location, expression, out value);
 				if(result.Failure) return result;
 
 				return ResultInfo.DefaultSuccess;
@@ -1461,7 +1461,7 @@ namespace MCSharp.Compilation {
 			MCSharpParser.Member_accessContext member_access = primary_no_array_creation_expression.member_access();
 			if(member_access != null) {
 
-				ResultInfo result = CompileMemberAccess(compile, member_access, out value);
+				ResultInfo result = CompileMemberAccess(location, member_access, out value);
 				if(result.Failure) return result;
 
 				return ResultInfo.DefaultSuccess;
@@ -1478,7 +1478,7 @@ namespace MCSharp.Compilation {
 			KeywordExpressionContext keyword_expression = primary_no_array_creation_expression.keyword_expression();
 			if(keyword_expression != null) {
 
-				ResultInfo result = CompileKeywordExpression(compile, keyword_expression, out value);
+				ResultInfo result = CompileKeywordExpression(location, keyword_expression, out value);
 				if(result.Failure) return result;
 
 				return ResultInfo.DefaultSuccess;
@@ -1489,7 +1489,7 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public ResultInfo CompileMemberAccess(CompileArguments compile, MCSharpParser.Member_accessContext member_access, out IInstance value) {
+		public ResultInfo CompileMemberAccess(CompileArguments location, MCSharpParser.Member_accessContext member_access, out IInstance value) {
 
 			MCSharpParser.Member_access_prefixContext[] member_access_prefixes = member_access.member_access_prefix();
 			MCSharpParser.Short_identifierContext member_identifier = member_access.short_identifier();
@@ -1615,13 +1615,13 @@ namespace MCSharp.Compilation {
 
 					if((prefix_array_creation_expression = prefix.array_creation_expression()) != null) {
 
-						ResultInfo prefixResult = CompileArrayCreationExpression(compile, prefix_array_creation_expression, out holder);
-						if(prefixResult.Failure) return compile.GetLocation(prefix_array_creation_expression) + prefixResult;
+						ResultInfo prefixResult = CompileArrayCreationExpression(location, prefix_array_creation_expression, out holder);
+						if(prefixResult.Failure) return location.GetLocation(prefix_array_creation_expression) + prefixResult;
 
 					} else if((prefix_literal = prefix.literal()) != null) {
 
-						ResultInfo prefixResult = CompileLiteral(compile, prefix_literal, out holder);
-						if(prefixResult.Failure) return compile.GetLocation(prefix_literal) + prefixResult;
+						ResultInfo prefixResult = CompileLiteral(location, prefix_literal, out holder);
+						if(prefixResult.Failure) return location.GetLocation(prefix_literal) + prefixResult;
 
 					} else if((prefix_short_identifier = prefix.short_identifier()) != null) {
 
@@ -1633,31 +1633,31 @@ namespace MCSharp.Compilation {
 						string name = identifier.GetText();
 
 						// Find instance from scope.
-						holder = compile.Scope.FindFirstInstanceByName(name);
+						holder = location.Scope.FindFirstInstanceByName(name);
 						if(holder == null) {
 
 							// TODO: Explicit 'this'/'base'.
 							// TODO: Implicit 'this'/'base'.
 
 							// Find instance from 'Access' local method (fields, properties, methods).
-							ResultInfo result = Access(compile, holder, identifier, out holder, prefix_generic_arguments, prefix_method_arguments, prefix_indexer_arguments);
+							ResultInfo result = Access(location, holder, identifier, out holder, prefix_generic_arguments, prefix_method_arguments, prefix_indexer_arguments);
 							if(result.Failure) return result;
 
 						}
 
 					} else if((prefix_expression = prefix.expression()) != null) {
 
-						ResultInfo prefixResult = CompileExpression(compile, prefix_expression, out holder);
-						if(prefixResult.Failure) return compile.GetLocation(prefix_expression) + prefixResult;
+						ResultInfo prefixResult = CompileExpression(location, prefix_expression, out holder);
+						if(prefixResult.Failure) return location.GetLocation(prefix_expression) + prefixResult;
 
 					} else if((prefix_post_step_expression = prefix.post_step_expression()) != null) {
 
-						ResultInfo prefixResult = CompilePostStepExpression(compile, prefix_post_step_expression, out holder);
-						if(prefixResult.Failure) return compile.GetLocation(prefix_post_step_expression) + prefixResult;
+						ResultInfo prefixResult = CompilePostStepExpression(location, prefix_post_step_expression, out holder);
+						if(prefixResult.Failure) return location.GetLocation(prefix_post_step_expression) + prefixResult;
 
 					} else if((prefix_keyword_expression = prefix.keyword_expression()) != null) {
 
-						ResultInfo prefixResult = CompileKeywordExpression(compile, prefix_keyword_expression, out holder);
+						ResultInfo prefixResult = CompileKeywordExpression(location, prefix_keyword_expression, out holder);
 						if(prefixResult.Failure) return prefixResult;
 
 					} else {
@@ -1685,23 +1685,23 @@ namespace MCSharp.Compilation {
 						ITerminalNode identifier = prefix_short_identifier.NAME();
 						string name = identifier.GetText();
 
-						ResultInfo result = Access(compile, holder, identifier, out holder, prefix_generic_arguments, prefix_method_arguments, prefix_indexer_arguments);
+						ResultInfo result = Access(location, holder, identifier, out holder, prefix_generic_arguments, prefix_method_arguments, prefix_indexer_arguments);
 						if(result.Failure) return result;
 
 					} else if((prefix_post_step_expression = prefix.post_step_expression()) != null && prefix_post_step_expression.literal() != null) {
 
-						ResultInfo prefixResult = CompilePostStepExpression(compile, prefix_post_step_expression, out IInstance instance);
-						if(prefixResult.Failure) return compile.GetLocation(prefix_post_step_expression) + prefixResult;
+						ResultInfo prefixResult = CompilePostStepExpression(location, prefix_post_step_expression, out IInstance instance);
+						if(prefixResult.Failure) return location.GetLocation(prefix_post_step_expression) + prefixResult;
 
 						ITerminalNode identifier = prefix_post_step_expression.identifier().NAME()[0];
 						string name = identifier.GetText();
 
-						ResultInfo result = Access(compile, holder, identifier, out holder, null, null, null);
+						ResultInfo result = Access(location, holder, identifier, out holder, null, null, null);
 						if(result.Failure) return result;
 
 					} else {
 
-						return new ResultInfo(false, compile.GetLocation(prefix) + "Expected an identifier to access a member.");
+						return new ResultInfo(false, location.GetLocation(prefix) + "Expected an identifier to access a member.");
 
 					}
 
@@ -1709,18 +1709,18 @@ namespace MCSharp.Compilation {
 
 			} else {
 
-				throw new NotImplementedException(compile.GetLocation(member_access) + "Implicit 'this' access has not been implemented.");
+				throw new NotImplementedException(location.GetLocation(member_access) + "Implicit 'this' access has not been implemented.");
 
 			}
 			
 
-			ResultInfo finalResult = Access(compile, holder, member_identifier.NAME(), out holder, generic_arguments, method_arguments, indexer_arguments);
+			ResultInfo finalResult = Access(location, holder, member_identifier.NAME(), out holder, generic_arguments, method_arguments, indexer_arguments);
 			if(finalResult.Failure) return finalResult;
 			else return ResultInfo.DefaultSuccess;
 
 		}
 
-		public ResultInfo CompileLiteral(CompileArguments compile, MCSharpParser.LiteralContext literal, out IInstance value) {
+		public ResultInfo CompileLiteral(CompileArguments location, MCSharpParser.LiteralContext literal, out IInstance value) {
 
 			ITerminalNode integer_literal = literal.INTEGER();
 			if(integer_literal != null) {
@@ -1730,8 +1730,8 @@ namespace MCSharp.Compilation {
 
 				IType type = DefinedTypes[MCSharpLinkerExtension.IntIdentifier];
 				value = new PrimitiveInstance.IntegerInstance.Constant(type, null, _value);
-				ResultInfo scopeResult = compile.Scope.AddInstance(value);
-				if(scopeResult.Failure) return compile.GetLocation(integer_literal) + scopeResult;
+				ResultInfo scopeResult = location.Scope.AddInstance(value);
+				if(scopeResult.Failure) return location.GetLocation(integer_literal) + scopeResult;
 
 				return ResultInfo.DefaultSuccess;
 
@@ -1745,8 +1745,8 @@ namespace MCSharp.Compilation {
 
 				IType type = DefinedTypes[MCSharpLinkerExtension.BoolIdentifier];
 				value = new PrimitiveInstance.BooleanInstance.Constant(type, null, _value);
-				ResultInfo scopeResult = compile.Scope.AddInstance(value);
-				if(scopeResult.Failure) return compile.GetLocation(boolean_literal) + scopeResult;
+				ResultInfo scopeResult = location.Scope.AddInstance(value);
+				if(scopeResult.Failure) return location.GetLocation(boolean_literal) + scopeResult;
 
 				return ResultInfo.DefaultSuccess;
 
@@ -1760,8 +1760,8 @@ namespace MCSharp.Compilation {
 
 				IType type = DefinedTypes[MCSharpLinkerExtension.StringIdentifier];
 				value = new PrimitiveInstance.StringInstance(type, null, _value);
-				ResultInfo scopeResult = compile.Scope.AddInstance(value);
-				if(scopeResult.Failure) return compile.GetLocation(string_literal) + scopeResult;
+				ResultInfo scopeResult = location.Scope.AddInstance(value);
+				if(scopeResult.Failure) return location.GetLocation(string_literal) + scopeResult;
 
 				return ResultInfo.DefaultSuccess;
 
@@ -1783,7 +1783,7 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public ResultInfo CompileKeywordExpression(CompileArguments compile, KeywordExpressionContext keyword_expression, out IInstance value) {
+		public ResultInfo CompileKeywordExpression(CompileArguments location, KeywordExpressionContext keyword_expression, out IInstance value) {
 
 			throw new NotImplementedException("Keyword expression evaluation have not been implemented.");
 

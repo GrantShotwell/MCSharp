@@ -39,7 +39,7 @@ namespace MCSharp.Compilation.Instancing {
 		}
 
 		/// <inheritdoc/>
-		public abstract IInstance Copy(Compiler.CompileArguments compile, string identifier);
+		public abstract IInstance Copy(Compiler.CompileArguments location, string identifier);
 
 
 		/// <summary>
@@ -68,7 +68,7 @@ namespace MCSharp.Compilation.Instancing {
 
 
 			/// <inheritdoc/>
-			public override IInstance Copy(Compiler.CompileArguments compile, string identifier) {
+			public override IInstance Copy(Compiler.CompileArguments location, string identifier) {
 				throw new NotImplementedException();
 			}
 
@@ -91,7 +91,7 @@ namespace MCSharp.Compilation.Instancing {
 
 
 			/// <inheritdoc/>
-			public override IInstance Copy(Compiler.CompileArguments compile, string identifier) {
+			public override IInstance Copy(Compiler.CompileArguments location, string identifier) {
 				throw new NotImplementedException();
 			}
 
