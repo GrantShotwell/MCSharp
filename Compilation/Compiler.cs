@@ -1765,7 +1765,7 @@ namespace MCSharp.Compilation {
 
 			if(predefined) {
 				for(int i = 0; i < length; i++) {
-					array[i] = new PredefinedStatement(statements[i]);
+					array[i] = new ScriptStatement(statements[i]);
 				}
 			} else {
 				for(int i = 0; i < length; i++) {
