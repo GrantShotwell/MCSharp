@@ -1542,39 +1542,31 @@ namespace MCSharp.Compilation {
 			value = null;
 
 			// Evaluate chain.
-			holder = null;
-			for(int i = 0; i < member_access_prefixes.Length; i++) {
+			if(member_access_prefixes.Length > 0) {
 
-				var prefix = member_access_prefixes[i];
+				{
 
-				if(holder == null) {
+					var prefix = member_access_prefixes[0];
 
 					// Start of chain (set holder).
+					ArrayCreationExpressionContext prefix_array_creation_expression;
+					MCSharpParser.LiteralContext prefix_literal;
+					MCSharpParser.Short_identifierContext prefix_short_identifier;
+					ExpressionContext prefix_expression;
+					PostStepExpressionContext prefix_post_step_expression;
+					KeywordExpressionContext prefix_keyword_expression;
 
-					ArrayCreationExpressionContext prefix_array_creation_expression = prefix.array_creation_expression();
-					if(prefix_array_creation_expression != null) {
+					if((prefix_array_creation_expression = prefix.array_creation_expression()) != null) {
 
-						ResultInfo prefixResult = CompileArrayCreationExpression(compile, prefix_array_creation_expression, out IInstance instance);
+						ResultInfo prefixResult = CompileArrayCreationExpression(compile, prefix_array_creation_expression, out holder);
 						if(prefixResult.Failure) return compile.GetLocation(prefix_array_creation_expression) + prefixResult;
 
-						holder = instance;
-						continue;
+					} else if((prefix_literal = prefix.literal()) != null) {
 
-					}
-
-					MCSharpParser.LiteralContext prefix_literal = prefix.literal();
-					if(prefix_literal != null) {
-
-						ResultInfo prefixResult = CompileLiteral(compile, prefix_literal, out IInstance instance);
+						ResultInfo prefixResult = CompileLiteral(compile, prefix_literal, out holder);
 						if(prefixResult.Failure) return compile.GetLocation(prefix_literal) + prefixResult;
 
-						holder = instance;
-						continue;
-
-					}
-
-					MCSharpParser.Short_identifierContext prefix_short_identifier = prefix.short_identifier();
-					if(prefix_short_identifier != null) {
+					} else if((prefix_short_identifier = prefix.short_identifier()) != null) {
 
 						MCSharpParser.Generic_argumentsContext prefix_generic_arguments = prefix.generic_arguments();
 						MCSharpParser.Method_argumentsContext prefix_method_arguments = prefix.method_arguments();
@@ -1584,8 +1576,8 @@ namespace MCSharp.Compilation {
 						string name = identifier.GetText();
 
 						// Find instance from scope.
-						IInstance instance = compile.Scope.FindFirstInstanceByName(name);
-						if(instance == null) {
+						holder = compile.Scope.FindFirstInstanceByName(name);
+						if(holder == null) {
 
 							// TODO: Explicit 'this'/'base'.
 							// TODO: Implicit 'this'/'base'.
@@ -1596,50 +1588,38 @@ namespace MCSharp.Compilation {
 
 						}
 
-						holder = instance;
-						continue;
+					} else if((prefix_expression = prefix.expression()) != null) {
 
-					}
-
-					ExpressionContext prefix_expression = prefix.expression();
-					if(prefix_expression != null) {
-
-						ResultInfo prefixResult = CompileExpression(compile, prefix_expression, out IInstance instance);
+						ResultInfo prefixResult = CompileExpression(compile, prefix_expression, out holder);
 						if(prefixResult.Failure) return compile.GetLocation(prefix_expression) + prefixResult;
 
-						holder = instance;
-						continue;
+					} else if((prefix_post_step_expression = prefix.post_step_expression()) != null) {
 
-					}
-
-					PostStepExpressionContext prefix_post_step_expression = prefix.post_step_expression();
-					if(prefix_post_step_expression != null) {
-
-						ResultInfo prefixResult = CompilePostStepExpression(compile, prefix_post_step_expression, out IInstance instance);
+						ResultInfo prefixResult = CompilePostStepExpression(compile, prefix_post_step_expression, out holder);
 						if(prefixResult.Failure) return compile.GetLocation(prefix_post_step_expression) + prefixResult;
 
-						holder = instance;
-						continue;
+					} else if((prefix_keyword_expression = prefix.keyword_expression()) != null) {
 
-					}
-
-					KeywordExpressionContext prefix_keyword_expression = prefix.keyword_expression();
-					if(prefix_keyword_expression != null) {
-
-						ResultInfo prefixResult = CompileKeywordExpression(compile, prefix_keyword_expression, out IInstance instance);
+						ResultInfo prefixResult = CompileKeywordExpression(compile, prefix_keyword_expression, out holder);
 						if(prefixResult.Failure) return prefixResult;
 
-						holder = instance;
-						continue;
+					} else {
+
+						throw new Exception("Member access prefix (start) could not be determined.");
 
 					}
 
-				} else {
+				}
+
+				for(int i = 0; i < member_access_prefixes.Length; i++) {
+
+					var prefix = member_access_prefixes[i];
+					MCSharpParser.Short_identifierContext prefix_short_identifier;
+					PostStepExpressionContext prefix_post_step_expression;
 
 					// Access from holder.
 
-					MCSharpParser.Short_identifierContext prefix_short_identifier = prefix.short_identifier();
-					if(prefix_short_identifier != null) {
+					if((prefix_short_identifier = prefix.short_identifier()) != null) {
 
 						MCSharpParser.Generic_argumentsContext prefix_generic_arguments = prefix.generic_arguments();
 						MCSharpParser.Method_argumentsContext prefix_method_arguments = prefix.method_arguments();
@@ -1650,13 +1630,8 @@ namespace MCSharp.Compilation {
 
 						ResultInfo result = Access(compile, holder, identifier, out holder, prefix_generic_arguments, prefix_method_arguments, prefix_indexer_arguments);
 						if(result.Failure) return result;
-						
-						continue;
 
-					}
-
-					PostStepExpressionContext prefix_post_step_expression = prefix.post_step_expression();
-					if(prefix_post_step_expression != null && prefix_post_step_expression.literal() != null) {
+					} else if((prefix_post_step_expression = prefix.post_step_expression()) != null && prefix_post_step_expression.literal() != null) {
 
 						ResultInfo prefixResult = CompilePostStepExpression(compile, prefix_post_step_expression, out IInstance instance);
 						if(prefixResult.Failure) return compile.GetLocation(prefix_post_step_expression) + prefixResult;
@@ -1667,15 +1642,20 @@ namespace MCSharp.Compilation {
 						ResultInfo result = Access(compile, holder, identifier, out holder, null, null, null);
 						if(result.Failure) return result;
 
-						continue;
+					} else {
+
+						return new ResultInfo(false, compile.GetLocation(prefix) + "Expected an identifier to access a member.");
 
 					}
 
-					return new ResultInfo(false, compile.GetLocation(prefix) + "Expected an identifier to access a member.");
-
 				}
 
+			} else {
+
+				throw new NotImplementedException(compile.GetLocation(member_access) + "Implicit 'this' access has not been implemented.");
+
 			}
+			
 
 			ResultInfo finalResult = Access(compile, holder, member_identifier.NAME(), out holder, generic_arguments, method_arguments, indexer_arguments);
 			if(finalResult.Failure) return finalResult;
@@ -1738,7 +1718,7 @@ namespace MCSharp.Compilation {
 
 				// type
 
-				throw new NotImplementedException("Decimal/double/float literals have not been implemented.");
+				throw new NotImplementedException("Decimal/float/ect. literals have not been implemented.");
 
 			}
 
