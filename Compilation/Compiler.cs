@@ -410,6 +410,57 @@ namespace MCSharp.Compilation {
 				ReturnStatementContext return_statement = language_function.return_statement();
 				if(return_statement != null) {
 
+					// Find return type (if valid).
+					IScopeHolder holder = location.Scope.Holder;
+					if(holder is IMember member) {
+
+						var memberType = member.MemberType;
+
+						if(memberType == MemberType.Method) {
+
+							// Find return type.
+							var method = member.Definition as IMethod;
+							string returnTypeIdentifier = method.Invoker.ReturnTypeIdentifier;
+							ExpressionContext return_expression = return_statement.expression();
+
+							if(returnTypeIdentifier == "void") {
+
+								if(return_expression != null) return new ResultInfo(false, location.GetLocation(return_expression) + "Expected to return 'void'.");
+
+								// TODO: End execution of function.
+
+							} else {
+
+								ResultInfo expressionResult = CompileExpression(location, return_expression, out IInstance returnValue);
+								if(expressionResult.Failure) return expressionResult;
+
+								IType returnType = DefinedTypes[returnTypeIdentifier];
+								if(returnValue.Type != returnType) {
+
+									// TODO: Cast return value as desired type.
+									throw new NotImplementedException("Casting has not been implemented.");
+
+								}
+
+								// TODO: End execution of function and return value.
+
+							}
+
+						} else if(memberType == MemberType.Property) {
+
+							// Find return type.
+							var property = member.Definition as IProperty;
+							// TODO: Unable to determine if 'return_statement' is from the 'setter' or 'getter'.
+
+						} else {
+
+							// 'return' statement is invalid here.
+							return new ResultInfo(false, location.GetLocation(return_statement) + "A 'return' statement is invalid here.");
+
+						}
+
+					}
+
 					throw new NotImplementedException("'return' statements have not been implemented.");
 
 				}
@@ -1331,8 +1382,10 @@ namespace MCSharp.Compilation {
 			MCSharpParser.Short_identifierContext identifier = primary_no_array_creation_expression.short_identifier();
 			if(identifier != null) {
 
-				ResultInfo result = CompileShortIdentifier(compile, identifier, out value);
-				if(result.Failure) return result;
+				string name = identifier.NAME().GetText();
+
+				value = compile.Scope.FindFirstInstanceByName(name);
+				if(value == null) return new ResultInfo(false, $"{compile.GetLocation(identifier)}Instance '{name}' does not exist yet in this scope.");
 
 				return ResultInfo.DefaultSuccess;
 
@@ -1351,259 +1404,10 @@ namespace MCSharp.Compilation {
 			MCSharpParser.Member_accessContext member_access = primary_no_array_creation_expression.member_access();
 			if(member_access != null) {
 
-				MCSharpParser.Member_access_prefixContext[] member_access_prefixes = member_access.member_access_prefix();
-				MCSharpParser.Short_identifierContext member_identifier = member_access.short_identifier();
-				MCSharpParser.Generic_argumentsContext generic_arguments = member_access.generic_arguments();
-				MCSharpParser.Method_argumentsContext method_arguments = member_access.method_arguments();
-				MCSharpParser.Indexer_argumentsContext indexer_arguments = member_access.indexer_arguments();
+				ResultInfo result = CompileMemberAccess(compile, member_access, out value);
+				if(result.Failure) return result;
 
-				IInstance holder;
-				ResultInfo Access(IInstance holder, out IInstance value) {
-
-					IMember accessedMember = null;
-					foreach(IMember member in holder.Type.Members) {
-						if(member.Identifier == member_identifier.GetText()) {
-							accessedMember = member;
-						}
-					}
-
-					// TODO: Check inherited types.
-
-					if(accessedMember == null) {
-						value = null;
-						return new ResultInfo(false, $"{compile.GetLocation(member_identifier)}'{member_identifier.GetText()}' does not exist in type '{holder.Type.Identifier}'.");
-					} else {
-
-						IMemberDefinition definition = accessedMember.Definition;
-
-						switch(definition) {
-
-							case IField field: {
-
-								// Struct, Class, and Predefined all have different ways of storing fields.
-								switch(holder) {
-
-									// Get IInstance value from StructInstance.FieldInstances.
-									case StructInstance structHolder: {
-										value = structHolder.FieldInstances[field];
-										return ResultInfo.DefaultSuccess;
-									}
-
-									// TODO: ClassInstance
-
-									// TODO: PredefinedInstance
-
-									default: throw new Exception($"Unsupported type of {nameof(IInstance)}: '{holder.GetType().FullName}'.");
-								}
-
-							}
-
-							case IProperty property: {
-
-								// Get getter.
-								var getter = property.Getter;
-								if(getter == null) {
-									value = null;
-									return new ResultInfo(false, $"{compile.GetLocation(member_identifier)}This property is not get-able.");
-								}
-
-								// Invoke 'get' method.
-								ResultInfo result = property.Getter.Invoke(compile, new IType[] { }, new IInstance[] { }, out value);
-								if(result.Failure) return compile.GetLocation(member_identifier) + result;
-
-								return ResultInfo.DefaultSuccess;
-
-							}
-
-							case IMethod method: {
-
-								// Get generic arguments.
-								IType[] generics;
-								if(generic_arguments == null) {
-									generics = new IType[] { };
-								} else {
-									throw new NotImplementedException($"{compile.GetLocation(generic_arguments)}Invoking methods with generic arguments has not been implemented.");
-								}
-
-								// Get method arguments.
-								IInstance[] arguments;
-								if(method_arguments == null) {
-									value = null;
-									return new ResultInfo(false, $"{compile.GetLocation(member_access)}Expected method arguments for accessing method.");
-								} else {
-									MCSharpParser.Argument_listContext argument_list = method_arguments.argument_list();
-									if(argument_list == null) {
-										arguments = new IInstance[] { };
-									} else {
-										throw new NotImplementedException("Accessing methods with more than zero parameters has not been implemented.");
-									}
-								}
-
-								// Invoke method.
-								ResultInfo result = method.Invoker.Invoke(compile, generics, arguments, out value);
-								if(result.Failure) return compile.GetLocation(member_access) + result;
-
-								return ResultInfo.DefaultSuccess;
-
-							}
-
-							default: throw new Exception($"Unsupported type of {nameof(IMember)}: '{definition.GetType().FullName}'.");
-						}
-
-					}
-
-				}
-
-				// Get the instance to access from.
-				if(member_access_prefixes != null && member_access_prefixes.Length > 0) {
-
-					value = null;
-
-					// Evaluate chain.
-					holder = null;
-					for(int i = 0; i < member_access_prefixes.Length; i++) {
-
-						var prefix = member_access_prefixes[i];
-
-						if(holder == null) {
-
-							// Start of chain (set holder).
-
-							ArrayCreationExpressionContext prefix_array_creation_expression = prefix.array_creation_expression();
-							if(prefix_array_creation_expression != null) {
-
-								ResultInfo prefixResult = CompileArrayCreationExpression(compile, prefix_array_creation_expression, out IInstance instance);
-								if(prefixResult.Failure) return compile.GetLocation(prefix_array_creation_expression) + prefixResult;
-
-								holder = instance;
-								continue;
-
-							}
-
-							MCSharpParser.LiteralContext prefix_literal = prefix.literal();
-							if(prefix_literal != null) {
-
-								ResultInfo prefixResult = CompileLiteral(compile, prefix_literal, out IInstance instance);
-								if(prefixResult.Failure) return compile.GetLocation(prefix_literal) + prefixResult;
-
-								holder = instance;
-								continue;
-
-							}
-
-							MCSharpParser.Short_identifierContext prefix_short_identifier = prefix.short_identifier();
-							if(prefix_short_identifier != null) {
-
-								ResultInfo result = CompileShortIdentifier(compile, prefix_short_identifier, out IInstance instance);
-								if(result.Failure) return result;
-
-								// TODO: generic_arguments? ( method_arguments | indexer_arguments )?
-
-								holder = instance;
-								continue;
-
-							}
-
-							ExpressionContext prefix_expression = prefix.expression();
-							if(prefix_expression != null) {
-
-								ResultInfo prefixResult = CompileExpression(compile, prefix_expression, out IInstance instance);
-								if(prefixResult.Failure) return compile.GetLocation(prefix_expression) + prefixResult;
-
-								holder = instance;
-								continue;
-
-							}
-
-							PostStepExpressionContext prefix_post_step_expression = prefix.post_step_expression();
-							if(prefix_post_step_expression != null) {
-
-								ResultInfo prefixResult = CompilePostStepExpression(compile, prefix_post_step_expression, out IInstance instance);
-								if(prefixResult.Failure) return compile.GetLocation(prefix_post_step_expression) + prefixResult;
-
-								holder = instance;
-								continue;
-
-							}
-
-							KeywordExpressionContext prefix_keyword_expression = prefix.keyword_expression();
-							if(prefix_keyword_expression != null) {
-
-								ResultInfo prefixResult = CompileKeywordExpression(compile, prefix_keyword_expression, out IInstance instance);
-								if(prefixResult.Failure) return prefixResult;
-
-								holder = instance;
-								continue;
-
-							}
-
-						} else {
-
-							// Access from last (holder).
-
-							ArrayCreationExpressionContext prefix_array_creation_expression = prefix.array_creation_expression();
-							if(prefix_array_creation_expression != null) {
-
-								ResultInfo prefixResult = CompileArrayCreationExpression(compile, prefix_array_creation_expression, out IInstance instance);
-								if(prefixResult.Failure) return compile.GetLocation(prefix_array_creation_expression) + prefixResult;
-
-								throw new NotImplementedException("TODO");
-
-							}
-
-							MCSharpParser.LiteralContext prefix_literal = prefix.literal();
-							if(prefix_literal != null) {
-
-								ResultInfo prefixResult = CompileLiteral(compile, prefix_literal, out IInstance instance);
-								if(prefixResult.Failure) return compile.GetLocation(prefix_literal) + prefixResult;
-
-								throw new NotImplementedException("TODO");
-
-							}
-
-							ExpressionContext prefix_expression = prefix.expression();
-							if(prefix_expression != null) {
-
-								ResultInfo prefixResult = CompileExpression(compile, prefix_expression, out IInstance instance);
-								if(prefixResult.Failure) return compile.GetLocation(prefix_expression) + prefixResult;
-
-								throw new NotImplementedException("TODO");
-
-							}
-
-							PostStepExpressionContext prefix_post_step_expression = prefix.post_step_expression();
-							if(prefix_post_step_expression != null) {
-
-								ResultInfo prefixResult = CompilePostStepExpression(compile, prefix_post_step_expression, out IInstance instance);
-								if(prefixResult.Failure) return compile.GetLocation(prefix_post_step_expression) + prefixResult;
-
-								throw new NotImplementedException("TODO");
-
-							}
-
-							KeywordExpressionContext prefix_keyword_expression = prefix.keyword_expression();
-							if(prefix_keyword_expression != null) {
-
-								ResultInfo prefixResult = CompileKeywordExpression(compile, prefix_keyword_expression, out IInstance instance);
-								if(prefixResult.Failure) return prefixResult;
-
-								throw new NotImplementedException("TODO");
-
-							}
-
-						}
-
-					}
-
-				} else {
-
-					// Access from implicit 'this'.
-					throw new NotImplementedException(compile.GetLocation(member_access) + "Implicit 'this' has not been implemented.");
-
-				}
-
-
-				return Access(holder, out value);
+				return ResultInfo.DefaultSuccess;
 
 			}
 
@@ -1628,14 +1432,254 @@ namespace MCSharp.Compilation {
 
 		}
 
-		public ResultInfo CompileShortIdentifier(CompileArguments compile, MCSharpParser.Short_identifierContext identifier, out IInstance value) {
+		public ResultInfo CompileMemberAccess(CompileArguments compile, MCSharpParser.Member_accessContext member_access, out IInstance value) {
 
-			string name = identifier.NAME().GetText();
+			MCSharpParser.Member_access_prefixContext[] member_access_prefixes = member_access.member_access_prefix();
+			MCSharpParser.Short_identifierContext member_identifier = member_access.short_identifier();
+			MCSharpParser.Generic_argumentsContext generic_arguments = member_access.generic_arguments();
+			MCSharpParser.Method_argumentsContext method_arguments = member_access.method_arguments();
+			MCSharpParser.Indexer_argumentsContext indexer_arguments = member_access.indexer_arguments();
 
-			value = compile.Scope.FindFirstInstanceByName(name);
-			if(value == null) return new ResultInfo(false, $"{compile.GetLocation(identifier)}Instance '{name}' does not exist yet in this scope.");
+			IInstance holder;
+			ResultInfo Access(CompileArguments location, IInstance holder, ITerminalNode identifier, out IInstance value,
+				MCSharpParser.Generic_argumentsContext generic_arguments, MCSharpParser.Method_argumentsContext method_arguments, MCSharpParser.Indexer_argumentsContext indexer_arguments) {
 
-			return ResultInfo.DefaultSuccess;
+				IMember accessedMember = null;
+				foreach(IMember member in holder.Type.Members) {
+					if(member.Identifier == identifier.GetText()) {
+						accessedMember = member;
+					}
+				}
+
+				// TODO: Check inherited types.
+
+				if(accessedMember == null) {
+					value = null;
+					return new ResultInfo(false, $"{location.GetLocation(identifier)}'{identifier.GetText()}' does not exist in type '{holder.Type.Identifier}'.");
+				} else {
+
+					IMemberDefinition definition = accessedMember.Definition;
+
+					switch(definition) {
+
+						case IField field: {
+
+							// Struct, Class, and Predefined all have different ways of storing fields.
+							switch(holder) {
+
+								// Get IInstance value from StructInstance.FieldInstances.
+								case StructInstance structHolder: {
+									value = structHolder.FieldInstances[field];
+									return ResultInfo.DefaultSuccess;
+								}
+
+								// TODO: ClassInstance
+
+								// TODO: PredefinedInstance
+
+								default: throw new Exception($"Unsupported type of {nameof(IInstance)}: '{holder.GetType().FullName}'.");
+							}
+
+						}
+
+						case IProperty property: {
+
+							// Get getter.
+							var getter = property.Getter;
+							if(getter == null) {
+								value = null;
+								return new ResultInfo(false, $"{location.GetLocation(identifier)}This property is not get-able.");
+							}
+
+							// Invoke 'get' method.
+							ResultInfo result = property.Getter.Invoke(location, new IType[] { }, new IInstance[] { }, out value);
+							if(result.Failure) return location.GetLocation(identifier) + result;
+
+							return ResultInfo.DefaultSuccess;
+
+						}
+
+						case IMethod method: {
+
+							// Get generic arguments.
+							IType[] generics;
+							if(generic_arguments == null) {
+								generics = new IType[] { };
+							} else {
+								throw new NotImplementedException($"{location.GetLocation(generic_arguments)}Invoking methods with generic arguments has not been implemented.");
+							}
+
+							// Get method arguments.
+							IInstance[] arguments;
+							if(method_arguments == null) {
+								value = null;
+								return new ResultInfo(false, $"{location.GetLocation(member_access)}Expected method arguments for accessing method.");
+							} else {
+								MCSharpParser.Argument_listContext argument_list = method_arguments.argument_list();
+								MCSharpParser.ArgumentContext[] arguments_context = argument_list.argument();
+								arguments = new IInstance[arguments_context.Length];
+								for(int i = 0; i < arguments_context.Length; i++) {
+									throw new NotImplementedException("Accessing methods with more than zero parameters has not been implemented.");
+								}
+							}
+
+							// Invoke method.
+							ResultInfo result = method.Invoker.Invoke(location, generics, arguments, out value);
+							if(result.Failure) return location.GetLocation(member_access) + result;
+
+							return ResultInfo.DefaultSuccess;
+
+						}
+
+						default: throw new Exception($"Unsupported type of {nameof(IMember)}: '{definition.GetType().FullName}'.");
+					}
+
+				}
+
+			}
+
+			// Get the instance to access from.
+			value = null;
+
+			// Evaluate chain.
+			holder = null;
+			for(int i = 0; i < member_access_prefixes.Length; i++) {
+
+				var prefix = member_access_prefixes[i];
+
+				if(holder == null) {
+
+					// Start of chain (set holder).
+
+					ArrayCreationExpressionContext prefix_array_creation_expression = prefix.array_creation_expression();
+					if(prefix_array_creation_expression != null) {
+
+						ResultInfo prefixResult = CompileArrayCreationExpression(compile, prefix_array_creation_expression, out IInstance instance);
+						if(prefixResult.Failure) return compile.GetLocation(prefix_array_creation_expression) + prefixResult;
+
+						holder = instance;
+						continue;
+
+					}
+
+					MCSharpParser.LiteralContext prefix_literal = prefix.literal();
+					if(prefix_literal != null) {
+
+						ResultInfo prefixResult = CompileLiteral(compile, prefix_literal, out IInstance instance);
+						if(prefixResult.Failure) return compile.GetLocation(prefix_literal) + prefixResult;
+
+						holder = instance;
+						continue;
+
+					}
+
+					MCSharpParser.Short_identifierContext prefix_short_identifier = prefix.short_identifier();
+					if(prefix_short_identifier != null) {
+
+						MCSharpParser.Generic_argumentsContext prefix_generic_arguments = prefix.generic_arguments();
+						MCSharpParser.Method_argumentsContext prefix_method_arguments = prefix.method_arguments();
+						MCSharpParser.Indexer_argumentsContext prefix_indexer_arguments = prefix.indexer_arguments();
+
+						ITerminalNode identifier = prefix_short_identifier.NAME();
+						string name = identifier.GetText();
+
+						// Find instance from scope.
+						IInstance instance = compile.Scope.FindFirstInstanceByName(name);
+						if(instance == null) {
+
+							// TODO: Explicit 'this'/'base'.
+							// TODO: Implicit 'this'/'base'.
+
+							// Find instance from 'Access' local method (fields, properties, methods).
+							ResultInfo result = Access(compile, holder, identifier, out holder, prefix_generic_arguments, prefix_method_arguments, prefix_indexer_arguments);
+							if(result.Failure) return result;
+
+						}
+
+						holder = instance;
+						continue;
+
+					}
+
+					ExpressionContext prefix_expression = prefix.expression();
+					if(prefix_expression != null) {
+
+						ResultInfo prefixResult = CompileExpression(compile, prefix_expression, out IInstance instance);
+						if(prefixResult.Failure) return compile.GetLocation(prefix_expression) + prefixResult;
+
+						holder = instance;
+						continue;
+
+					}
+
+					PostStepExpressionContext prefix_post_step_expression = prefix.post_step_expression();
+					if(prefix_post_step_expression != null) {
+
+						ResultInfo prefixResult = CompilePostStepExpression(compile, prefix_post_step_expression, out IInstance instance);
+						if(prefixResult.Failure) return compile.GetLocation(prefix_post_step_expression) + prefixResult;
+
+						holder = instance;
+						continue;
+
+					}
+
+					KeywordExpressionContext prefix_keyword_expression = prefix.keyword_expression();
+					if(prefix_keyword_expression != null) {
+
+						ResultInfo prefixResult = CompileKeywordExpression(compile, prefix_keyword_expression, out IInstance instance);
+						if(prefixResult.Failure) return prefixResult;
+
+						holder = instance;
+						continue;
+
+					}
+
+				} else {
+
+					// Access from holder.
+
+					MCSharpParser.Short_identifierContext prefix_short_identifier = prefix.short_identifier();
+					if(prefix_short_identifier != null) {
+
+						MCSharpParser.Generic_argumentsContext prefix_generic_arguments = prefix.generic_arguments();
+						MCSharpParser.Method_argumentsContext prefix_method_arguments = prefix.method_arguments();
+						MCSharpParser.Indexer_argumentsContext prefix_indexer_arguments = prefix.indexer_arguments();
+
+						ITerminalNode identifier = prefix_short_identifier.NAME();
+						string name = identifier.GetText();
+
+						ResultInfo result = Access(compile, holder, identifier, out holder, prefix_generic_arguments, prefix_method_arguments, prefix_indexer_arguments);
+						if(result.Failure) return result;
+						
+						continue;
+
+					}
+
+					PostStepExpressionContext prefix_post_step_expression = prefix.post_step_expression();
+					if(prefix_post_step_expression != null && prefix_post_step_expression.literal() != null) {
+
+						ResultInfo prefixResult = CompilePostStepExpression(compile, prefix_post_step_expression, out IInstance instance);
+						if(prefixResult.Failure) return compile.GetLocation(prefix_post_step_expression) + prefixResult;
+
+						ITerminalNode identifier = prefix_post_step_expression.identifier().NAME()[0];
+						string name = identifier.GetText();
+
+						ResultInfo result = Access(compile, holder, identifier, out holder, null, null, null);
+						if(result.Failure) return result;
+
+						continue;
+
+					}
+
+					return new ResultInfo(false, compile.GetLocation(prefix) + "Expected an identifier to access a member.");
+
+				}
+
+			}
+
+			ResultInfo finalResult = Access(compile, holder, member_identifier.NAME(), out holder, generic_arguments, method_arguments, indexer_arguments);
+			if(finalResult.Failure) return finalResult;
+			else return ResultInfo.DefaultSuccess;
 
 		}
 
@@ -1714,7 +1758,7 @@ namespace MCSharp.Compilation {
 
 		#region IStatement Creation
 
-		private IStatement CreateIStatement(MCSharpParser.StatementContext statement, bool predefined) {
+		private IStatement CreateIStatement(StatementContext statement, bool predefined) {
 
 			#region Argument Checks
 			if(statement is null)
@@ -1729,7 +1773,7 @@ namespace MCSharp.Compilation {
 
 		}
 
-		private IStatement[] CreateIStatements(MCSharpParser.StatementContext[] statements, bool predefined) {
+		private IStatement[] CreateIStatements(StatementContext[] statements, bool predefined) {
 
 			#region Argument Checks
 			if(statements is null)
@@ -1753,7 +1797,7 @@ namespace MCSharp.Compilation {
 
 		}
 
-		private IStatement[] CreateIStatements(MCSharpParser.StatementContext statement, bool predefined) {
+		private IStatement[] CreateIStatements(StatementContext statement, bool predefined) {
 
 			#region Argument Checks
 			if(statement is null)

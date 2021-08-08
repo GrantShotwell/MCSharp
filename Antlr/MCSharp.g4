@@ -176,7 +176,7 @@ do_statement
 	: DO statement WHILE OP expression CP END
 	;
 return_statement
-	: RETURN expression END
+	: RETURN expression? END
 	;
 throw_statement
 	: THROW expression END
