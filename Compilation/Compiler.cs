@@ -351,16 +351,14 @@ namespace MCSharp.Compilation {
 					ResultInfo conditionResult1 = CompileExpression(locationOuter, condition, out IInstance conditionValue1);
 					if(conditionResult1.Failure) return conditionResult1;
 
-					if(conditionValue1 is PrimitiveInstance.BooleanInstance conditionValue1Bool) {
-
-						locationOuter.Function.Writer.WriteCommand($"execute if score {MCSharpLinkerExtension.StorageSelector} {conditionValue1Bool.Objective.Name} matches 1.. " +
-							$"run function {statementFunction.Writer.GamePath}");
-
-					} else {
+					if(!(conditionValue1 is PrimitiveInstance.BooleanInstance conditionValue1Bool)) {
 
 						throw new NotImplementedException("Casting has not been implemented.");
 
 					}
+
+					locationOuter.Function.Writer.WriteCommand($"execute if score {MCSharpLinkerExtension.StorageSelector} {conditionValue1Bool.Objective.Name} matches 1.. " +
+						$"run function {statementFunction.Writer.GamePath}");
 
 					ResultInfo statementResult = CompileStatement(locationInner, statement);
 					if(statementResult.Failure) return statementResult;
@@ -371,16 +369,14 @@ namespace MCSharp.Compilation {
 					ResultInfo conditionResult2 = CompileExpression(locationInner, condition, out IInstance conditionValue2);
 					if(conditionResult2.Failure) return conditionResult2;
 
-					if(conditionValue2 is PrimitiveInstance.BooleanInstance conditionValue2Bool) {
-
-						locationInner.Function.Writer.WriteCommand($"execute if score {MCSharpLinkerExtension.StorageSelector} {conditionValue2Bool.Objective.Name} matches 1.. " +
-							$"run function {statementFunction.Writer.GamePath}");
-
-					} else {
+					if(!(conditionValue2 is PrimitiveInstance.BooleanInstance conditionValue2Bool)) {
 
 						throw new NotImplementedException("Casting has not been implemented.");
 
 					}
+
+					locationInner.Function.Writer.WriteCommand($"execute if score {MCSharpLinkerExtension.StorageSelector} {conditionValue2Bool.Objective.Name} matches 1.. " +
+						$"run function {statementFunction.Writer.GamePath}");
 
 					return ResultInfo.DefaultSuccess;
 
@@ -396,14 +392,75 @@ namespace MCSharp.Compilation {
 				WhileStatementContext while_statement = language_function.while_statement();
 				if(while_statement != null) {
 
-					throw new NotImplementedException("'while' statements have not been implemented.");
+					ExpressionContext condition = while_statement.expression();
+					StatementContext statement = while_statement.statement();
+
+					Scope scopeOuter = new Scope(null, location.Scope, null);
+					CompileArguments locationOuter = new CompileArguments(location.Compiler, location.Function, scopeOuter, location.Predefined);
+
+					Scope scopeInner = new Scope(null, scopeOuter, null);
+					StandaloneStatementFunction statementFunction = locationOuter.Function.CreateChildFunction(CreateIStatements(statement, locationOuter.Predefined), Settings);
+					CompileArguments locationInner = new CompileArguments(locationOuter.Compiler, statementFunction, scopeInner, locationOuter.Predefined);
+
+					ResultInfo conditionResult1 = CompileExpression(locationOuter, condition, out IInstance conditionValue1);
+					if(conditionResult1.Failure) return conditionResult1;
+
+					if(!(conditionValue1 is PrimitiveInstance.BooleanInstance conditionValue1Bool)) {
+
+						throw new NotImplementedException("Casting has not been implemented.");
+
+					}
+
+					locationOuter.Function.Writer.WriteCommand($"execute if score {MCSharpLinkerExtension.StorageSelector} {conditionValue1Bool.Objective.Name} matches 1.. " +
+						$"run function {statementFunction.Writer.GamePath}");
+
+					ResultInfo statementResult = CompileStatement(locationInner, statement);
+					if(statementResult.Failure) return statementResult;
+
+					ResultInfo conditionResult2 = CompileExpression(locationInner, condition, out IInstance conditionValue2);
+					if(conditionResult2.Failure) return conditionResult2;
+
+					if(!(conditionValue2 is PrimitiveInstance.BooleanInstance conditionValue2Bool)) {
+
+						throw new NotImplementedException("Casting has not been implemented.");
+
+					}
+
+					locationInner.Function.Writer.WriteCommand($"execute if score {MCSharpLinkerExtension.StorageSelector} {conditionValue2Bool.Objective.Name} matches 1.. " +
+							$"run function {statementFunction.Writer.GamePath}");
+
+					return ResultInfo.DefaultSuccess;
 
 				}
 
 				DoStatementContext do_statement = language_function.do_statement();
 				if(do_statement != null) {
 
-					throw new NotImplementedException("'do' statements have not been implemented.");
+					ExpressionContext condition = do_statement.expression();
+					StatementContext statement = do_statement.statement();
+
+					Scope scopeInner = new Scope(null, location.Scope, null);
+					StandaloneStatementFunction statementFunction = location.Function.CreateChildFunction(CreateIStatements(statement, location.Predefined), Settings);
+					CompileArguments locationInner = new CompileArguments(location.Compiler, statementFunction, scopeInner, location.Predefined);
+
+					location.Function.Writer.WriteCommand($"function {statementFunction.Writer.GamePath}");
+
+					ResultInfo statementResult = CompileStatement(locationInner, statement);
+					if(statementResult.Failure) return statementResult;
+
+					ResultInfo conditionResult = CompileExpression(locationInner, condition, out IInstance conditionValue2);
+					if(conditionResult.Failure) return conditionResult;
+
+					if(!(conditionValue2 is PrimitiveInstance.BooleanInstance conditionValue2Bool)) {
+
+						throw new NotImplementedException("Casting has not been implemented.");
+
+					}
+
+					locationInner.Function.Writer.WriteCommand($"execute if score {MCSharpLinkerExtension.StorageSelector} {conditionValue2Bool.Objective.Name} matches 1.. " +
+							$"run function {statementFunction.Writer.GamePath}");
+
+					return ResultInfo.DefaultSuccess;
 
 				}
 

@@ -96,7 +96,7 @@ field_definition
 	;
 property_definition
 	: LAMBDA expression
-	| OC ( ( modifier* property_get_definition ) ( modifier* property_set_definition )? ) | ( ( modifier* property_set_definition ) ( modifier* property_get_definition )? )  CC
+	| OC ( ( modifier* property_get_definition ) ( modifier* property_set_definition )? ) | ( ( modifier* property_set_definition ) ( modifier* property_get_definition )? ) CC
 	;
 property_get_definition
 	: GET END
