@@ -24,7 +24,7 @@ namespace MCSharp.Compilation.Instancing {
 
 		// Private to disallow extensions to make primitive types because that is not supported.
 		/// <summary>
-		/// 
+		/// Base constructor for all <see cref="PrimitiveInstance"/>s.
 		/// </summary>
 		/// <param name="type">The <see cref="IType"/> that defines this instance.</param>
 		/// <param name="identifier">The local identifier for this instance.</param>

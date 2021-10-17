@@ -21,43 +21,41 @@ namespace MCSharp.Linkage.Script {
 		/// <inheritdoc/>
 		public ClassType ClassType { get; }
 
-		/// <summary>
-		/// The local identifier for this type definition.
-		/// </summary>
+		/// <inheritdoc cref="IType.Identifier"/>
 		public ITerminalNode Identifier { get; }
 		/// <inheritdoc/>
 		string IType.Identifier => Identifier.GetText();
 
 		/// <inheritdoc/>
-		public ICollection<IType> Inheritance { get; } = new List<IType>();
+		public IReadOnlyCollection<IType> BaseTypes { get; }
+
+		/// <inheritdoc/>
+		public ICollection<IType> DerivedTypes { get; } = new List<IType>();
 
 		/// <inheritdoc/>
 		public Scope Scope { get; set; }
 
-		/// <summary>
-		/// The members defined by this type definition.
-		/// </summary>
+		/// <inheritdoc cref="IType.Members"/>
 		public IReadOnlyCollection<ScriptMember> Members { get; }
 		/// <inheritdoc/>
 		IReadOnlyCollection<IMember> IType.Members => Members;
 
-		/// <summary>
-		/// The constructors defined by this type definition.
-		/// </summary>
+		/// <inheritdoc cref="IType.Constructors"/>
 		public IReadOnlyCollection<ScriptConstructor> Constructors { get; }
 		/// <inheritdoc/>
 		IReadOnlyCollection<IConstructor> IType.Constructors => Constructors;
 		public int i_constructor = 0;
 
-		/// <summary>
-		/// The type definitions defined within this type definition.
-		/// </summary>
+		/// <inheritdoc cref="IType.SubTypes"/>
 		public IReadOnlyCollection<ScriptType> SubTypes { get; }
 		/// <inheritdoc/>
 		IReadOnlyCollection<IType> IType.SubTypes => SubTypes;
 
 		/// <inheritdoc/>
 		public IHashSetDictionary<Operation, IOperation> Operations { get; }
+
+		/// <inheritdoc/>
+		public IDictionary<IType, IConversion> Conversions { get; }
 
 
 		/// <summary>
@@ -74,25 +72,35 @@ namespace MCSharp.Linkage.Script {
 			ClassType = EnumLinker.LinkClassType(typeContext.class_type());
 			Identifier = typeContext.NAME();
 
+			// TODO: Get base types.
+			BaseTypes = new List<IType>();
+			foreach(IType baseType in BaseTypes) {
+				baseType.DerivedTypes.Add(this);
+			}
+
+			// Get members (excluding constructors).
 			ScriptMember[] members = new ScriptMember[memberContexts.Length];
 			for(int i = 0; i < memberContexts.Length; i++) {
-				// todo: operations
 				members[i] = new ScriptMember(this, memberContexts[i], settings, virtualMachine);
 			}
 			Members = members;
 
+			// Get constructors.
 			ScriptConstructor[] constructors = new ScriptConstructor[constructorContexts.Length];
 			for(int i = 0; i < constructorContexts.Length; i++) {
 				constructors[i] = new ScriptConstructor(this, constructorContexts[i], settings, virtualMachine);
 			}
 			Constructors = constructors;
 
-			// todo
-			SubTypes = null;
+			// TODO
+			SubTypes = new List<ScriptType>();
+			Conversions = new Dictionary<IType, IConversion>();
+			Operations = new HashSetDictionary<Operation, IOperation>();
 
 		}
 
 
+		/// <inheritdoc/>
 		public IInstance InitializeInstance(Compiler.CompileArguments location, string identifier) {
 
 			switch(ClassType) {
@@ -111,6 +119,7 @@ namespace MCSharp.Linkage.Script {
 
 		}
 
+		/// <inheritdoc/>
 		public void Dispose() {
 			foreach(ScriptMember member in Members) member.Dispose();
 		}

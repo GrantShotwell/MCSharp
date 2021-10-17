@@ -25,28 +25,25 @@ namespace MCSharp.Linkage.Predefined {
 		public string Identifier { get; }
 
 		/// <inheritdoc/>
-		public ICollection<IType> Inheritance { get; } = new List<IType>();
+		public IReadOnlyCollection<IType> BaseTypes { get; }
+
+		/// <inheritdoc/>
+		public ICollection<IType> DerivedTypes { get; } = new List<IType>();
 
 		/// <inheritdoc/>
 		public Scope Scope { get; set; }
 
-		/// <summary>
-		/// The members defined by this type definition.
-		/// </summary>
+		/// <inheritdoc cref="IType.Members"/>
 		public IReadOnlyCollection<PredefinedMember> Members { get; }
 		/// <inheritdoc/>
 		IReadOnlyCollection<IMember> IType.Members => Members;
 
-		/// <summary>
-		/// The constructors defined by this type definition.
-		/// </summary>
+		/// <inheritdoc cref="IType.Constructors"/>
 		public IReadOnlyCollection<PredefinedConstructor> Constructors { get; }
 		/// <inheritdoc/>
 		IReadOnlyCollection<IConstructor> IType.Constructors => Constructors;
 
-		/// <summary>
-		/// The type definitions defined within this type definition.
-		/// </summary>
+		/// <inheritdoc cref="IType.SubTypes"/>
 		public IReadOnlyCollection<PredefinedType> SubTypes { get; }
 		/// <inheritdoc/>
 		IReadOnlyCollection<IType> IType.SubTypes => SubTypes;
@@ -55,6 +52,9 @@ namespace MCSharp.Linkage.Predefined {
 
 		/// <inheritdoc/>
 		public IHashSetDictionary<Operation, IOperation> Operations { get; }
+
+		/// <inheritdoc/>
+		public IDictionary<IType, IConversion> Conversions { get; }
 
 
 		/// <summary>
@@ -67,6 +67,10 @@ namespace MCSharp.Linkage.Predefined {
 		/// <param name="subTypes">The type definitions defined by this type definition.</param>
 		public PredefinedType(Modifier modifiers, ClassType classType, string identifier, PredefinedMember[] members,
 		PredefinedConstructor[] constructors, PredefinedType[] subTypes, InitializeInstanceDelegate init, IHashSetDictionary<Operation, IOperation> operations) {
+
+			// TODO
+			BaseTypes = new List<IType>();
+
 			Modifiers = modifiers;
 			ClassType = classType;
 			Identifier = identifier;
@@ -75,6 +79,7 @@ namespace MCSharp.Linkage.Predefined {
 			SubTypes = subTypes;
 			Init = init;
 			Operations = operations;
+
 		}
 
 
@@ -89,6 +94,7 @@ namespace MCSharp.Linkage.Predefined {
 			
 		}
 
+		/// <inheritdoc/>
 		public void Dispose() {
 			foreach(PredefinedMember member in Members) member.Dispose();
 		}

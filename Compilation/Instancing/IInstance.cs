@@ -1,6 +1,8 @@
 ﻿using Antlr4.Runtime.Tree;
 using MCSharp.Linkage;
 using System;
+using System.Collections;
+using System.Collections.Generic;
 
 namespace MCSharp.Compilation.Instancing {
 
@@ -36,6 +38,32 @@ namespace MCSharp.Compilation.Instancing {
 		/// <returns>Returns a new <see cref="IInstance"/>.</returns>
 		/// <param name="identifier">The <see cref="Identifier"/> of the new <see cref="IInstance"/>.</param>
 		public IInstance Copy(Compiler.CompileArguments compile, string identifier);
+
+	}
+
+	public static class IInstanceExtensions {
+
+		public static ResultInfo ConvertType(this IInstance instance, Compiler.CompileArguments location, IType toType, out IInstance value) {
+
+			IType fromType = instance.Type;
+			IDictionary<IType, IConversion> conversions = fromType.Conversions;
+
+			if(conversions.ContainsKey(toType)) {
+
+				var conversion = conversions[toType];
+				ResultInfo conversionResult = conversion.Function.Invoke(location, new IType[] { }, new IInstance[] { instance }, out value);
+				if(conversionResult.Failure) { value = null; return conversionResult; }
+
+				return ResultInfo.DefaultSuccess;
+
+			} else {
+
+				value = null;
+				return new ResultInfo(false, $"Cannot cast '{fromType.Identifier}' as '{toType.Identifier}'.");
+
+			}
+
+		}
 
 	}
 

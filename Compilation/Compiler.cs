@@ -95,7 +95,7 @@ namespace MCSharp.Compilation {
 
 					// Use Antlr generated classes to parse the file.
 
-					ICharStream stream = CharStreams.fromString(File.ReadAllText(file));
+					ICharStream stream = CharStreams.fromPath(file);
 					var errorListener = new ScriptErrorListener(file[(Settings.Datapack.ScriptDirectory.Length + 1)..]);
 
 					var lexer = new MCSharpLexer(stream);
@@ -252,7 +252,7 @@ namespace MCSharp.Compilation {
 
 				} else {
 
-					// todo: Add more information.
+					// TODO: Add more information.
 					throw new Exception();
 
 				}
@@ -1498,6 +1498,7 @@ namespace MCSharp.Compilation {
 			MCSharpParser.Indexer_argumentsContext indexer_arguments = member_access.indexer_arguments();
 
 			IInstance holder;
+
 			ResultInfo Access(CompileArguments location, IInstance holder, ITerminalNode identifier, out IInstance value,
 				MCSharpParser.Generic_argumentsContext generic_arguments, MCSharpParser.Method_argumentsContext method_arguments, MCSharpParser.Indexer_argumentsContext indexer_arguments) {
 
@@ -1638,6 +1639,12 @@ namespace MCSharp.Compilation {
 
 							// TODO: Explicit 'this'/'base'.
 							// TODO: Implicit 'this'/'base'.
+
+							if(holder == null) {
+
+								return new ResultInfo(false, $"{location.GetLocation(identifier)}Unknown identifier '{name}'.");
+
+							}
 
 							// Find instance from 'Access' local method (fields, properties, methods).
 							ResultInfo result = Access(location, holder, identifier, out holder, prefix_generic_arguments, prefix_method_arguments, prefix_indexer_arguments);
@@ -1858,6 +1865,7 @@ namespace MCSharp.Compilation {
 			}
 
 			Objective.ClearAnonymousNames();
+			ClassInstance.ResetFieldObjectives();
 
 		}
 
@@ -1865,14 +1873,29 @@ namespace MCSharp.Compilation {
 
 		public struct CompileArguments {
 
+			/// <summary>
+			/// The <see cref="Compilation.Compiler"/>.
+			/// </summary>
 			public Compiler Compiler { get; }
 
+			/// <summary>
+			/// The <see cref="StandaloneStatementFunction"/> being written to.
+			/// </summary>
 			public StandaloneStatementFunction Function { get; }
 
+			/// <summary>
+			/// The <see cref="FunctionWriter"/> of <see cref="Function"/>.
+			/// </summary>
 			public FunctionWriter Writer => Function.Writer;
 
+			/// <summary>
+			/// The current <see cref="Compilation.Scope"/>.
+			/// </summary>
 			public Scope Scope { get; }
 
+			/// <summary>
+			/// Whether or not the <see cref="IStatement"/>s are <see cref="PredefinedStatement"/>s.
+			/// </summary>
 			public bool Predefined { get; }
 
 
@@ -1890,14 +1913,21 @@ namespace MCSharp.Compilation {
 
 			public string GetLocation(IToken token) {
 				if(Predefined) {
+
 					int line = token.Line;
 					int column = token.Column;
-					return $"Predefined line {line}:{column} ";
+					return $"Predefined {line}:{column} ";
+
 				} else {
+
+					string scriptDirectory = Compiler.Settings.Datapack.ScriptDirectory;
+
 					string file = token.InputStream.SourceName;
+					if(file.StartsWith(scriptDirectory)) file = file[(scriptDirectory.Length + 1)..];
 					int line = token.Line;
 					int column = token.Column;
 					return $"{file} {line}:{column} ";
+
 				}
 			}
 

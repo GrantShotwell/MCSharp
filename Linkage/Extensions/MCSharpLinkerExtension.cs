@@ -12,6 +12,7 @@ namespace MCSharp.Linkage.Extensions {
 	public class MCSharpLinkerExtension : LinkerExtension {
 
 		public static string StorageSelector => "mcs.value";
+		public static string ObjectIdentifier => "object";
 		public static string IntIdentifier => "int";
 		public static string BoolIdentifier => "bool";
 		public static string ObjectiveIdentifier => "objective";
@@ -20,6 +21,9 @@ namespace MCSharp.Linkage.Extensions {
 		public MCSharpLinkerExtension(Compiler compiler) : base(compiler) { }
 
 		public override void CreatePredefinedTypes() {
+
+			PredefinedType @object = CreatePredefinedObject();
+			Compiler.DefinedTypes.Add(@object.Identifier, @object);
 
 			PredefinedType @int = CreatePredefinedInt();
 			Compiler.DefinedTypes.Add(@int.Identifier, @int);
@@ -32,6 +36,143 @@ namespace MCSharp.Linkage.Extensions {
 
 			PredefinedType @string = CreatePredefinedString();
 			Compiler.DefinedTypes.Add(@string.Identifier, @string);
+
+		}
+
+		private static PredefinedType CreatePredefinedObject() {
+
+			Modifier modifiers = Modifier.Public;
+			ClassType classType = ClassType.Primitive;
+			string identifier = ObjectIdentifier;
+			PredefinedType predefinedType = null;
+
+			#region Members
+
+			List<PredefinedMember> members = new List<PredefinedMember>();
+
+			#endregion
+
+			#region Constructors
+
+			List<PredefinedConstructor> constructors = new List<PredefinedConstructor>();
+
+			{
+				// This type is abstract.
+			}
+
+			#endregion
+
+			#region Operations
+
+			HashSetDictionary<Operation, IOperation> operations = new HashSetDictionary<Operation, IOperation>();
+
+			// Assign
+			{
+
+				CustomFunction function = new CustomFunction(identifier,
+					new PredefinedGenericParameter[] {
+
+					},
+					new PredefinedMethodParameter[] {
+						new PredefinedMethodParameter(identifier, "left"),
+						new PredefinedMethodParameter(identifier, "right")
+					},
+					(Compiler.CompileArguments location, IType[] generic, IInstance[] arguments, out IInstance result) => {
+
+						IType type = location.Compiler.DefinedTypes[identifier];
+
+						var left = arguments[0] as ObjectInstance;
+						var right = arguments[1] as ObjectInstance;
+
+						ResultInfo assignResult = location.Compiler.CompileSimpleOperation(location, Operation.Assign, left.ObjectId, right.ObjectId, out result);
+						if(assignResult.Failure) return assignResult;
+
+						return ResultInfo.DefaultSuccess;
+
+					}
+				);
+
+				Operation op = Operation.Assign;
+				operations.Add(op, new PredefinedOperation(op, function));
+
+			}
+
+			// Comparison: '=='
+			{
+
+				CustomFunction function = new CustomFunction(identifier,
+					new PredefinedGenericParameter[] {
+
+					},
+					new PredefinedMethodParameter[] {
+						new PredefinedMethodParameter(identifier, "left"),
+						new PredefinedMethodParameter(identifier, "right")
+					},
+					(Compiler.CompileArguments location, IType[] generic, IInstance[] arguments, out IInstance result) => {
+
+						IType type = location.Compiler.DefinedTypes[identifier];
+
+						var left = arguments[0] as ObjectInstance;
+						var right = arguments[1] as ObjectInstance;
+
+						ResultInfo comparisonResult = location.Compiler.CompileSimpleOperation(location, Operation.Equality, left.ObjectId, right.ObjectId, out result);
+						if(comparisonResult.Failure) return comparisonResult;
+
+						return ResultInfo.DefaultSuccess;
+
+					}
+				);
+
+				Operation op = Operation.Assign;
+				operations.Add(op, new PredefinedOperation(op, function));
+
+			}
+
+			// Comparison: '!='
+			{
+
+				CustomFunction function = new CustomFunction(identifier,
+					new PredefinedGenericParameter[] {
+
+					},
+					new PredefinedMethodParameter[] {
+						new PredefinedMethodParameter(identifier, "left"),
+						new PredefinedMethodParameter(identifier, "right")
+					},
+					(Compiler.CompileArguments location, IType[] generic, IInstance[] arguments, out IInstance result) => {
+
+						IType type = location.Compiler.DefinedTypes[identifier];
+
+						var left = arguments[0] as ObjectInstance;
+						var right = arguments[1] as ObjectInstance;
+
+						ResultInfo comparisonResult = location.Compiler.CompileSimpleOperation(location, Operation.Inequality, left.ObjectId, right.ObjectId, out result);
+						if(comparisonResult.Failure) return comparisonResult;
+
+						return ResultInfo.DefaultSuccess;
+
+					}
+				);
+
+				Operation op = Operation.Assign;
+				operations.Add(op, new PredefinedOperation(op, function));
+
+			}
+
+			#endregion
+
+			PredefinedType.InitializeInstanceDelegate init = (location, identifier) => {
+
+				if(predefinedType is null) throw new Exception();
+				var objectId = VirtualMachine.GenerateRandomIntegerInstance(location);
+				return new ObjectInstance(location, predefinedType, identifier, objectId);
+
+			};
+
+			predefinedType = new PredefinedType(modifiers, classType, identifier, members.ToArray(), constructors.ToArray(), new PredefinedType[] { }, init, operations);
+			foreach(PredefinedMember member in members) member.Declarer = predefinedType;
+			foreach(PredefinedConstructor constructor in constructors) constructor.Declarer = predefinedType;
+			return predefinedType;
 
 		}
 
@@ -197,13 +338,13 @@ namespace MCSharp.Linkage.Extensions {
 			// Assign
 			{
 
-				CustomFunction function = new CustomFunction(IntIdentifier,
+				CustomFunction function = new CustomFunction(identifier,
 					new PredefinedGenericParameter[] {
 
 					},
 					new PredefinedMethodParameter[] {
-						new PredefinedMethodParameter(IntIdentifier, "left"),
-						new PredefinedMethodParameter(IntIdentifier, "right")
+						new PredefinedMethodParameter(identifier, "left"),
+						new PredefinedMethodParameter(identifier, "right")
 					},
 					(Compiler.CompileArguments location, IType[] generic, IInstance[] arguments, out IInstance result) => {
 
@@ -236,13 +377,13 @@ namespace MCSharp.Linkage.Extensions {
 			// Addition
 			{
 
-				CustomFunction function = new CustomFunction(IntIdentifier,
+				CustomFunction function = new CustomFunction(identifier,
 					new PredefinedGenericParameter[] {
 						
 					},
 					new PredefinedMethodParameter[] {
-						new PredefinedMethodParameter(IntIdentifier, "left"),
-						new PredefinedMethodParameter(IntIdentifier, "right")
+						new PredefinedMethodParameter(identifier, "left"),
+						new PredefinedMethodParameter(identifier, "right")
 					},
 					(Compiler.CompileArguments location, IType[] generic, IInstance[] arguments, out IInstance result) => {
 						result = ScoreboardOperation(location, arguments, predefinedType, "+=", (left, right) => left + right);
@@ -258,13 +399,13 @@ namespace MCSharp.Linkage.Extensions {
 			// Addition (Assign)
 			{
 
-				CustomFunction function = new CustomFunction(IntIdentifier,
+				CustomFunction function = new CustomFunction(identifier,
 					new PredefinedGenericParameter[] {
 
 					},
 					new PredefinedMethodParameter[] {
-						new PredefinedMethodParameter(IntIdentifier, "left"),
-						new PredefinedMethodParameter(IntIdentifier, "right")
+						new PredefinedMethodParameter(identifier, "left"),
+						new PredefinedMethodParameter(identifier, "right")
 					},
 					(Compiler.CompileArguments location, IType[] generic, IInstance[] arguments, out IInstance result) => {
 						result = ScoreboardDirectOperation(location, arguments, predefinedType, "+=", "add");
@@ -280,13 +421,13 @@ namespace MCSharp.Linkage.Extensions {
 			// Subtraction
 			{
 				
-				CustomFunction function = new CustomFunction(IntIdentifier,
+				CustomFunction function = new CustomFunction(identifier,
 					new PredefinedGenericParameter[] {
 
 					},
 					new PredefinedMethodParameter[] {
-						new PredefinedMethodParameter(IntIdentifier, "left"),
-						new PredefinedMethodParameter(IntIdentifier, "right")
+						new PredefinedMethodParameter(identifier, "left"),
+						new PredefinedMethodParameter(identifier, "right")
 					},
 					(Compiler.CompileArguments location, IType[] generic, IInstance[] arguments, out IInstance result) => {
 						result = ScoreboardOperation(location, arguments, predefinedType, "-=", (left, right) => left - right);
@@ -302,13 +443,13 @@ namespace MCSharp.Linkage.Extensions {
 			// Subtraction (Assign)
 			{
 				
-				CustomFunction function = new CustomFunction(IntIdentifier,
+				CustomFunction function = new CustomFunction(identifier,
 					new PredefinedGenericParameter[] {
 
 					},
 					new PredefinedMethodParameter[] {
-						new PredefinedMethodParameter(IntIdentifier, "left"),
-						new PredefinedMethodParameter(IntIdentifier, "right")
+						new PredefinedMethodParameter(identifier, "left"),
+						new PredefinedMethodParameter(identifier, "right")
 					},
 					(Compiler.CompileArguments location, IType[] generic, IInstance[] arguments, out IInstance result) => {
 						result = ScoreboardDirectOperation(location, arguments, predefinedType, "-=", "remove");
@@ -324,13 +465,13 @@ namespace MCSharp.Linkage.Extensions {
 			// Multiplication
 			{
 
-				CustomFunction function = new CustomFunction(IntIdentifier,
+				CustomFunction function = new CustomFunction(identifier,
 					new PredefinedGenericParameter[] {
 
 					},
 					new PredefinedMethodParameter[] {
-						new PredefinedMethodParameter(IntIdentifier, "left"),
-						new PredefinedMethodParameter(IntIdentifier, "right")
+						new PredefinedMethodParameter(identifier, "left"),
+						new PredefinedMethodParameter(identifier, "right")
 					},
 					(Compiler.CompileArguments location, IType[] generic, IInstance[] arguments, out IInstance result) => {
 						result = ScoreboardOperation(location, arguments, predefinedType, "*=", (left, right) => left * right);
@@ -346,13 +487,13 @@ namespace MCSharp.Linkage.Extensions {
 			// Multiplication (Assign)
 			{
 
-				CustomFunction function = new CustomFunction(IntIdentifier,
+				CustomFunction function = new CustomFunction(identifier,
 					new PredefinedGenericParameter[] {
 
 					},
 					new PredefinedMethodParameter[] {
-						new PredefinedMethodParameter(IntIdentifier, "left"),
-						new PredefinedMethodParameter(IntIdentifier, "right")
+						new PredefinedMethodParameter(identifier, "left"),
+						new PredefinedMethodParameter(identifier, "right")
 					},
 					(Compiler.CompileArguments location, IType[] generic, IInstance[] arguments, out IInstance result) => {
 						result = ScoreboardDirectOperation(location, arguments, predefinedType, "*=", null);
@@ -368,13 +509,13 @@ namespace MCSharp.Linkage.Extensions {
 			// Division
 			{
 
-				CustomFunction function = new CustomFunction(IntIdentifier,
+				CustomFunction function = new CustomFunction(identifier,
 					new PredefinedGenericParameter[] {
 
 					},
 					new PredefinedMethodParameter[] {
-						new PredefinedMethodParameter(IntIdentifier, "left"),
-						new PredefinedMethodParameter(IntIdentifier, "right")
+						new PredefinedMethodParameter(identifier, "left"),
+						new PredefinedMethodParameter(identifier, "right")
 					},
 					(Compiler.CompileArguments location, IType[] generic, IInstance[] arguments, out IInstance result) => {
 						result = ScoreboardOperation(location, arguments, predefinedType, "/=", (left, right) => left / right);
@@ -390,13 +531,13 @@ namespace MCSharp.Linkage.Extensions {
 			// Division (Assign)
 			{
 
-				CustomFunction function = new CustomFunction(IntIdentifier,
+				CustomFunction function = new CustomFunction(identifier,
 					new PredefinedGenericParameter[] {
 
 					},
 					new PredefinedMethodParameter[] {
-						new PredefinedMethodParameter(IntIdentifier, "left"),
-						new PredefinedMethodParameter(IntIdentifier, "right")
+						new PredefinedMethodParameter(identifier, "left"),
+						new PredefinedMethodParameter(identifier, "right")
 					},
 					(Compiler.CompileArguments location, IType[] generic, IInstance[] arguments, out IInstance result) => {
 						result = ScoreboardDirectOperation(location, arguments, predefinedType, "/=", null);
@@ -412,13 +553,13 @@ namespace MCSharp.Linkage.Extensions {
 			// Modulo
 			{
 
-				CustomFunction function = new CustomFunction(IntIdentifier,
+				CustomFunction function = new CustomFunction(identifier,
 					new PredefinedGenericParameter[] {
 
 					},
 					new PredefinedMethodParameter[] {
-						new PredefinedMethodParameter(IntIdentifier, "left"),
-						new PredefinedMethodParameter(IntIdentifier, "right")
+						new PredefinedMethodParameter(identifier, "left"),
+						new PredefinedMethodParameter(identifier, "right")
 					},
 					(Compiler.CompileArguments location, IType[] generic, IInstance[] arguments, out IInstance result) => {
 						result = ScoreboardOperation(location, arguments, predefinedType, "%=", (left, right) => left % right);
@@ -434,13 +575,13 @@ namespace MCSharp.Linkage.Extensions {
 			// Modulo (Assign)
 			{
 
-				CustomFunction function = new CustomFunction(IntIdentifier,
+				CustomFunction function = new CustomFunction(identifier,
 					new PredefinedGenericParameter[] {
 
 					},
 					new PredefinedMethodParameter[] {
-						new PredefinedMethodParameter(IntIdentifier, "left"),
-						new PredefinedMethodParameter(IntIdentifier, "right")
+						new PredefinedMethodParameter(identifier, "left"),
+						new PredefinedMethodParameter(identifier, "right")
 					},
 					(Compiler.CompileArguments location, IType[] generic, IInstance[] arguments, out IInstance result) => {
 						result = ScoreboardDirectOperation(location, arguments, predefinedType, "%=", null);
@@ -456,13 +597,13 @@ namespace MCSharp.Linkage.Extensions {
 			// Comparison: '<'
 			{
 
-				CustomFunction function = new CustomFunction(IntIdentifier,
+				CustomFunction function = new CustomFunction(identifier,
 					new PredefinedGenericParameter[] {
 
 					},
 					new PredefinedMethodParameter[] {
-						new PredefinedMethodParameter(IntIdentifier, "left"),
-						new PredefinedMethodParameter(IntIdentifier, "right")
+						new PredefinedMethodParameter(identifier, "left"),
+						new PredefinedMethodParameter(identifier, "right")
 					},
 					(Compiler.CompileArguments location, IType[] generic, IInstance[] arguments, out IInstance result) => {
 						result = ExecuteScoreComparison(location, arguments, location.Compiler.DefinedTypes[BoolIdentifier] as PredefinedType, "<",
@@ -479,13 +620,13 @@ namespace MCSharp.Linkage.Extensions {
 			// Comparison: '<='
 			{
 
-				CustomFunction function = new CustomFunction(IntIdentifier,
+				CustomFunction function = new CustomFunction(identifier,
 					new PredefinedGenericParameter[] {
 
 					},
 					new PredefinedMethodParameter[] {
-						new PredefinedMethodParameter(IntIdentifier, "left"),
-						new PredefinedMethodParameter(IntIdentifier, "right")
+						new PredefinedMethodParameter(identifier, "left"),
+						new PredefinedMethodParameter(identifier, "right")
 					},
 					(Compiler.CompileArguments location, IType[] generic, IInstance[] arguments, out IInstance result) => {
 						result = ExecuteScoreComparison(location, arguments, location.Compiler.DefinedTypes[BoolIdentifier] as PredefinedType, "<=",
@@ -502,13 +643,13 @@ namespace MCSharp.Linkage.Extensions {
 			// Comparison: '>'
 			{
 
-				CustomFunction function = new CustomFunction(IntIdentifier,
+				CustomFunction function = new CustomFunction(identifier,
 					new PredefinedGenericParameter[] {
 
 					},
 					new PredefinedMethodParameter[] {
-						new PredefinedMethodParameter(IntIdentifier, "left"),
-						new PredefinedMethodParameter(IntIdentifier, "right")
+						new PredefinedMethodParameter(identifier, "left"),
+						new PredefinedMethodParameter(identifier, "right")
 					},
 					(Compiler.CompileArguments location, IType[] generic, IInstance[] arguments, out IInstance result) => {
 						result = ExecuteScoreComparison(location, arguments, location.Compiler.DefinedTypes[BoolIdentifier] as PredefinedType, ">",
@@ -525,13 +666,13 @@ namespace MCSharp.Linkage.Extensions {
 			// Comparison: '>='
 			{
 
-				CustomFunction function = new CustomFunction(IntIdentifier,
+				CustomFunction function = new CustomFunction(identifier,
 					new PredefinedGenericParameter[] {
 
 					},
 					new PredefinedMethodParameter[] {
-						new PredefinedMethodParameter(IntIdentifier, "left"),
-						new PredefinedMethodParameter(IntIdentifier, "right")
+						new PredefinedMethodParameter(identifier, "left"),
+						new PredefinedMethodParameter(identifier, "right")
 					},
 					(Compiler.CompileArguments location, IType[] generic, IInstance[] arguments, out IInstance result) => {
 						result = ExecuteScoreComparison(location, arguments, location.Compiler.DefinedTypes[BoolIdentifier] as PredefinedType, ">=",
@@ -548,13 +689,13 @@ namespace MCSharp.Linkage.Extensions {
 			// Comparison: '=='
 			{
 
-				CustomFunction function = new CustomFunction(IntIdentifier,
+				CustomFunction function = new CustomFunction(identifier,
 					new PredefinedGenericParameter[] {
 
 					},
 					new PredefinedMethodParameter[] {
-						new PredefinedMethodParameter(IntIdentifier, "left"),
-						new PredefinedMethodParameter(IntIdentifier, "right")
+						new PredefinedMethodParameter(identifier, "left"),
+						new PredefinedMethodParameter(identifier, "right")
 					},
 					(Compiler.CompileArguments location, IType[] generic, IInstance[] arguments, out IInstance result) => {
 						result = ExecuteScoreComparison(location, arguments, location.Compiler.DefinedTypes[BoolIdentifier] as PredefinedType, "=",
@@ -564,6 +705,69 @@ namespace MCSharp.Linkage.Extensions {
 				);
 
 				Operation op = Operation.Equality;
+				operations.Add(op, new PredefinedOperation(op, function));
+
+			}
+
+			// Comparison: '!='
+			{
+
+				CustomFunction function = new CustomFunction(identifier,
+					new PredefinedGenericParameter[] {
+
+					},
+					new PredefinedMethodParameter[] {
+						new PredefinedMethodParameter(identifier, "left"),
+						new PredefinedMethodParameter(identifier, "right")
+					},
+					(Compiler.CompileArguments location, IType[] generic, IInstance[] arguments, out IInstance result) => {
+
+						Scope scope = location.Scope;
+						FunctionWriter writer = location.Writer;
+						string selector = StorageSelector;
+
+						PrimitiveInstance.IntegerInstance left = arguments[0] as PrimitiveInstance.IntegerInstance;
+						PrimitiveInstance.IntegerInstance.Constant leftConstant = left is null ? arguments[0] as PrimitiveInstance.IntegerInstance.Constant : null;
+						PrimitiveInstance.IntegerInstance right = arguments[1] as PrimitiveInstance.IntegerInstance;
+						PrimitiveInstance.IntegerInstance.Constant rightConstant = right is null ? arguments[1] as PrimitiveInstance.IntegerInstance.Constant : null;
+
+						if(leftConstant != null && rightConstant != null) {
+
+							bool value = leftConstant.Value != rightConstant.Value;
+							result = new PrimitiveInstance.BooleanInstance.Constant(predefinedType, null, value);
+
+						} else if(leftConstant != null) {
+
+							PrimitiveInstance.BooleanInstance resultBool = predefinedType.InitializeInstance(location, null) as PrimitiveInstance.BooleanInstance;
+							writer.WriteCommand($"scoreboard players set {selector} {resultBool.Objective.Name} 0");
+							writer.WriteCommand($"execute unless score {selector} {right.Objective.Name} matches {leftConstant.Value} run scoreboard players set {selector} {resultBool.Objective.Name} 1");
+
+							result = resultBool;
+
+						} else if(rightConstant != null) {
+
+							PrimitiveInstance.BooleanInstance resultBool = predefinedType.InitializeInstance(location, null) as PrimitiveInstance.BooleanInstance;
+							writer.WriteCommand($"scoreboard players set {selector} {resultBool.Objective.Name} 0");
+							writer.WriteCommand($"execute unless score {selector} {left.Objective.Name} matches {rightConstant.Value} run scoreboard players set {selector} {resultBool.Objective.Name} 1");
+
+							result = resultBool;
+
+						} else {
+
+							PrimitiveInstance.BooleanInstance resultBool = predefinedType.InitializeInstance(location, null) as PrimitiveInstance.BooleanInstance;
+							writer.WriteCommand($"scoreboard players set {selector} {resultBool.Objective.Name} 0");
+							writer.WriteCommand($"execute unless score {selector} {left.Objective.Name} = {selector} {right.Objective.Name} run scoreboard players set {selector} {resultBool.Objective.Name} 1");
+
+							result = resultBool;
+
+						}
+
+						return ResultInfo.DefaultSuccess;
+
+					}
+				);
+
+				Operation op = Operation.Inequality;
 				operations.Add(op, new PredefinedOperation(op, function));
 
 			}
@@ -578,7 +782,7 @@ namespace MCSharp.Linkage.Extensions {
 
 			};
 
-			predefinedType = new PredefinedType(modifiers, classType, identifier, members.ToArray(), constructors.ToArray(), subtypes, init, operations);
+			predefinedType = new PredefinedType(modifiers, classType, identifier, members.ToArray(), constructors.ToArray(), new PredefinedType[] { }, init, operations);
 			foreach(PredefinedMember member in members) member.Declarer = predefinedType;
 			foreach(PredefinedConstructor constructor in constructors) constructor.Declarer = predefinedType;
 			return predefinedType;
@@ -800,7 +1004,7 @@ namespace MCSharp.Linkage.Extensions {
 
 			};
 
-			predefinedType = new PredefinedType(modifiers, classType, identifier, members.ToArray(), constructors.ToArray(), subtypes, init, operations);
+			predefinedType = new PredefinedType(modifiers, classType, identifier, members.ToArray(), constructors.ToArray(), new PredefinedType[] { }, init, operations);
 			foreach(PredefinedMember member in members) member.Declarer = predefinedType;
 			foreach(PredefinedConstructor constructor in constructors) constructor.Declarer = predefinedType;
 			return predefinedType;
@@ -813,6 +1017,7 @@ namespace MCSharp.Linkage.Extensions {
 			ClassType classType = ClassType.Primitive;
 			string identifier = ObjectiveIdentifier;
 			PredefinedType[] subtypes = new PredefinedType[] { };
+			PredefinedType predefinedType = null;
 
 			#region Members
 
@@ -877,7 +1082,7 @@ namespace MCSharp.Linkage.Extensions {
 
 			};
 
-			var predefinedType = new PredefinedType(modifiers, classType, identifier, members.ToArray(), constructors.ToArray(), subtypes, init, operations);
+			predefinedType = new PredefinedType(modifiers, classType, identifier, members.ToArray(), constructors.ToArray(), new PredefinedType[] { }, init, operations);
 			foreach(PredefinedMember member in members) member.Declarer = predefinedType;
 			foreach(PredefinedConstructor constructor in constructors) constructor.Declarer = predefinedType;
 			return predefinedType;
@@ -890,6 +1095,7 @@ namespace MCSharp.Linkage.Extensions {
 			ClassType classType = ClassType.Primitive;
 			string identifier = StringIdentifier;
 			PredefinedType[] subtypes = new PredefinedType[] { };
+			PredefinedType predefinedType = null;
 
 			#region Members
 
@@ -927,7 +1133,7 @@ namespace MCSharp.Linkage.Extensions {
 
 			};
 
-			var predefinedType = new PredefinedType(modifiers, classType, identifier, members.ToArray(), constructors.ToArray(), subtypes, init, operations);
+			predefinedType = new PredefinedType(modifiers, classType, identifier, members.ToArray(), constructors.ToArray(), new PredefinedType[] { }, init, operations);
 			foreach(PredefinedMember member in members) member.Declarer = predefinedType;
 			foreach(PredefinedConstructor constructor in constructors) constructor.Declarer = predefinedType;
 			return predefinedType;

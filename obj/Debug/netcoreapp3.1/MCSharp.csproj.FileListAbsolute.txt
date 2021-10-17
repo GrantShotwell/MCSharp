@@ -4,7 +4,6 @@ C:\Projects\MCSharp\MCSharp\bin\Debug\netcoreapp3.1\MCSharp.runtimeconfig.json
 C:\Projects\MCSharp\MCSharp\bin\Debug\netcoreapp3.1\MCSharp.runtimeconfig.dev.json
 C:\Projects\MCSharp\MCSharp\bin\Debug\netcoreapp3.1\MCSharp.dll
 C:\Projects\MCSharp\MCSharp\bin\Debug\netcoreapp3.1\MCSharp.pdb
-C:\Projects\MCSharp\MCSharp\obj\Debug\netcoreapp3.1\MCSharp.csprojAssemblyReference.cache
 C:\Projects\MCSharp\MCSharp\obj\Debug\netcoreapp3.1\MCSharp.AssemblyInfoInputs.cache
 C:\Projects\MCSharp\MCSharp\obj\Debug\netcoreapp3.1\MCSharp.AssemblyInfo.cs
 C:\Projects\MCSharp\MCSharp\obj\Debug\netcoreapp3.1\MCSharp.dll
@@ -14,4 +13,5 @@ C:\Projects\MCSharp\MCSharp\obj\Debug\netcoreapp3.1\MCSharp.csproj.GenerateResou
 C:\Projects\MCSharp\MCSharp\obj\Debug\netcoreapp3.1\MCSharp.genruntimeconfig.cache
 C:\Projects\MCSharp\MCSharp\bin\Debug\netcoreapp3.1\Antlr4.Runtime.Standard.dll
 C:\Projects\MCSharp\MCSharp\obj\Debug\netcoreapp3.1\MCSharp.csproj.CoreCompileInputs.cache
-C:\Projects\MCSharp\MCSharp\obj\Debug\netcoreapp3.1\MCSharp.csproj.CopyComplete
+C:\Projects\MCSharp\MCSharp\obj\Debug\netcoreapp3.1\MCSharp.csproj.AssemblyReference.cache
+C:\Projects\MCSharp\MCSharp\obj\Debug\netcoreapp3.1\MCSharp.GeneratedMSBuildEditorConfig.editorconfig
