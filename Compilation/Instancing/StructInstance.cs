@@ -1,5 +1,6 @@
 ﻿using Antlr4.Runtime.Tree;
 using MCSharp.Linkage;
+using MCSharp.Linkage.Minecraft;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -34,20 +35,21 @@ namespace MCSharp.Compilation.Instancing {
 			IDictionary<IField, IInstance> fieldInstances = new Dictionary<IField, IInstance>(type.Members.Count);
 			FieldInstances = (IReadOnlyDictionary<IField, IInstance>)fieldInstances;
 
-			var compile = new Compiler.CompileArguments(location.Compiler, location.Function, Scope, location.Predefined);
+			// Initialize members inside of type's scope.
+			var typeLocation = new Compiler.CompileArguments(location.Compiler, location.Function, Scope, location.Predefined);
 			foreach(IMember member in type.Members) {
 
 				switch(member.MemberType) {
 
 					case MemberType.Field: {
 						var field = member.Definition as IField;
-						compile.Compiler.CompileExpression(compile, field.Initializer.Context, out IInstance value);
-						fieldInstances.Add(field, value.Copy(compile, member.Identifier));
+						typeLocation.Compiler.CompileExpression(typeLocation, field.Initializer.Context, out IInstance value);
+						fieldInstances.Add(field, value.Copy(typeLocation, member.Identifier));
 						break;
 					}
 
 					case MemberType.Property: {
-						// TODO
+						// TODO?
 						break;
 					}
 
@@ -62,6 +64,14 @@ namespace MCSharp.Compilation.Instancing {
 
 		/// <inheritdoc/>
 		public IInstance Copy(Compiler.CompileArguments location, string identifier) {
+			throw new NotImplementedException();
+		}
+
+		/// <inheritdoc/>
+		public void SaveToBlock(Compiler.CompileArguments location, string selector, Objective[] block, Range range) {
+			(int offset, int length) = range.GetOffsetAndLength(block.Length);
+			int expected = Type.GetBlockSize(location.Compiler);
+			if(length != expected) IInstance.GenerateInvalidBlockRangeException(length, expected);
 			throw new NotImplementedException();
 		}
 

@@ -1,6 +1,7 @@
 ﻿using MCSharp.Collections;
 using MCSharp.Compilation;
 using MCSharp.Compilation.Instancing;
+using MCSharp.Linkage;
 using MCSharp.Linkage.Minecraft;
 using MCSharp.Linkage.Predefined;
 using System;
@@ -17,10 +18,18 @@ namespace MCSharp.Linkage.Extensions {
 		public static string BoolIdentifier => "bool";
 		public static string ObjectiveIdentifier => "objective";
 		public static string StringIdentifier => "string";
+		public static string SelectorIdentifier => "selector";
 
 		public MCSharpLinkerExtension(Compiler compiler) : base(compiler) { }
 
-		public override void CreatePredefinedTypes() {
+		public override void CreatePredefinedTypes(out Action<Compiler.CompileArguments> onLoad, out Action<Compiler.CompileArguments> onTick) {
+
+			onLoad = (location) => {
+				location.Writer.WriteComments(
+					"Add objective to store object IDs.");
+				Objective.AddObjective(location.Writer, ObjectInstance.ObjectIdObjective);
+			};
+			onTick = (location) => { };
 
 			PredefinedType @object = CreatePredefinedObject();
 			Compiler.DefinedTypes.Add(@object.Identifier, @object);
@@ -36,6 +45,9 @@ namespace MCSharp.Linkage.Extensions {
 
 			PredefinedType @string = CreatePredefinedString();
 			Compiler.DefinedTypes.Add(@string.Identifier, @string);
+
+			PredefinedType selector = CreatePredefinedSelector();
+			Compiler.DefinedTypes.Add(selector.Identifier, selector);
 
 		}
 
@@ -161,11 +173,11 @@ namespace MCSharp.Linkage.Extensions {
 
 			#endregion
 
-			PredefinedType.InitializeInstanceDelegate init = (location, identifier) => {
+			IType.InitializeInstanceDelegate init = (location, identifier) => {
 
 				if(predefinedType is null) throw new Exception();
-				var objectId = VirtualMachine.GenerateRandomIntegerInstance(location);
-				return new ObjectInstance(location, predefinedType, identifier, objectId);
+				var rand = VirtualMachine.GenerateRandomIntegerInstance(location);
+				return new ObjectInstance(location, predefinedType, identifier, rand);
 
 			};
 
@@ -302,7 +314,7 @@ namespace MCSharp.Linkage.Extensions {
 
 			static IInstance ExecuteScoreComparison(Compiler.CompileArguments location, IInstance[] method, PredefinedType predefinedType, string op,
 				Func<int, string> matchConstant, Func<int, string> matchConstantFlipped, Func<int, int, bool> evaluateConstants) {
-				
+
 				Scope scope = location.Scope;
 				FunctionWriter writer = location.Writer;
 				string selector = StorageSelector;
@@ -379,7 +391,7 @@ namespace MCSharp.Linkage.Extensions {
 
 				CustomFunction function = new CustomFunction(identifier,
 					new PredefinedGenericParameter[] {
-						
+
 					},
 					new PredefinedMethodParameter[] {
 						new PredefinedMethodParameter(identifier, "left"),
@@ -420,7 +432,7 @@ namespace MCSharp.Linkage.Extensions {
 
 			// Subtraction
 			{
-				
+
 				CustomFunction function = new CustomFunction(identifier,
 					new PredefinedGenericParameter[] {
 
@@ -442,7 +454,7 @@ namespace MCSharp.Linkage.Extensions {
 
 			// Subtraction (Assign)
 			{
-				
+
 				CustomFunction function = new CustomFunction(identifier,
 					new PredefinedGenericParameter[] {
 
@@ -607,7 +619,7 @@ namespace MCSharp.Linkage.Extensions {
 					},
 					(Compiler.CompileArguments location, IType[] generic, IInstance[] arguments, out IInstance result) => {
 						result = ExecuteScoreComparison(location, arguments, location.Compiler.DefinedTypes[BoolIdentifier] as PredefinedType, "<",
-							(constant) => ".." + (constant + 1), (constant) => (constant - 1) + "..", (left, right) => left < right);
+							(constant) => ".." + (constant + 1), (constant) => constant - 1 + "..", (left, right) => left < right);
 						return ResultInfo.DefaultSuccess;
 					}
 				);
@@ -653,7 +665,7 @@ namespace MCSharp.Linkage.Extensions {
 					},
 					(Compiler.CompileArguments location, IType[] generic, IInstance[] arguments, out IInstance result) => {
 						result = ExecuteScoreComparison(location, arguments, location.Compiler.DefinedTypes[BoolIdentifier] as PredefinedType, ">",
-							(constant) => (constant - 1) + "..", (constant) => ".." + (constant + 1), (left, right) => left > right);
+							(constant) => constant - 1 + "..", (constant) => ".." + (constant + 1), (left, right) => left > right);
 						return ResultInfo.DefaultSuccess;
 					}
 				);
@@ -774,7 +786,7 @@ namespace MCSharp.Linkage.Extensions {
 
 			#endregion
 
-			PredefinedType.InitializeInstanceDelegate init = (location, identifier) => {
+			IType.InitializeInstanceDelegate init = (location, identifier) => {
 
 				if(predefinedType is null) throw new Exception();
 				var objective = Objective.AddObjective(location.Writer, identifier, "dummy");
@@ -996,7 +1008,7 @@ namespace MCSharp.Linkage.Extensions {
 
 			#endregion
 
-			PredefinedType.InitializeInstanceDelegate init = (location, identifier) => {
+			IType.InitializeInstanceDelegate init = (location, identifier) => {
 
 				if(predefinedType is null) throw new Exception();
 				var objective = Objective.AddObjective(location.Writer, identifier, "dummy");
@@ -1012,7 +1024,7 @@ namespace MCSharp.Linkage.Extensions {
 		}
 
 		private static PredefinedType CreatePredefinedObjective() {
-			
+
 			Modifier modifiers = Modifier.Public;
 			ClassType classType = ClassType.Primitive;
 			string identifier = ObjectiveIdentifier;
@@ -1076,7 +1088,7 @@ namespace MCSharp.Linkage.Extensions {
 
 			#endregion
 
-			PredefinedType.InitializeInstanceDelegate init = (location, identifier) => {
+			IType.InitializeInstanceDelegate init = (location, identifier) => {
 
 				throw new NotImplementedException($"'{ObjectiveIdentifier}' initialization has not been implemented.");
 
@@ -1127,9 +1139,59 @@ namespace MCSharp.Linkage.Extensions {
 
 			#endregion
 
-			PredefinedType.InitializeInstanceDelegate init = (location, identifier) => {
+			IType.InitializeInstanceDelegate init = (location, identifier) => {
 
 				throw new NotImplementedException($"'{StringIdentifier}' initialization has not been implemented.");
+
+			};
+
+			predefinedType = new PredefinedType(modifiers, classType, identifier, members.ToArray(), constructors.ToArray(), new PredefinedType[] { }, init, operations);
+			foreach(PredefinedMember member in members) member.Declarer = predefinedType;
+			foreach(PredefinedConstructor constructor in constructors) constructor.Declarer = predefinedType;
+			return predefinedType;
+
+		}
+
+		private static PredefinedType CreatePredefinedSelector() {
+
+			Modifier modifiers = Modifier.Public;
+			ClassType classType = ClassType.Primitive;
+			string identifier = SelectorIdentifier;
+			PredefinedType predefinedType = null;
+
+			#region Members
+
+			List<PredefinedMember> members = new List<PredefinedMember>();
+
+			{
+
+			}
+
+			#endregion
+
+			#region Constructors
+
+			List<PredefinedConstructor> constructors = new List<PredefinedConstructor>();
+
+			{
+				
+			}
+
+			#endregion
+
+			#region Operations
+
+			HashSetDictionary<Operation, IOperation> operations = new HashSetDictionary<Operation, IOperation>();
+
+			{
+
+			}
+
+			#endregion
+
+			IType.InitializeInstanceDelegate init = (location, identifier) => {
+
+				throw new NotImplementedException($"'{SelectorIdentifier}' initialization has not been implemented.");
 
 			};
 

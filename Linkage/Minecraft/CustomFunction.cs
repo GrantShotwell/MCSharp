@@ -16,16 +16,12 @@ namespace MCSharp.Linkage.Minecraft {
 
 		private InvokeDelegate Delegate { get; }
 
-		/// <summary>
-		/// 
-		/// </summary>
+		/// <inheritdoc cref="IFunction.GenericParameters"/>
 		public IReadOnlyList<PredefinedGenericParameter> GenericParameters { get; }
 		/// <inheritdoc/>
 		IReadOnlyList<IGenericParameter> IFunction.GenericParameters => GenericParameters;
 
-		/// <summary>
-		/// 
-		/// </summary>
+		/// <inheritdoc cref="IFunction.MethodParameters"/>
 		public IReadOnlyList<PredefinedMethodParameter> MethodParameters { get; }
 		/// <inheritdoc/>
 		IReadOnlyList<IMethodParameter> IFunction.MethodParameters => MethodParameters;

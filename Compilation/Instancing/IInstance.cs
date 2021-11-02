@@ -1,5 +1,6 @@
 ﻿using Antlr4.Runtime.Tree;
 using MCSharp.Linkage;
+using MCSharp.Linkage.Minecraft;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -29,15 +30,23 @@ namespace MCSharp.Compilation.Instancing {
 			public InvalidTypeException(IType given, string expected) : base($"Cannot assign '{given.Identifier}' to {nameof(Type)} when '{expected}' was expected.") { }
 		}
 
+		protected static Exception GenerateInvalidBlockRangeException(int length, int expected)
+			=> new InvalidOperationException($"The given range of length {length} does not match the expected range of length {expected}.");
+
 
 		/// <summary>
 		/// Assigns the value of this <see cref="IInstance"/> into a new <see cref="IInstance"/>.
 		/// If possible, not of the <see cref="IConstantInstance"/> interface.
 		/// </summary>
 		/// <param name="compile"></param>
-		/// <returns>Returns a new <see cref="IInstance"/>.</returns>
 		/// <param name="identifier">The <see cref="Identifier"/> of the new <see cref="IInstance"/>.</param>
+		/// <returns>Returns a new <see cref="IInstance"/>.</returns>
 		public IInstance Copy(Compiler.CompileArguments compile, string identifier);
+
+		/// <inheritdoc cref="IInstanceExtensions.SaveToBlock(IInstance, Compiler.CompileArguments, string, Objective[])"/>
+		/// <param name="range"></param>
+		/// <seealso cref="SaveToBlock(IInstance, Compiler.CompileArguments, Objective[])"/>
+		public void SaveToBlock(Compiler.CompileArguments location, string selector, Objective[] block, Range range);
 
 	}
 
@@ -63,6 +72,20 @@ namespace MCSharp.Compilation.Instancing {
 
 			}
 
+		}
+
+		/// <summary>
+		/// Saves this <see cref="IInstance"/> to the given set of <see cref="Objective"/>s.
+		/// </summary>
+		/// <param name="instance">The <see cref="IInstance"/> to save.</param>
+		/// <param name="location"></param>
+		/// <param name="selector"></param>
+		/// <exception cref="InvalidOperationException">Thrown when the relevant length of <paramref name="block"/> does not match <see cref="ITypeExtensions.GetBlockSize(IType, Compiler)"/>.</exception>
+		/// <seealso cref="IInstance.SaveToBlock(Compiler.CompileArguments, string, Objective[], Range)"/>
+		/// <param name="block">The array of <see cref="Objective"/>s to save to.</param>
+
+		public static void SaveToBlock(this IInstance instance, Compiler.CompileArguments location, string selector, Objective[] block) {
+			instance.SaveToBlock(location, selector, block, 0..^0);
 		}
 
 	}

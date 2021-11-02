@@ -7,7 +7,7 @@ using MCSharp.Linkage.Predefined;
 namespace MCSharp.Linkage.Extensions {
 
 	/// <summary>
-	/// Represents an extension to the linker that adds <see cref="PredefinedType"/>s and such.
+	/// Represents an extension to the linker that adds <see cref="PredefinedType"/>s.
 	/// </summary>
 	public abstract class LinkerExtension {
 
@@ -29,7 +29,7 @@ namespace MCSharp.Linkage.Extensions {
 		/// <summary>
 		/// Create <see cref="PredefinedType"/>(s) and add them to <see cref="Compiler.DefinedTypes"/>.
 		/// </summary>
-		public abstract void CreatePredefinedTypes();
+		public abstract void CreatePredefinedTypes(out Action<Compiler.CompileArguments> onLoad, out Action<Compiler.CompileArguments> onTick);
 
 	}
 

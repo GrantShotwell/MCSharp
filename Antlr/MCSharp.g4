@@ -109,7 +109,7 @@ property_set_definition
 	| SET code_block
 	;
 method_definition
-	: generic_parameters? method_parameters ( LAMBDA expression END | code_block)
+	: generic_parameters? method_parameters ( LAMBDA expression END | code_block )
 	;
 
 // Identifiers

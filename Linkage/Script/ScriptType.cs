@@ -2,8 +2,11 @@
 using MCSharp.Collections;
 using MCSharp.Compilation;
 using MCSharp.Compilation.Instancing;
+using MCSharp.Linkage.Extensions;
+using MCSharp.Linkage.Minecraft;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using ConstructorDefinitionContext = MCSharpParser.Constructor_definitionContext;
 using MemberDefinitionContext = MCSharpParser.Member_definitionContext;
 using TypeDefinitionContext = MCSharpParser.Type_definitionContext;
@@ -57,6 +60,11 @@ namespace MCSharp.Linkage.Script {
 		/// <inheritdoc/>
 		public IDictionary<IType, IConversion> Conversions { get; }
 
+		/// <summary>
+		/// 
+		/// </summary>
+		private Func<Compiler.CompileArguments, string, IInstance> InitInstance { get; }
+
 
 		/// <summary>
 		/// Creates a new type definition defined by script.
@@ -64,8 +72,8 @@ namespace MCSharp.Linkage.Script {
 		/// <param name="typeContext">The <see cref="MCSharpParser.Type_definitionContext"/> value taken from script.</param>
 		/// <param name="memberContexts">The <see cref="MCSharpParser.Member_definitionContext"/> values taken from script.</param>
 		/// <param name="constructorContexts">The <see cref="MCSharpParser.Constructor_definitionContext"/> values taken from script.</param>
-		/// <param name="settings">Value passed to create <see cref="Minecraft.StandaloneStatementFunction"/>(s).</param>
-		/// <param name="virtualMachine">Value passed to create <see cref="Minecraft.StandaloneStatementFunction"/>(s).</param>
+		/// <param name="settings">Value passed to create <see cref="StandaloneStatementFunction"/>(s).</param>
+		/// <param name="virtualMachine">Value passed to create <see cref="StandaloneStatementFunction"/>(s).</param>
 		public ScriptType(TypeDefinitionContext typeContext, MemberDefinitionContext[] memberContexts, ConstructorDefinitionContext[] constructorContexts, Settings settings, VirtualMachine virtualMachine) {
 
 			Modifiers = EnumLinker.LinkModifiers(typeContext.modifier());
@@ -92,6 +100,96 @@ namespace MCSharp.Linkage.Script {
 			}
 			Constructors = constructors;
 
+			// Set 'InitializeInstance' value.
+			switch(ClassType) {
+
+				case ClassType.Class: {
+
+					// Use closure to have a field dictionary per type.
+					var objectives = new Dictionary<IField, Objective[]>();
+					// Use closure to run needed actions during compilation.
+					var actions = new List<Action<Compiler.CompileArguments, Compiler.CompileArguments>>(Members.Count);
+
+					foreach(IMember member in Members) {
+						switch(member.MemberType) {
+
+							case MemberType.Field: {
+								var field = member.Definition as IField;
+								actions.Add((typeLocation, initLocation) => {
+
+									// Evaluate default value.
+									typeLocation.Compiler.CompileExpression(typeLocation, field.Initializer.Context, out IInstance value);
+
+									// When an object is created, all fields, stored in objectives, are assigned to that object's entity.
+									// TODO: Move block construction outside if initialization. If the first object isn't created in 'Load', there will be problems.
+									if(!objectives.ContainsKey(field)) {
+										var block = new Objective[typeLocation.Compiler.DefinedTypes[member.ReturnTypeIdentifier].GetBlockSize(initLocation.Compiler)];
+										typeLocation.Writer.WriteComments(
+											$"Create block of objectives for field '{member.ReturnTypeIdentifier} {member.Identifier ?? "[anonymous]"}' for storage in type '{Identifier}'.");
+										for(int i = 0; i < block.Length; i++)
+											block[i] = Objective.AddObjective(typeLocation.Writer, null, "dummy");
+										objectives.Add(field, block);
+									}
+									value.SaveToBlock(initLocation, MCSharpLinkerExtension.StorageSelector, objectives[field]);
+
+								});
+								break;
+							}
+
+							case MemberType.Property: {
+								// TODO
+								break;
+							}
+
+						}
+					}
+
+					InitInstance = (initLocation, identifier) => {
+
+						var typeLocation = new Compiler.CompileArguments(initLocation.Compiler, initLocation.Function, Scope, initLocation.Predefined);
+						foreach(var action in actions)
+							action.Invoke(initLocation, typeLocation);
+
+						initLocation.Writer.WriteComments(
+							$"Create pointer to '{Identifier} {identifier ?? "[anonymous]"}'.");
+						PrimitiveInstance.IntegerInstance pointer = new PrimitiveInstance.IntegerInstance(
+							type: initLocation.Compiler.DefinedTypes[MCSharpLinkerExtension.IntIdentifier],
+							identifier: null,
+							objective: Objective.AddObjective(initLocation.Writer, null, "dummy")
+						);
+						return new ClassInstance(initLocation, this, identifier, pointer, objectives);
+
+					};
+
+					break;
+
+				}
+
+				case ClassType.Struct: {
+
+					InitInstance = (location, identifier) => {
+						return new StructInstance(location, this, identifier);
+					};
+
+					break;
+
+				}
+
+				case ClassType.Primitive: {
+
+					InitInstance = (location, identifier) => {
+						throw new InvalidOperationException($"Script-defined types cannot be primitive ({nameof(ClassType)} is {ClassType.Primitive}).");
+					};
+
+					break;
+
+				}
+
+				default:
+					throw new InvalidOperationException($"Unknown {nameof(Linkage.ClassType)} '{ClassType}'.");
+
+			}
+
 			// TODO
 			SubTypes = new List<ScriptType>();
 			Conversions = new Dictionary<IType, IConversion>();
@@ -102,21 +200,7 @@ namespace MCSharp.Linkage.Script {
 
 		/// <inheritdoc/>
 		public IInstance InitializeInstance(Compiler.CompileArguments location, string identifier) {
-
-			switch(ClassType) {
-
-				case ClassType.Class:
-					throw new NotImplementedException($"Initializing script-defined {ClassType.Class} types have not been implemented.");
-				case ClassType.Struct:
-					return new StructInstance(location, this, identifier);
-				case ClassType.Primitive:
-					throw new InvalidOperationException($"Script-defined types cannot be primitive ({nameof(ClassType)} is {ClassType.Primitive}).");
-				default:
-					throw new InvalidOperationException($"Unknown {nameof(Linkage.ClassType)} '{ClassType}'.");
-			}
-
-			throw new NotImplementedException("Initializing script types has not been implemented.");
-
+			return InitInstance(location, identifier);
 		}
 
 		/// <inheritdoc/>

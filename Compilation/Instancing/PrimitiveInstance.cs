@@ -41,6 +41,9 @@ namespace MCSharp.Compilation.Instancing {
 		/// <inheritdoc/>
 		public abstract IInstance Copy(Compiler.CompileArguments location, string identifier);
 
+		/// <inheritdoc/>
+		public abstract void SaveToBlock(Compiler.CompileArguments location, string selector, Objective[] block, Range range);
+
 
 		/// <summary>
 		/// Represents an <see cref="IConstantInstance"/> of an objective.
@@ -61,7 +64,7 @@ namespace MCSharp.Compilation.Instancing {
 			/// </summary>
 			/// <param name="type">The <see cref="IType"/> that defines this instance.</param>
 			/// <param name="identifier">The local identifier for this instance.</param>
-			/// <param name="value"></param>
+			/// <param name="value">The value to hold within this <see cref="IConstantInstance"/>.</param>
 			public ObjectiveInstance(IType type, string identifier, Objective value) : base(type, identifier) {
 				Value = value ?? throw new ArgumentNullException(nameof(value));
 			}
@@ -69,6 +72,13 @@ namespace MCSharp.Compilation.Instancing {
 
 			/// <inheritdoc/>
 			public override IInstance Copy(Compiler.CompileArguments location, string identifier) {
+				throw new NotImplementedException();
+			}
+
+			/// <inheritdoc/>
+			public override void SaveToBlock(Compiler.CompileArguments location, string selector, Objective[] block, Range range) {
+				(int offset, int length) = range.GetOffsetAndLength(block.Length);
+				if(length != 1) throw IInstance.GenerateInvalidBlockRangeException(length, 1);
 				throw new NotImplementedException();
 			}
 
@@ -95,6 +105,15 @@ namespace MCSharp.Compilation.Instancing {
 				throw new NotImplementedException();
 			}
 
+			/// <inheritdoc/>
+			public override void SaveToBlock(Compiler.CompileArguments location, string selector, Objective[] block, Range range) {
+				(int offset, int length) = range.GetOffsetAndLength(block.Length);
+				int expected = 1;
+				if(length != expected) throw IInstance.GenerateInvalidBlockRangeException(length, expected);
+				else location.Writer.WriteCommand($"scoreboard players operation {selector} {block[offset].Name} = {MCSharpLinkerExtension.StorageSelector} {Objective.Name}",
+					"Save an integer value to a block.");
+			}
+
 
 			/// <summary>
 			/// Represents the <see cref="IConstantInstance"/> version of <see cref="IntegerInstance"/>.
@@ -115,7 +134,7 @@ namespace MCSharp.Compilation.Instancing {
 				/// </summary>
 				/// <param name="type">The <see cref="IType"/> that defines this instance.</param>
 				/// <param name="identifier">The local identifier for this instance.</param>
-				/// <param name="value"></param>
+				/// <param name="value">The value to hold within this <see cref="IConstantInstance"/>.</param>
 				public Constant(IType type, string identifier, int value) : base(type, identifier) {
 					Value = value;
 				}
@@ -125,8 +144,18 @@ namespace MCSharp.Compilation.Instancing {
 				public override IInstance Copy(Compiler.CompileArguments location, string identifier) {
 					Objective objective = Objective.AddObjective(location.Writer, null, "dummy");
 					IntegerInstance instance = new IntegerInstance(Type, identifier, objective);
-					location.Writer.WriteCommand($"scoreboard players set {MCSharpLinkerExtension.StorageSelector} {instance.Objective.Name} {Value}");
+					location.Writer.WriteCommand($"scoreboard players set {MCSharpLinkerExtension.StorageSelector} {instance.Objective.Name} {Value}",
+						"Copy a constant integer value.");
 					return instance;
+				}
+
+				/// <inheritdoc/>
+				public override void SaveToBlock(Compiler.CompileArguments location, string selector, Objective[] block, Range range) {
+					(int offset, int length) = range.GetOffsetAndLength(block.Length);
+					int expected = 1;
+					if(length != expected) throw IInstance.GenerateInvalidBlockRangeException(length, expected);
+					else location.Writer.WriteCommand($"scoreboard players set {selector} {block[offset].Name} {Value}",
+						"Save a constant integer value to a block.");
 				}
 
 			}
@@ -154,6 +183,15 @@ namespace MCSharp.Compilation.Instancing {
 				throw new NotImplementedException();
 			}
 
+			/// <inheritdoc/>
+			public override void SaveToBlock(Compiler.CompileArguments location, string selector, Objective[] block, Range range) {
+				(int offset, int length) = range.GetOffsetAndLength(block.Length);
+				int expected = 1;
+				if(length != expected) throw IInstance.GenerateInvalidBlockRangeException(length, expected);
+				else location.Writer.WriteCommand($"scoreboard players operation {selector} {block[offset].Name} = {MCSharpLinkerExtension.StorageSelector} {Objective.Name}",
+					"Save a boolean value to a block.");
+			}
+
 
 			/// <summary>
 			/// Represents the <see cref="IConstantInstance"/> version of <see cref="BooleanInstance"/>.
@@ -174,7 +212,7 @@ namespace MCSharp.Compilation.Instancing {
 				/// </summary>
 				/// <param name="type">The <see cref="IType"/> that defines this instance.</param>
 				/// <param name="identifier">The local identifier for this instance.</param>
-				/// <param name="value"></param>
+				/// <param name="value">The value to hold within this <see cref="IConstantInstance"/>.</param>
 				public Constant(IType type, string identifier, bool value) : base(type, identifier) {
 					Value = value;
 				}
@@ -185,11 +223,20 @@ namespace MCSharp.Compilation.Instancing {
 					throw new NotImplementedException();
 				}
 
+				/// <inheritdoc/>
+				public override void SaveToBlock(Compiler.CompileArguments location, string selector, Objective[] block, Range range) {
+					(int offset, int length) = range.GetOffsetAndLength(block.Length);
+					int expected = 1;
+					if(length != expected) throw IInstance.GenerateInvalidBlockRangeException(length, expected);
+					else location.Writer.WriteCommand($"scoreboard players set {selector} {block[offset].Name} {(Value ? 1 : 0)}",
+						"Save a constant boolean value to a block.");
+				}
+
 			}
 
 		}
 
-		[DebuggerDisplay("const {Type.Identifier,nq} {Identifier,nq} = {Value,nq}")]
+		[DebuggerDisplay("const {Type.Identifier,nq} {Identifier,nq} = \"{Value,nq}\"")]
 		public class StringInstance : PrimitiveInstance, IConstantInstance<string> {
 
 			/// <inheritdoc/>
@@ -203,7 +250,7 @@ namespace MCSharp.Compilation.Instancing {
 			/// </summary>
 			/// <param name="type">The <see cref="IType"/> that defines this instance.</param>
 			/// <param name="identifier">The local identifier for this instance.</param>
-			/// <param name="value"></param>
+			/// <param name="value">The value to hold within this <see cref="IConstantInstance"/>.</param>
 			public StringInstance(IType type, string identifier, string value) : base(type, identifier) {
 				Value = value;
 			}
@@ -212,6 +259,47 @@ namespace MCSharp.Compilation.Instancing {
 			/// <inheritdoc/>
 			public override IInstance Copy(Compiler.CompileArguments location, string identifier) {
 				throw new NotImplementedException();
+			}
+
+			/// <inheritdoc/>
+			public override void SaveToBlock(Compiler.CompileArguments location, string selector, Objective[] block, Range range) {
+				(int _, int length) = range.GetOffsetAndLength(block.Length);
+				if(length != 0) throw IInstance.GenerateInvalidBlockRangeException(length, 0);
+				else return;
+			}
+
+		}
+
+		[DebuggerDisplay("const {Type.Identifier,nq} {Identifier,nq} = \"{Value,nq}\"")]
+		public class SelectorInstance : PrimitiveInstance, IConstantInstance<Selector> {
+
+			/// <inheritdoc/>
+			public Selector Value { get; }
+			/// <inheritdoc/>
+			object IConstantInstance.Value => Value;
+
+
+			/// <summary>
+			/// Creates a new <see cref="SelectorInstance"/> that holds <paramref name="value"/>.
+			/// </summary>
+			/// <param name="type">The <see cref="IType"/> that defines this instance.</param>
+			/// <param name="identifier">The local identifier for this instance.</param>
+			/// <param name="value">The value to hold within this <see cref="IConstantInstance"/>.</param>
+			public SelectorInstance(IType type, string identifier, Selector value) : base(type, identifier) {
+				Value = value;
+			}
+
+
+			/// <inheritdoc/>
+			public override IInstance Copy(Compiler.CompileArguments location, string identifier) {
+				throw new NotImplementedException();
+			}
+
+			/// <inheritdoc/>
+			public override void SaveToBlock(Compiler.CompileArguments location, string selector, Objective[] block, Range range) {
+				(int _, int length) = range.GetOffsetAndLength(block.Length);
+				if(length != 0) throw IInstance.GenerateInvalidBlockRangeException(length, 0);
+				else return;
 			}
 
 		}

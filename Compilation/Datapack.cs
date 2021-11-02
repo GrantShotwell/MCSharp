@@ -16,7 +16,11 @@ namespace MCSharp.Compilation {
 		public string FunctionDirectory => $"{RootDirectory}\\data\\{Name}\\functions";
 		public string LoadJsonFile => $"{RootDirectory}\\data\\minecraft\\tags\\load.json";
 		public string TickJsonFile => $"{RootDirectory}\\data\\minecraft\\tags\\tick.json";
-		public string ProgramScriptFile => $"{ScriptDirectory}\\Program.mcsharp";
+		public string ProgramScriptFile => $"{ScriptDirectory}\\{ProgramClassName}.mcsharp";
+
+		public string ProgramClassName => "Program";
+		public string ProgramLoadName => "Load";
+		public string ProgramTickName => "Tick";
 
 
 		public Datapack(string root, string name) {

@@ -70,7 +70,7 @@ namespace MCSharp.Compilation {
 			if(Parent != null) {
 				if(name != null) {
 					foreach(Scope child in Parent.Children)
-						if(child.Name == Name) throw new InvalidOperationException($"'{nameof(parent)}' already contains a child called '{Name}'.");
+						if(child.Name == Name) throw new InvalidOperationException($"{nameof(Parent)} already contains a child called '{Name}'.");
 				}
 				Parent.children.Add(this);
 			}

@@ -3,7 +3,6 @@ using Antlr4.Runtime.Misc;
 using Antlr4.Runtime.Tree;
 using MCSharp.Compilation.Instancing;
 using MCSharp.Linkage;
-using MCSharp.Linkage.Extensions;
 using MCSharp.Linkage.Minecraft;
 using MCSharp.Linkage.Predefined;
 using MCSharp.Linkage.Script;
@@ -57,6 +56,7 @@ using PrimaryExpressionContext = MCSharpParser.Primary_expressionContext;
 using ArrayCreationExpressionContext = MCSharpParser.Array_creation_expressionContext;
 using PrimaryNoArrayCreationExpressionContext = MCSharpParser.Primary_no_array_creation_expressionContext;
 using KeywordExpressionContext = MCSharpParser.Keyword_expressionContext;
+using MCSharp.Linkage.Extensions;
 
 namespace MCSharp.Compilation {
 
@@ -81,6 +81,17 @@ namespace MCSharp.Compilation {
 		public IDictionary<string, IType> DefinedTypes { get; } = new Dictionary<string, IType>();
 		public ICollection<LinkerExtension> LinkerExtensions { get; } = new LinkedList<LinkerExtension>();
 
+		/// <summary>
+		/// Finds an item within <see cref="LinkerExtensions"/> that is of type <typeparamref name="TLinkerExtension"/>.
+		/// </summary>
+		/// <typeparam name="TLinkerExtension">The type of <see cref="LinkerExtension"/> to find.</typeparam>
+		/// <returns>Returns the first item found, <see langword="null"/> if nothing was found.</returns>
+		public TLinkerExtension GetLinkerExtension<TLinkerExtension>() where TLinkerExtension : LinkerExtension {
+			foreach(LinkerExtension extension in LinkerExtensions)
+				if(extension is TLinkerExtension target) return target;
+			return default;
+		}
+
 		#endregion
 
 		#region Compilation
@@ -89,7 +100,7 @@ namespace MCSharp.Compilation {
 
 
 			// Find, parse, and first pass walk (types, members) all script files.
-			ResultInfo? FirstPassWalk() {
+			ResultInfo FirstPassWalk() {
 
 				foreach(string file in Settings.Datapack.GetScriptFiles()) {
 
@@ -118,7 +129,7 @@ namespace MCSharp.Compilation {
 
 				}
 
-				return null;
+				return ResultInfo.DefaultSuccess;
 
 			}
 
@@ -142,20 +153,25 @@ namespace MCSharp.Compilation {
 
 
 			// Apply linker extensions.
+			var onLoadActions = new List<Action<CompileArguments>>();
+			var onTickActions = new List<Action<CompileArguments>>();
 			void ApplyLinkerExtensions() {
 				foreach(LinkerExtension extension in LinkerExtensions) {
 
-					extension.CreatePredefinedTypes();
+					extension.CreatePredefinedTypes(out Action<CompileArguments> onLoad, out Action<CompileArguments> onTick);
+					onLoadActions.Add(onLoad);
+					onTickActions.Add(onTick);
 
 				}
 			}
 
+
 			{
 
 				// Prepare threads.
-				ResultInfo? failure = null;
+				ResultInfo firstpassResult = ResultInfo.DefaultSuccess;
 				Thread threadFirstPassWalk = new Thread(new ThreadStart(() => {
-					failure = FirstPassWalk();
+					firstpassResult = FirstPassWalk();
 				}));
 				Thread threadAddLinkerExts = new Thread(new ThreadStart(() => {
 					AddLinkerExtensions();
@@ -171,24 +187,35 @@ namespace MCSharp.Compilation {
 				threadAddLinkerExts.Join();
 
 				// Stop if lexer/parser had errors.
-				if(failure.HasValue) return failure.Value;
+				if(firstpassResult.Failure) return firstpassResult;
 
 			}
 
 
-			// Compile 'Program.Load()' and 'Program.Tick()'.
+			// Give every type a scope.
 			Scope rootScope = new Scope(null, null, null);
 			foreach(IType type in DefinedTypes.Values) {
+				new Scope(type.Identifier, rootScope, type);
+			}
 
-				if(type.Identifier != "Program") continue;
+			// Compile 'Program.Load()' and 'Program.Tick()'.
+			foreach(IType type in DefinedTypes.Values) {
 
-				Scope typeScope = new Scope(type.Identifier, rootScope, type);
+				if(type.Identifier != Settings.Datapack.ProgramClassName) continue;
+
 				foreach(IMember member in type.Members) {
 
-					if(member.Identifier != "Load" && member.Identifier != "Tick") continue;
+					bool load = member.Identifier == Settings.Datapack.ProgramLoadName;
+					bool tick = member.Identifier == Settings.Datapack.ProgramTickName;
+					if(!load && !tick) continue;
 					if(member.MemberType != MemberType.Method) continue;
 
-					ResultInfo result = CompileStandaloneMethod(typeScope, member);
+					Action<CompileArguments> trigger = (location) => {
+						foreach(var action in load ? onLoadActions : onTickActions)
+							action.Invoke(location);
+						location.Writer.AddBufferedLines(1);
+					};
+					ResultInfo result = CompileStandaloneMethod(type.Scope, member, trigger);
 					if(result.Success) continue;
 					else return result;
 
@@ -203,7 +230,7 @@ namespace MCSharp.Compilation {
 
 		#region Member Compilation
 
-		public ResultInfo CompileStandaloneMethod(Scope typeScope, IMember member) {
+		public ResultInfo CompileStandaloneMethod(Scope typeScope, IMember member, Action<CompileArguments> trigger = null) {
 
 			#region Argument Checks
 			if(typeScope is null)
@@ -217,8 +244,11 @@ namespace MCSharp.Compilation {
 			Scope methodScope = new Scope(member.Identifier, typeScope, member);
 			IMethod method = member.Definition as IMethod;
 			StandaloneStatementFunction invoker = method.Invoker as StandaloneStatementFunction;
+			invoker.Writer.WriteTitle(
+				$"{member.Declarer.Identifier}.{member.Identifier}",
+				indentAfter: true);
 			invoker.Compiled = true;
-			return CompileStatements(invoker, methodScope, invoker.Statements);
+			return CompileStatements(invoker, methodScope, invoker.Statements, trigger);
 
 		}
 
@@ -226,7 +256,7 @@ namespace MCSharp.Compilation {
 
 		#region Statement Compilation
 
-		public ResultInfo CompileStatements(StandaloneStatementFunction function, Scope scope, ICollection<IStatement> statements) {
+		public ResultInfo CompileStatements(StandaloneStatementFunction function, Scope scope, ICollection<IStatement> statements, Action<CompileArguments> trigger = null) {
 
 			#region Argument Checks
 			if(function is null)
@@ -236,6 +266,8 @@ namespace MCSharp.Compilation {
 			if(statements is null)
 				throw new ArgumentNullException(nameof(statements));
 			#endregion
+
+			trigger?.Invoke(new CompileArguments(this, function, scope, true));
 
 			foreach(IStatement statement in statements) {
 
@@ -1506,14 +1538,17 @@ namespace MCSharp.Compilation {
 				foreach(IMember member in holder.Type.Members) {
 					if(member.Identifier == identifier.GetText()) {
 						accessedMember = member;
+						break;
 					}
 				}
 
 				// TODO: Check inherited types.
 
 				if(accessedMember == null) {
+
 					value = null;
 					return new ResultInfo(false, $"{location.GetLocation(identifier)}'{identifier.GetText()}' does not exist in type '{holder.Type.Identifier}'.");
+
 				} else {
 
 					IMemberDefinition definition = accessedMember.Definition;
@@ -1634,6 +1669,7 @@ namespace MCSharp.Compilation {
 						string name = identifier.GetText();
 
 						// Find instance from scope.
+						// TODO: Return here to try again from a wider scope if exactly the next item in chain doesn't exist.
 						holder = location.Scope.FindFirstInstanceByName(name);
 						if(holder == null) {
 
@@ -1864,13 +1900,16 @@ namespace MCSharp.Compilation {
 				type.Dispose();
 			}
 
+			// TODO: Remove this reliance on static.
 			Objective.ClearAnonymousNames();
-			ClassInstance.ResetFieldObjectives();
 
 		}
 
 		#region Subtypes
 
+		/// <summary>
+		/// Contains information to link source code to output code.
+		/// </summary>
 		public struct CompileArguments {
 
 			/// <summary>

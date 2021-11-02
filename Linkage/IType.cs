@@ -1,8 +1,10 @@
 ﻿using MCSharp.Collections;
 using MCSharp.Compilation;
 using MCSharp.Compilation.Instancing;
+using MCSharp.Linkage.Extensions;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace MCSharp.Linkage {
 
@@ -64,6 +66,14 @@ namespace MCSharp.Linkage {
 		/// 
 		/// </summary>
 		public IDictionary<IType, IConversion> Conversions { get; }
+
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="location"></param>
+		/// <param name="identifier"></param>
+		/// <returns></returns>
+		public delegate IInstance InitializeInstanceDelegate(Compiler.CompileArguments location, string identifier);
 
 		/// <summary>
 		/// Creates an assignable <see cref="IInstance"/> from nothing.
@@ -170,6 +180,56 @@ namespace MCSharp.Linkage {
 				}
 				yield return derivedType;
 			}
+
+		}
+
+		/// <summary>
+		/// Counts the number of <see cref="Minecraft.Objective"/>s needed to store an <see cref="IInstance"/> of type <paramref name="type"/>.
+		/// </summary>
+		/// <param name="type"></param>
+		/// <param name="compiler"></param>
+		/// <returns></returns>
+		public static int GetBlockSize(this IType type, Compiler compiler) {
+
+			int count = 0;
+
+			// Base cases.
+			if(type.ClassType == ClassType.Class) return 1;
+			if(type.Identifier == MCSharpLinkerExtension.IntIdentifier) return 1;
+			if(type.Identifier == MCSharpLinkerExtension.BoolIdentifier) return 1;
+
+			// Count field sizes.
+			foreach(var member in type.Members) {
+				if(member.MemberType != MemberType.Field) continue;
+				var memberType = compiler.DefinedTypes[member.ReturnTypeIdentifier];
+				count += memberType.GetBlockSize(compiler);
+			}
+
+			// Return final count.
+			return count;
+
+		}
+
+		/// <summary>
+		/// Sums the value of <see cref="GetBlockSize(IType, Compiler)"/> for every <see cref="IField"/> in <see cref="IType.Members"/>.
+		/// Only differs from <see cref="GetBlockSize(IType, Compiler)"/> when <paramref name="type"/> is not an <see cref="ObjectInstance"/>.
+		/// </summary>
+		/// <param name="type"></param>
+		/// <param name="compiler"></param>
+		/// <returns></returns>
+		public static int GetFieldBlockSizes(this IType type, Compiler compiler) {
+
+			int count = 0;
+
+			// Sum every member's size.
+			foreach(var member in type.Members) {
+				if(member.MemberType != MemberType.Field) continue;
+				var memberType = compiler.DefinedTypes[member.ReturnTypeIdentifier];
+				count += memberType.GetBlockSize(compiler);
+			}
+
+			// Return final count.
+			return count;
 
 		}
 

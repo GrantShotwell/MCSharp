@@ -48,7 +48,7 @@ namespace MCSharp.Linkage.Predefined {
 		/// <inheritdoc/>
 		IReadOnlyCollection<IType> IType.SubTypes => SubTypes;
 
-		private InitializeInstanceDelegate Init { get; }
+		private IType.InitializeInstanceDelegate Init { get; }
 
 		/// <inheritdoc/>
 		public IHashSetDictionary<Operation, IOperation> Operations { get; }
@@ -66,7 +66,7 @@ namespace MCSharp.Linkage.Predefined {
 		/// <param name="members">The members defined by this type definition.</param>
 		/// <param name="subTypes">The type definitions defined by this type definition.</param>
 		public PredefinedType(Modifier modifiers, ClassType classType, string identifier, PredefinedMember[] members,
-		PredefinedConstructor[] constructors, PredefinedType[] subTypes, InitializeInstanceDelegate init, IHashSetDictionary<Operation, IOperation> operations) {
+		PredefinedConstructor[] constructors, PredefinedType[] subTypes, IType.InitializeInstanceDelegate init, IHashSetDictionary<Operation, IOperation> operations) {
 
 			// TODO
 			BaseTypes = new List<IType>();
@@ -82,8 +82,6 @@ namespace MCSharp.Linkage.Predefined {
 
 		}
 
-
-		public delegate IInstance InitializeInstanceDelegate(Compiler.CompileArguments location, string identifier);
 
 		/// <inheritdoc/>
 		public IInstance InitializeInstance(Compiler.CompileArguments location, string identifier) {
