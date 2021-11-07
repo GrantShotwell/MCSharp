@@ -325,7 +325,7 @@ object_or_collection_initializer
 	;
 new_keyword_expression
 	: NEW NAME ( ( method_arguments object_or_collection_initializer? ) | ( object_or_collection_initializer ) )
-	| NEW NAME ( OP expression CP )
+	//| NEW NAME ( OP expression CP )
 	| NEW anonymous_object_initializer
 	;
 typeof_keyword_expression

@@ -79,6 +79,7 @@ namespace MCSharp.Linkage.Extensions {
 			HashSetDictionary<Operation, IOperation> operations = new HashSetDictionary<Operation, IOperation>();
 
 			// Assign
+			// Assign the value of one pointer to another.
 			{
 
 				CustomFunction function = new CustomFunction(identifier,
@@ -96,7 +97,7 @@ namespace MCSharp.Linkage.Extensions {
 						var left = arguments[0] as ObjectInstance;
 						var right = arguments[1] as ObjectInstance;
 
-						ResultInfo assignResult = location.Compiler.CompileSimpleOperation(location, Operation.Assign, left.ObjectId, right.ObjectId, out result);
+						ResultInfo assignResult = location.Compiler.CompileSimpleOperation(location, Operation.Assign, left.Pointer, right.Pointer, out result);
 						if(assignResult.Failure) return assignResult;
 
 						return ResultInfo.DefaultSuccess;
@@ -110,6 +111,7 @@ namespace MCSharp.Linkage.Extensions {
 			}
 
 			// Comparison: '=='
+			// Compare the value of two pointers.
 			{
 
 				CustomFunction function = new CustomFunction(identifier,
@@ -127,7 +129,7 @@ namespace MCSharp.Linkage.Extensions {
 						var left = arguments[0] as ObjectInstance;
 						var right = arguments[1] as ObjectInstance;
 
-						ResultInfo comparisonResult = location.Compiler.CompileSimpleOperation(location, Operation.Equality, left.ObjectId, right.ObjectId, out result);
+						ResultInfo comparisonResult = location.Compiler.CompileSimpleOperation(location, Operation.Equality, left.Pointer, right.Pointer, out result);
 						if(comparisonResult.Failure) return comparisonResult;
 
 						return ResultInfo.DefaultSuccess;
@@ -141,6 +143,7 @@ namespace MCSharp.Linkage.Extensions {
 			}
 
 			// Comparison: '!='
+			// Compare the value of two pointers.
 			{
 
 				CustomFunction function = new CustomFunction(identifier,
@@ -158,7 +161,7 @@ namespace MCSharp.Linkage.Extensions {
 						var left = arguments[0] as ObjectInstance;
 						var right = arguments[1] as ObjectInstance;
 
-						ResultInfo comparisonResult = location.Compiler.CompileSimpleOperation(location, Operation.Inequality, left.ObjectId, right.ObjectId, out result);
+						ResultInfo comparisonResult = location.Compiler.CompileSimpleOperation(location, Operation.Inequality, left.Pointer, right.Pointer, out result);
 						if(comparisonResult.Failure) return comparisonResult;
 
 						return ResultInfo.DefaultSuccess;

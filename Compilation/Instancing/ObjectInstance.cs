@@ -13,17 +13,17 @@ namespace MCSharp.Compilation.Instancing {
 	public class ObjectInstance : IInstance {
 
 		/// <summary>
-		/// The name of the Minecraft objective used to store <see cref="ObjectId"/>.
+		/// The name of the Minecraft objective used to store <see cref="Pointer"/>.
 		/// </summary>
 		public static string ObjectIdObjectiveName => "mcs.object.id";
 
 		/// <summary>
-		/// The type of the Minecraft objective used to store <see cref="ObjectId"/>.
+		/// The type of the Minecraft objective used to store <see cref="Pointer"/>.
 		/// </summary>
 		public static string ObjectIdObjectiveCriterion => "dummy";
 
 		/// <summary>
-		/// The <see cref="Objective"/> used to store all <see cref="ObjectId"/> values.
+		/// The <see cref="Objective"/> used to store all <see cref="Pointer"/> values.
 		/// </summary>
 		public static Objective ObjectIdObjective { get; } = new Objective(ObjectIdObjectiveName, ObjectIdObjectiveCriterion);
 
@@ -36,7 +36,7 @@ namespace MCSharp.Compilation.Instancing {
 		/// <summary>
 		/// The number ID used to access the entity this <see cref="ObjectInstance"/> currently points to.
 		/// </summary>
-		public PrimitiveInstance.IntegerInstance ObjectId { get; }
+		public PrimitiveInstance.IntegerInstance Pointer { get; }
 
 
 		/// <summary>
@@ -45,12 +45,12 @@ namespace MCSharp.Compilation.Instancing {
 		/// <param name="location">The location this <see cref="IInstance"/> will be created in.</param>
 		/// <param name="type">The <see cref="IType"/> of this <see cref="IInstance"/>.</param>
 		/// <param name="identifier">The <see cref="Identifier"/> of this <see cref="IInstance"/>.</param>
-		/// <param name="objectId">The <see cref="ObjectId"/> of this <see cref="ObjectInstance"/>.</param>
-		public ObjectInstance(Compiler.CompileArguments location, IType type, string identifier, PrimitiveInstance.IntegerInstance objectId) {
+		/// <param name="pointer">The <see cref="Pointer"/> of this <see cref="ObjectInstance"/>.</param>
+		public ObjectInstance(Compiler.CompileArguments location, IType type, string identifier, PrimitiveInstance.IntegerInstance pointer) {
 
 			Type = type ?? throw new ArgumentNullException(nameof(type));
-			Identifier = identifier ?? throw new ArgumentNullException(nameof(identifier));
-			ObjectId = objectId ?? throw new ArgumentNullException(nameof(objectId));
+			Identifier = identifier;
+			Pointer = pointer ?? throw new ArgumentNullException(nameof(pointer));
 
 			location.Scope.AddInstance(this);
 
@@ -60,7 +60,7 @@ namespace MCSharp.Compilation.Instancing {
 		/// <inheritdoc/>
 		public IInstance Copy(Compiler.CompileArguments location, string identifier) {
 
-			var copy = new ObjectInstance(location, Type, identifier, ObjectId);
+			var copy = new ObjectInstance(location, Type, identifier, Pointer);
 			return copy;
 
 		}
@@ -70,7 +70,7 @@ namespace MCSharp.Compilation.Instancing {
 			(int offset, int length) = range.GetOffsetAndLength(block.Length);
 			int expected = 1;
 			if(length != expected) IInstance.GenerateInvalidBlockRangeException(length, expected);
-			else location.Writer.WriteCommand($"scoreboard players operation {selector} {block[offset].Name} = {MCSharpLinkerExtension.StorageSelector} {ObjectId.Objective.Name}",
+			else location.Writer.WriteCommand($"scoreboard players operation {selector} {block[offset].Name} = {MCSharpLinkerExtension.StorageSelector} {Pointer.Objective.Name}",
 				Identifier == null ? "Save anonymous object pointer to a block."
 				: $"Save object instance '{Identifier}' pointer to a block.");
 		}

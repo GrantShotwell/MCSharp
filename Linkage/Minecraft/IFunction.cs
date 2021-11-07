@@ -29,13 +29,13 @@ namespace MCSharp.Linkage.Minecraft {
 		public string ReturnTypeIdentifier { get; }
 
 		/// <summary>
-		/// 
+		/// Invoke the <see cref="IFunction"/> with the given arguments.
 		/// </summary>
-		/// <param name="location"></param>
-		/// <param name="generic"></param>
-		/// <param name="arguments"></param>
-		/// <param name="result"></param>
-		/// <returns></returns>
+		/// <param name="location">The location of the call.</param>
+		/// <param name="generic">The generic arguments to invoke with.</param>
+		/// <param name="arguments">The instance arguments to invoke with.</param>
+		/// <param name="result">The result of the call.</param>
+		/// <returns>The result of the compilation.</returns>
 		public ResultInfo Invoke(Compiler.CompileArguments location, IType[] generic, IInstance[] arguments, out IInstance result);
 
 	}

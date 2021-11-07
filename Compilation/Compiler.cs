@@ -62,6 +62,9 @@ namespace MCSharp.Compilation {
 
 	public class Compiler : IDisposable {
 
+		/// <summary>
+		/// The <see cref="Compilation.Settings"/> used to configure the compiler.
+		/// </summary>
 		public Settings Settings { get; }
 
 		public VirtualMachine VirtualMachine { get; private set; }
@@ -69,6 +72,11 @@ namespace MCSharp.Compilation {
 		public ICollection<Assembly> Assemblies { get; }
 
 
+		/// <summary>
+		/// Creates a new compiler.
+		/// </summary>
+		/// <param name="settings">The settings to use.</param>
+		/// <param name="assemblies">The assemblies to use.</param>
 		public Compiler(Settings settings, ICollection<Assembly> assemblies) {
 			Settings = settings;
 			VirtualMachine = new VirtualMachine();
@@ -96,13 +104,17 @@ namespace MCSharp.Compilation {
 
 		#region Compilation
 
+		/// <summary>
+		/// Compiles the given <see cref="Settings"/> and returns the resulting <see cref="ResultInfo"/>.
+		/// </summary>
 		public ResultInfo Compile() {
-
-
+			
+			// Prepare a list of things to do after the first pass.
+			List<Action> postFirstPass = new List<Action>();
 			// Find, parse, and first pass walk (types, members) all script files.
 			ResultInfo FirstPassWalk() {
 
-				foreach(string file in Settings.Datapack.GetScriptFiles()) {
+				foreach(string file in Settings.Datapack.EnumerateScriptFiles()) {
 
 					// Use Antlr generated classes to parse the file.
 
@@ -126,6 +138,7 @@ namespace MCSharp.Compilation {
 
 					var walker = new ScriptClassWalker(this);
 					ParseTreeWalker.Default.Walk(walker, tree);
+					postFirstPass.Add(() => walker.PostFirstPass());
 
 				}
 
@@ -189,6 +202,9 @@ namespace MCSharp.Compilation {
 				// Stop if lexer/parser had errors.
 				if(firstpassResult.Failure) return firstpassResult;
 
+				// Run post-first-pass actions.
+				foreach(Action action in postFirstPass) action();
+
 			}
 
 
@@ -230,6 +246,13 @@ namespace MCSharp.Compilation {
 
 		#region Member Compilation
 
+		/// <summary>
+		/// Compiles the given <see cref="MemberType.Method"/> <see cref="IMember"/>.
+		/// </summary>
+		/// <param name="typeScope">The scope of the type that contains the member.</param>
+		/// <param name="member">The member (<see cref="MemberType.Method"/>) to compile.</param>
+		/// <param name="trigger">The trigger to call before the member is compiled.</param>
+		/// <returns>The result of the compilation.</returns>
 		public ResultInfo CompileStandaloneMethod(Scope typeScope, IMember member, Action<CompileArguments> trigger = null) {
 
 			#region Argument Checks
@@ -256,6 +279,14 @@ namespace MCSharp.Compilation {
 
 		#region Statement Compilation
 
+		/// <summary>
+		/// Compiles the given collection of <see cref="IStatement"/>s.
+		/// </summary>
+		/// <param name="function">The function that contains the statements.</param>
+		/// <param name="scope">The scope of the function.</param>
+		/// <param name="statements">The statements to compile.</param>
+		/// <param name="trigger">The trigger to call before the statements are compiled.</param>
+		/// <returns>The result of the compilation.</returns>
 		public ResultInfo CompileStatements(StandaloneStatementFunction function, Scope scope, ICollection<IStatement> statements, Action<CompileArguments> trigger = null) {
 
 			#region Argument Checks
@@ -295,6 +326,12 @@ namespace MCSharp.Compilation {
 
 		}
 
+		/// <summary>
+		/// Compiles the given <see cref="StatementContext"/>.
+		/// </summary>
+		/// <param name="location">The location of the statement.</param>
+		/// <param name="context">The statement to compile.</param>
+		/// <returns>The result of the compilation.</returns>
 		public ResultInfo CompileStatement(CompileArguments location, StatementContext context) {
 
 			#region Argument Checks
@@ -593,6 +630,13 @@ namespace MCSharp.Compilation {
 
 		}
 
+		/// <summary>
+		/// Compiles an initialization expression.
+		/// </summary>
+		/// <param name="location">The location of the expression.</param>
+		/// <param name="initialization_expressoin">The initialization expression.</param>
+		/// <param name="value">The value of the initialization expression.</param>
+		/// <returns>The result of the compilation.</returns>
 		public ResultInfo CompileInitializationExpression(CompileArguments location, InitializationExpressionContext initialization_expression, out IInstance value) {
 
 			ITerminalNode[] names = initialization_expression.NAME();
@@ -623,6 +667,15 @@ namespace MCSharp.Compilation {
 
 		#region Expression Compilation
 
+		/// <summary>
+		/// Compiles an operation between two <see cref="IInstance"/>s.
+		/// </summary>
+		/// <param name="location">The location of the operation.</param>
+		/// <param name="op">The operation to perform.</param>
+		/// <param name="operand1">The first operand.</param>
+		/// <param name="operand2">The second operand.</param>
+		/// <param name="result">The result of the operation.</param>
+		/// <returns>The result of the compilation.</returns>
 		public ResultInfo CompileSimpleOperation(CompileArguments location, Operation op, IInstance operand1, IInstance operand2, out IInstance result) {
 
 			IType type1 = operand1.Type;
@@ -630,35 +683,60 @@ namespace MCSharp.Compilation {
 
 			ICollection<IOperation> matches = new List<IOperation>(2);
 
-			// Find matches from type 1.
-			if(type1.Operations.ContainsKey(op)) {
-				HashSet<IOperation> operations = type1.Operations[op];
-				foreach(IOperation operation in operations) {
-					IReadOnlyList<IMethodParameter> parameters = operation.Function.MethodParameters;
-					if(parameters.Count != 2)
-						throw new InvalidOperationException(
-							$"{nameof(CompileSimpleOperation)} was called on {op} expecting exactly 2 parameters, " +
-							$"but found {parameters.Count} instead from {type1.Identifier}.");
-					if(parameters[0].TypeIdentifier == type1.Identifier && parameters[1].TypeIdentifier == type2.Identifier) {
-						matches.Add(operation);
+			// Find all operations in the given type that match the operands.
+			// Return true if the operation is found.
+			bool FindMatchesInType(IType type) {
+
+				// Look for matches within the top-level of this type.
+				if(type.Operations.ContainsKey(op)) {
+
+					HashSet<IOperation> operations = type.Operations[op];
+					foreach(IOperation operation in operations) {
+
+						// Get the parameters from the function.
+						IReadOnlyList<IMethodParameter> parameters = operation.Function.MethodParameters;
+						// Make sure there are exactly two parameters, continue if not.
+						if(parameters.Count != 2) continue;
+
+						// Get the type of the first parameter.
+						IType parameterType1 = location.Compiler.DefinedTypes[parameters[0].TypeIdentifier];
+						// Get the type of the second parameter.
+						IType parameterType2 = location.Compiler.DefinedTypes[parameters[1].TypeIdentifier];
+
+						// Create booleans for if the parameters match the operands.
+						bool type1Matches = false, type2Matches = false;
+						// Check if the types are assignable.
+						if(parameterType1.IsAssignableFrom(type1)) type1Matches = true;
+						if(parameterType2.IsAssignableFrom(type2)) type2Matches = true;
+						// Check if the types have an implicit conversion.
+						if(!type1Matches && type1.Conversions.ContainsKey(parameterType1) && type1.Conversions[parameterType1].Implicit) type1Matches = true;
+						if(!type2Matches && type2.Conversions.ContainsKey(parameterType2) && type2.Conversions[parameterType2].Implicit) type2Matches = true;
+
+						// If both parameters match, add the operation to the list of matches.
+						if(type1Matches && type2Matches) {
+							matches.Add(operation);
+							return true;
+						}
+
 					}
+
 				}
+
+				// Look for matches within the base types of this type.
+				foreach(IType baseType in type.BaseTypes) {
+
+					if(FindMatchesInType(baseType)) return true;
+
+				}
+
+				return false;
+
 			}
 
-			// Find matches from type 2.
-			if(type2 != type1 && type2.Operations.ContainsKey(op)) {
-				HashSet<IOperation> operations = type2.Operations[op];
-				foreach(IOperation operation in operations) {
-					IReadOnlyList<IMethodParameter> parameters = operation.Function.MethodParameters;
-					if(parameters.Count != 2)
-						throw new InvalidOperationException(
-							$"{nameof(CompileSimpleOperation)} was called on {operation} expecting exactly 2 parameters, " +
-							$"but found {parameters.Count} instead from {type2.Identifier}.");
-					if(parameters[0].TypeIdentifier == type1.Identifier && parameters[1].TypeIdentifier == type2.Identifier) {
-						matches.Add(operation);
-					}
-				}
-			}
+			// Find all operations in the given type that match the operands.
+			FindMatchesInType(type1);
+			// Don't search type2 if it is the same as type1.
+			if(type1 != type2) FindMatchesInType(type2);
 
 			if(matches.Count == 0) {
 
@@ -668,11 +746,23 @@ namespace MCSharp.Compilation {
 			} else {
 
 				// Find the correct operation.
-				IOperation operation;
-				{
-					// TODO: Add deciding between operations when there is more than one match.
-					operation = matches.First();
-				}
+				IOperation operation = matches.First();
+
+				// Get the parameters from the function.
+				var parameter1 = operation.Function.MethodParameters[0];
+				var parameter2 = operation.Function.MethodParameters[1];
+				
+				// Get the types of the parameters.
+				IType parameterType1 = location.Compiler.DefinedTypes[parameter1.TypeIdentifier];
+				IType parameterType2 = location.Compiler.DefinedTypes[parameter2.TypeIdentifier];
+
+				// Do the operands need to be converted?
+				bool convert1 = !parameterType1.IsAssignableFrom(type1);
+				bool convert2 = !parameterType2.IsAssignableFrom(type2);
+
+				// Convert the operands if needed.
+				if(convert1) type1.Conversions[parameterType1].Function.Invoke(location, new IType[] { }, new IInstance[] { operand1 }, out operand1);
+				if(convert2) type2.Conversions[parameterType2].Function.Invoke(location, new IType[] { }, new IInstance[] { operand2 }, out operand2);
 
 				// Invoke the operation.
 				ResultInfo functionResult = operation.Function.Invoke(location, new IType[] { }, new IInstance[] { operand1, operand2 }, out result);
@@ -684,6 +774,19 @@ namespace MCSharp.Compilation {
 
 		}
 
+		/// <summary>
+		/// Compiles an expression:
+		/// <code>
+		/// expression
+		///   : non_assignment_expression
+		///   | assignment_expression
+		///   ;
+		/// </code>
+		/// </summary>
+		/// <param name="location">The location of the expression.</param>
+		/// <param name="expression">The expression to compile.</param>
+		/// <param name="value">The value of the expression.</param>
+		/// <returns>The result of the compilation.</returns>
 		public ResultInfo CompileExpression(CompileArguments location, ExpressionContext expression, out IInstance value) {
 
 			#region Argument Checks
@@ -715,6 +818,17 @@ namespace MCSharp.Compilation {
 
 		}
 
+		/// <summary>
+		/// Compiles a non-assignment expression:
+		/// <code>
+		/// non_assignment_expression
+		///   : conditional_expression
+		///   | lambda_expression
+		///   ;
+		/// </code>
+		/// </summary>
+		/// <param name="non_assignment_expression">The expression to compile.</param>
+		/// <inheritdoc cref="CompileExpression(CompileArguments, ExpressionContext, out IInstance)"/>
 		public ResultInfo CompileNonAssignmentExpression(CompileArguments location, NonAssignmentExpressionContext non_assignment_expression, out IInstance value) {
 
 			#region Argument Checks
@@ -746,6 +860,16 @@ namespace MCSharp.Compilation {
 
 		}
 
+		/// <summary>
+		/// Compiles a lambda expression:
+		/// <code>
+		/// lambda_expression
+		///   : method_arguments LAMBDA ( code_block )
+		///   ;
+		/// </code>
+		/// </summary>
+		/// <param name="lambda_expression">The expression to compile.</param>
+		/// <inheritdoc cref="CompileExpression(CompileArguments, ExpressionContext, out IInstance)"/>
 		public ResultInfo CompileLambdaExpression(CompileArguments location, LambdaExpressionContext lambda_expression, out IInstance value) {
 
 			#region Argument Checks
@@ -757,6 +881,15 @@ namespace MCSharp.Compilation {
 
 		}
 
+		/// <summary>
+		/// Compiles a conditional expression:
+		/// <code>
+		/// conditional_expression
+		///   : null_coalescing_expression ( CONDITION_IF expression CONDITION_ELSE expression )?
+		///   ;
+		/// </summary>
+		/// <param name="conditional_expression">The expression to compile.</param>
+		/// <inheritdoc cref="CompileExpression(CompileArguments, ExpressionContext, out IInstance)"/>
 		public ResultInfo CompileConditionalExpression(CompileArguments location, ConditionalExpressionContext conditional_expression, out IInstance value) {
 
 			#region Argument Checks
@@ -796,6 +929,16 @@ namespace MCSharp.Compilation {
 
 		}
 
+		/// <summary>
+		/// Compiles a null-coalescing expression:
+		/// <code>
+		/// null_coalescing_expression
+		///   : conditional_or_expression ( NULL_COALESCING null_coalescing_expression )?
+		///   ;
+		/// </code>
+		/// </summary>
+		/// <param name="null_coalescing_expression">The expression to compile.</param>
+		/// <inheritdoc cref="CompileExpression(CompileArguments, ExpressionContext, out IInstance)"/>
 		public ResultInfo CompileNullCoalescingExpression(CompileArguments location, NullCoalescingExpressionContext null_coalescing_expression, out IInstance value) {
 
 			#region Argument Checks
@@ -828,6 +971,16 @@ namespace MCSharp.Compilation {
 
 		}
 
+		/// <summary>
+		/// Compiles a boolean 'OR' expression.
+		/// <code>
+		/// conditional_or_expression
+		///   : conditional_and_expression ( BOOLEAN_OR conditional_and_expression )?
+		///   ;
+		/// </code>
+		/// </summary>
+		/// <param name="conditional_or_expression">The expression to compile.</param>
+		/// <inheritdoc cref="CompileExpression(CompileArguments, ExpressionContext, out IInstance)"/>
 		public ResultInfo CompileConditionalOrExpression(CompileArguments location, ConditionalOrExpressionContext conditional_or_expression, out IInstance value) {
 
 			#region Argument Checks
@@ -858,6 +1011,16 @@ namespace MCSharp.Compilation {
 
 		}
 
+		/// <summary>
+		/// Compiles a boolean 'AND' expression:
+		/// <code>
+		/// conditional_and_expression
+		///   : inclusive_or_expression ( BOOLEAN_AND inclusive_or_expression )?
+		///   ;
+		/// </code>
+		/// </summary>
+		/// <param name="conditional_and_expression">The expression to compile.</param>
+		/// <inheritdoc cref="CompileExpression(CompileArguments, ExpressionContext, out IInstance)"/>
 		public ResultInfo CompileConditionalAndExpression(CompileArguments location, ConditionalAndExpressionContext conditional_and_expression, out IInstance value) {
 
 			#region Argument Checks
@@ -888,6 +1051,16 @@ namespace MCSharp.Compilation {
 
 		}
 
+		/// <summary>
+		/// Compiles a bitwise 'OR' expression:
+		/// <code>
+		/// inclusive_or_expression
+		///   : exclusive_or_expression ( BITWISE_OR exclusive_or_expression )?
+		///   ;
+		/// </code>
+		/// </summary>
+		/// <param name="inclusive_or_expression">The expression to compile.</param>
+		/// <inheritdoc cref="CompileExpression(CompileArguments, ExpressionContext, out IInstance)"/>
 		public ResultInfo CompileInclusiveOrExpression(CompileArguments location, InclusiveOrExpressionContext inclusive_or_expression, out IInstance value) {
 
 			#region Argument Checks
@@ -916,6 +1089,16 @@ namespace MCSharp.Compilation {
 
 		}
 
+		/// <summary>
+		/// Compiles a bitwise 'XOR' expression:
+		/// <code>
+		/// exclusive_or_expression
+		///   : and_expression ( BITWISE_XOR and_expression )?
+		///   ;
+		/// </code>
+		/// </summary>
+		/// <param name="exclusive_or_expression">The expression to compile.</param>
+		/// <inheritdoc cref="CompileExpression(CompileArguments, ExpressionContext, out IInstance)"/>
 		public ResultInfo CompileExclusiveOrExpression(CompileArguments location, ExclusiveOrExpressionContext exclusive_or_expression, out IInstance value) {
 
 			#region Argument Checks
@@ -944,6 +1127,16 @@ namespace MCSharp.Compilation {
 
 		}
 
+		/// <summary>
+		/// Compiles a bitwise 'AND' expression:
+		/// <code>
+		/// and_expression
+		///   : equality_expression ( BITWISE_AND equality_expression )?
+		///   ;
+		/// </code>
+		/// </summary>
+		/// <param name="and_expression">The expression to compile.</param>
+		/// <inheritdoc cref="CompileExpression(CompileArguments, ExpressionContext, out IInstance)"/>
 		public ResultInfo CompileAndExpression(CompileArguments location, AndExpressionContext and_expression, out IInstance value) {
 
 			#region Argument Checks
@@ -972,6 +1165,16 @@ namespace MCSharp.Compilation {
 
 		}
 
+		/// <summary>
+		/// Compiles an equality expression:
+		/// <code>
+		/// equality_expression
+		///   : relational_expression ( equality_operator relational_expression )?
+		///   ;
+		/// </code>
+		/// </summary>
+		/// <param name="equality_expression">The expression to compile.</param>
+		/// <inheritdoc cref="CompileExpression(CompileArguments, ExpressionContext, out IInstance)"/>
 		public ResultInfo CompileEqualityExpression(CompileArguments location, EqualityExpressionContext equality_expression, out IInstance value) {
 
 			#region Argument Checks
@@ -1005,6 +1208,16 @@ namespace MCSharp.Compilation {
 
 		}
 
+		/// <summary>
+		/// Compiles a relational expression:
+		/// <code>
+		/// relational_expression
+		///   : shift_expression ( relation_or_type_check )*
+		///   ;
+		/// </code>
+		/// </summary>
+		/// <param name="relational_expression">The expression to compile.</param>
+		/// <inheritdoc cref="CompileExpression(CompileArguments, ExpressionContext, out IInstance)"/>
 		public ResultInfo CompileRelationalExpression(CompileArguments location, RelationalExpressionContext relational_expression, out IInstance value) {
 
 			#region Argument Checks
@@ -1028,6 +1241,18 @@ namespace MCSharp.Compilation {
 
 		}
 
+		/// <summary>
+		/// Compiles a relation or type check expression:
+		/// <code>
+		/// relation_or_type_check
+		///   : relation_operator shift_expression
+		///   | ( IS | AS ) identifier
+		///   ;
+		/// </code>
+		/// </summary>
+		/// <param name="operandLeft">The left operand.</param>
+		/// <param name="relation_or_type_check">The expression to compile.</param>
+		/// <inheritdoc cref="CompileExpression(CompileArguments, ExpressionContext, out IInstance)"/>
 		public ResultInfo CompileRelationOrTypeCheck(CompileArguments location, IInstance operandLeft, RelationOrTypeCheckContext relation_or_type_check, out IInstance value) {
 
 			#region Argument Checks
@@ -1076,6 +1301,16 @@ namespace MCSharp.Compilation {
 
 		}
 
+		/// <summary>
+		/// Compiles a shift expression:
+		/// <code>
+		/// shift_expression
+		///   : additive_expression ( shift_operator additive_expression )*
+		///   ;
+		/// </code>
+		/// </summary>
+		/// <param name="shift_expression">The expression to compile.</param>
+		/// <inheritdoc cref="CompileExpression(CompileArguments, ExpressionContext, out IInstance)"/>
 		public ResultInfo CompileShiftExpression(CompileArguments location, ShiftExpressionContext shift_expression, out IInstance value) {
 
 			#region Argument Checks
@@ -1109,6 +1344,16 @@ namespace MCSharp.Compilation {
 
 		}
 
+		/// <summary>
+		/// Compiles an additive expression:
+		/// <code>
+		/// additive_expression
+		///   : multiplicative_expression ( additive_operator multiplicative_expression )*
+		///   ;
+		/// </code>
+		/// </summary>
+		/// <param name="additive_expression">The expression to compile.</param>
+		/// <inheritdoc cref="CompileExpression(CompileArguments, ExpressionContext, out IInstance)"/>
 		public ResultInfo CompileAdditiveExpression(CompileArguments location, AdditiveExpressionContext additive_expression, out IInstance value) {
 
 			#region Argument Checks
@@ -1142,6 +1387,16 @@ namespace MCSharp.Compilation {
 
 		}
 
+		/// <summary>
+		/// Compiles a multiplicative expression:
+		/// <code>
+		/// multiplicative_expression
+		///   : with_expression ( multiplicative_operator with_expression )*
+		///   ;
+		/// </code>
+		/// </summary>
+		/// <param name="multiplicative_expression">The expression to compile.</param>
+		/// <inheritdoc cref="CompileExpression(CompileArguments, ExpressionContext, out IInstance)"/>
 		public ResultInfo CompileMultiplicativeExpression(CompileArguments location, MultiplicativeExpressionContext multiplicative_expression, out IInstance value) {
 
 			#region Argument Checks
@@ -1176,6 +1431,16 @@ namespace MCSharp.Compilation {
 
 		}
 
+		/// <summary>
+		/// Compiles a with expression:
+		/// <code>
+		/// with_expression
+		///   : range_expression ( WITH anonymous_element_initializer )?
+		///   ;
+		/// </code>
+		/// </summary>
+		/// <param name="with_expression">The expression to compile.</param>
+		/// <inheritdoc cref="CompileExpression(CompileArguments, ExpressionContext, out IInstance)"/>
 		public ResultInfo CompileWithExpression(CompileArguments location, WithExpressionContext with_expression, out IInstance value) {
 
 			#region Argument Checks
@@ -1201,6 +1466,16 @@ namespace MCSharp.Compilation {
 
 		}
 
+		/// <summary>
+		/// Compiles a range expression:
+		/// <code>
+		/// range_expression
+		///   : unary_expression ( range_operator unary_expression )?
+		///   ;
+		/// </code>
+		/// </summary>
+		/// <param name="range_expression">The expression to compile.</param>
+		/// <inheritdoc cref="CompileExpression(CompileArguments, ExpressionContext, out IInstance)"/>
 		public ResultInfo CompileRangeExpression(CompileArguments location, RangeExpressionContext range_expression, out IInstance value) {
 
 			#region Argument Checks
@@ -1234,6 +1509,16 @@ namespace MCSharp.Compilation {
 
 		}
 
+		/// <summary>
+		/// Compiles a pre-step expression:
+		/// <code>
+		/// pre_step_expression
+		///   : pre_step_operator unary_expression
+		///   ;
+		/// </code>
+		/// </summary>
+		/// <param name="pre_step_expression">The expression to compile.</param>
+		/// <inheritdoc cref="CompileExpression(CompileArguments, ExpressionContext, out IInstance)"/>
 		public ResultInfo CompilePreStepExpression(CompileArguments location, PreStepExpressionContext pre_step_expression, out IInstance value) {
 
 			#region Argument Checks
@@ -1245,6 +1530,16 @@ namespace MCSharp.Compilation {
 
 		}
 
+		/// <summary>
+		/// Compiles a post-step expression:
+		/// <code>
+		/// post_step_expression
+		///   : post_step_operator unary_expression
+		///   ;
+		/// </code>
+		/// </summary>
+		/// <param name="post_step_expression">The expression to compile.</param>
+		/// <inheritdoc cref="CompileExpression(CompileArguments, ExpressionContext, out IInstance)"/>
 		public ResultInfo CompilePostStepExpression(CompileArguments location, PostStepExpressionContext post_step_expression, out IInstance value) {
 
 			#region Argument Checks
@@ -1256,6 +1551,21 @@ namespace MCSharp.Compilation {
 
 		}
 
+		/// <summary>
+		/// Compiles a unary expression:
+		/// <code>
+		/// unary_expression
+		///   : primary_expression
+		///   | unary_operator unary_expression
+		///   | pre_step_expression
+		///   | cast_expression
+		///   | pointer_indirection_expression
+		///   | address_of_expression
+		///   ;
+		/// </code>
+		/// </summary>
+		/// <param name="unary_expression">The expression to compile.</param>
+		/// <inheritdoc cref="CompileExpression(CompileArguments, ExpressionContext, out IInstance)"/>
 		public ResultInfo CompileUnaryExpression(CompileArguments location, UnaryExpressionContext unary_expression, out IInstance value) {
 
 			#region Argument Checks
@@ -1329,6 +1639,16 @@ namespace MCSharp.Compilation {
 
 		}
 
+		/// <summary>
+		/// Compiles a cast expression:
+		/// <code>
+		/// cast_expression
+		///   : OP NAME CP unary_expression
+		///   ;
+		/// </code>
+		/// </summary>
+		/// <param name="cast_expression">The expression to compile.</param>
+		/// <inheritdoc cref="CompileExpression(CompileArguments, ExpressionContext, out IInstance)"/>
 		public ResultInfo CompileCastExpression(CompileArguments location, CastExpressionContext cast_expression, out IInstance value) {
 
 			#region Argument Checks
@@ -1340,6 +1660,16 @@ namespace MCSharp.Compilation {
 
 		}
 
+		/// <summary>
+		/// Compiles a pointer indirection expression:
+		/// <code>
+		/// pointer_indirection_expression
+		///   : MULTIPLY unary_expression
+		///   ;
+		/// </code>
+		/// </summary>
+		/// <param name="pointer_indirection_expression">The expression to compile.</param>
+		/// <inheritdoc cref="CompileExpression(CompileArguments, ExpressionContext, out IInstance)"/>
 		public ResultInfo CompilePointerIndirectionExpression(CompileArguments location, PointerIndirectionExpressionContext pointer_indirection_expression, out IInstance value) {
 
 			#region Argument Checks
@@ -1351,6 +1681,16 @@ namespace MCSharp.Compilation {
 
 		}
 
+		/// <summary>
+		/// Compiles an address of expression:
+		/// <code>
+		/// address_of_expression
+		///   : BITWISE_AND unary_expression
+		///   ;
+		/// </code>
+		/// </summary>
+		/// <param name="address_of_expression">The expression to compile.</param>
+		/// <inheritdoc cref="CompileExpression(CompileArguments, ExpressionContext, out IInstance)"/>
 		public ResultInfo CompileAddressofExpression(CompileArguments location, AddressofExpressionContext addressof_expression, out IInstance value) {
 
 			#region Argument Checks
@@ -1368,6 +1708,16 @@ namespace MCSharp.Compilation {
 
 		}
 
+		/// <summary>
+		/// Compiles an assignment expression:
+		/// <code>
+		/// assignment_expression
+		///   : unary_expression assignment_operator expression
+		///   ;
+		/// </code>
+		/// </summary>
+		/// <param name="assignment_expression">The expression to compile.</param>
+		/// <inheritdoc cref="CompileExpression(CompileArguments, ExpressionContext, out IInstance)"/>
 		public ResultInfo CompileAssignmentExpression(CompileArguments location, AssignmentExpressionContext assignment_expression, out IInstance value) {
 
 			#region Argument Checks
@@ -1407,6 +1757,17 @@ namespace MCSharp.Compilation {
 
 		}
 
+		/// <summary>
+		/// Compiles a primary expression:
+		/// <code>
+		/// primary_expression
+		///   : array_creation_expression
+		///   : primary_no_array_creation_expression
+		///   ;
+		/// </code>
+		/// </summary>
+		/// <param name="primary_expression">The expression to compile.</param>
+		/// <inheritdoc cref="CompileExpression(CompileArguments, ExpressionContext, out IInstance)"/>
 		public ResultInfo CompilePrimaryExpression(CompileArguments location, PrimaryExpressionContext primary_expression, out IInstance value) {
 
 			#region Argument Checks
@@ -1440,6 +1801,16 @@ namespace MCSharp.Compilation {
 
 		}
 
+		/// <summary>
+		/// Compiles an array creation expression:
+		/// <code>
+		/// array_creation_expression
+		///   : NEW indexer_arguments array_rank_specifier? array_initializer?
+		///   ;
+		/// </code>
+		/// </summary>
+		/// <param name="array_creation_expression">The expression to compile.</param>
+		/// <inheritdoc cref="CompileExpression(CompileArguments, ExpressionContext, out IInstance)"/>
 		public ResultInfo CompileArrayCreationExpression(CompileArguments location, ArrayCreationExpressionContext array_creation_expression, out IInstance value) {
 
 			#region Argument Checks
@@ -1451,6 +1822,21 @@ namespace MCSharp.Compilation {
 
 		}
 
+		/// <summary>
+		/// Compiles a primary no-array-creation expression:
+		/// <code>
+		/// primary_no_array_creation_expression
+		///   : literal
+		///   : short_identifier
+		///   : OP expression CP
+		///   : member_access
+		///   : post_step_expression
+		///   : keyword_expression
+		///   ;
+		/// </code>
+		/// </summary>
+		/// <param name="primary_no_array_creation_expression">The expression to compile.</param>
+		/// <inheritdoc cref="CompileExpression(CompileArguments, ExpressionContext, out IInstance)"/>
 		public ResultInfo CompilePrimaryNoArrayCreationExpression(CompileArguments location, PrimaryNoArrayCreationExpressionContext primary_no_array_creation_expression, out IInstance value) {
 
 			#region Argument Checks
@@ -1521,6 +1907,16 @@ namespace MCSharp.Compilation {
 
 		}
 
+		/// <summary>
+		/// Compiles a member access expression:
+		/// <code>
+		/// member_access
+		///   : member_access_prefix* short_identifier generic_arguments? ( method_arguments | indexer_arguments )?
+		///   ;
+		/// </code>
+		/// </summary>
+		/// <param name="member_access">The expression to compile.</param>
+		/// <inheritdoc cref="CompileExpression(CompileArguments, ExpressionContext, out IInstance)"/>
 		public ResultInfo CompileMemberAccess(CompileArguments location, MCSharpParser.Member_accessContext member_access, out IInstance value) {
 
 			MCSharpParser.Member_access_prefixContext[] member_access_prefixes = member_access.member_access_prefix();
@@ -1612,7 +2008,12 @@ namespace MCSharp.Compilation {
 								MCSharpParser.ArgumentContext[] arguments_context = argument_list.argument();
 								arguments = new IInstance[arguments_context.Length];
 								for(int i = 0; i < arguments_context.Length; i++) {
-									throw new NotImplementedException("Accessing methods with more than zero parameters has not been implemented.");
+									ResultInfo argument_result = CompileExpression(location, arguments_context[i].expression(), out IInstance argument);
+									if(argument_result.Failure)  {
+										value = null;
+										return argument_result;
+									}
+									arguments[i] = argument;
 								}
 							}
 
@@ -1677,7 +2078,7 @@ namespace MCSharp.Compilation {
 							// TODO: Implicit 'this'/'base'.
 
 							if(holder == null) {
-
+								
 								return new ResultInfo(false, $"{location.GetLocation(identifier)}Unknown identifier '{name}'.");
 
 							}
@@ -1763,6 +2164,13 @@ namespace MCSharp.Compilation {
 
 		}
 
+		/// <summary>
+		/// Compiles a literal.
+		/// </summary>
+		/// <param name="location">The location of the literal.</param>
+		/// <param name="literal">The literal to compile.</param>
+		/// <param name="value">The instance to assign the literal to.</param>
+		/// <returns>The result of the compilation.</returns>
 		public ResultInfo CompileLiteral(CompileArguments location, MCSharpParser.LiteralContext literal, out IInstance value) {
 
 			ITerminalNode integer_literal = literal.INTEGER();
@@ -1822,13 +2230,150 @@ namespace MCSharp.Compilation {
 
 			}
 
-			throw new NotImplementedException("Literal context could not be determined.");
+			throw new Exception("Literal context could not be determined.");
 
 		}
 
+		/// <summary>
+		/// Compiles a keyword expression:
+		/// <code>
+		/// keyword_expression
+		///   : NEW NAME ( ( method_arguments object_or_collection_initializer? ) | ( object_or_collection_initializer ) )
+		///   | NEW anonymous_object_initializer
+		///   ;
+		/// </code>
+		/// </summary>
+		/// <param name="keyword_expression">The expression to compile.</param>
+		/// <inheritdoc cref="CompileExpression(CompileArguments, MCSharpParser.ExpressionContext, out IInstance)"/>
 		public ResultInfo CompileKeywordExpression(CompileArguments location, KeywordExpressionContext keyword_expression, out IInstance value) {
 
-			throw new NotImplementedException("Keyword expression evaluation have not been implemented.");
+			MCSharpParser.New_keyword_expressionContext new_keyword_expression = keyword_expression.new_keyword_expression();
+			if(new_keyword_expression != null) {
+
+				// NEW NAME ( ( method_arguments object_or_collection_initializer? ) | ( object_or_collection_initializer ) )
+				MCSharpParser.Method_argumentsContext method_arguments = new_keyword_expression.method_arguments();
+				MCSharpParser.Object_or_collection_initializerContext object_or_collection_initializer = new_keyword_expression.object_or_collection_initializer();
+				if(method_arguments != null || object_or_collection_initializer != null) {
+
+					ITerminalNode nameNode = new_keyword_expression.NAME();
+					string name = nameNode.GetText();
+
+					if(object_or_collection_initializer != null) {
+
+						// NEW NAME method_arguments? object_or_collection_initializer
+
+						throw new NotImplementedException("Object/collection initializers for keyword 'new' expressions have not been implemented.");
+
+					} else {
+
+						// NEW NAME method_arguments
+
+						if(!DefinedTypes.ContainsKey(name)) {
+							value = null;
+							return new ResultInfo(false, location.GetLocation(nameNode) + $"Type '{name}' does not exist.");
+						}
+						IType type = DefinedTypes[name];
+
+						// Get method arguments.
+						IInstance[] methodArguments;
+						{
+							MCSharpParser.Argument_listContext argument_list = method_arguments.argument_list();
+							MCSharpParser.ArgumentContext[] arguments_context = argument_list?.argument() ?? new MCSharpParser.ArgumentContext[] { };
+							methodArguments = new IInstance[arguments_context.Length];
+							for(int i = 0; i < arguments_context.Length; i++) {
+								MCSharpParser.ArgumentContext argument_context = arguments_context[i];
+								IInstance argument;
+								ResultInfo argument_result = CompileExpression(location, argument_context.expression(), out argument);
+								if(argument_result.Failure) {
+									value = null;
+									return argument_result;
+								}
+								methodArguments[i] = argument;
+							}
+						}
+						
+						// Get generic arguments.
+						var genericArguments = new IType[] { };
+
+						// Get constructor.
+						var constructor = type.FindBestConstructor(genericArguments, methodArguments);
+
+						// Invoke constructor.
+						ResultInfo result = constructor.Invoker.Invoke(location, new IType[] { }, methodArguments, out value);
+						if(result.Failure) return location.GetLocation(new_keyword_expression) + result;
+
+						return ResultInfo.DefaultSuccess;
+
+					}
+
+				}
+
+				// NEW NAME OP expression CP
+				// removed from grammar
+
+				// NEW anonymous_object_initializer
+				var anonymous_object_initializer = new_keyword_expression.anonymous_object_initializer();
+				if(anonymous_object_initializer != null) {
+
+					throw new NotImplementedException("Anonymous object initializers have not been implemented.");
+				}
+
+				throw new Exception("Keyword 'new' expression could not be determined.");
+
+			}
+
+			MCSharpParser.Typeof_keyword_expressionContext typeof_keyword_expression = keyword_expression.typeof_keyword_expression();
+			if(typeof_keyword_expression != null) {
+				
+				// TYPEOF OP NAME CP
+
+				ITerminalNode nameNode = typeof_keyword_expression.NAME();
+				string name = nameNode.GetText();
+				if(!DefinedTypes.ContainsKey(name)) {
+					value = null;
+					return new ResultInfo(false, location.GetLocation(nameNode) + $"Type '{name}' does not exist.");
+				}
+
+				IType type = DefinedTypes[name];
+				value = new PrimitiveInstance.StringInstance(DefinedTypes[MCSharpLinkerExtension.StringIdentifier], null, type.Identifier);
+
+				return ResultInfo.DefaultSuccess;
+
+			}
+
+			MCSharpParser.Checked_expressionContext checked_keyword_expression = keyword_expression.checked_expression();
+			if(checked_keyword_expression != null) {
+				
+				// CHECKED OP expression CP
+				throw new NotImplementedException("Keyword 'checked' expressions have not been implemented.");
+
+			}
+
+			MCSharpParser.Unchecked_expressionContext unchecked_keyword_expression = keyword_expression.unchecked_expression();
+			if(unchecked_keyword_expression != null) {
+
+				// UNCHECKED OP expression CP
+				throw new NotImplementedException("Keyword 'unchecked' expressions have not been implemented.");
+
+			}
+
+			MCSharpParser.Default_keyword_expressionContext default_keyword_expression = keyword_expression.default_keyword_expression();
+			if(default_keyword_expression != null) {
+
+				// DEFAULT ( OP expression CP )?
+				throw new NotImplementedException("Keyword 'default' expressions have not been implemented.");
+
+			}
+
+			MCSharpParser.Sizeof_keyword_expressionContext sizeof_keyword_expression = keyword_expression.sizeof_keyword_expression();
+			if(sizeof_keyword_expression != null) {
+				
+				// SIZEOF OP NAME CP
+				throw new NotImplementedException("Keyword 'sizeof' expressions have not been implemented.");
+
+			}
+
+			throw new Exception("Keyword expression could not be determined.");
 
 		}
 
@@ -1838,6 +2383,12 @@ namespace MCSharp.Compilation {
 
 		#region IStatement Creation
 
+		/// <summary>
+		/// Creates an <see cref="IStatement"/> from a <see cref="StatementContext"/>.
+		/// </summary>
+		/// <param name="statement">The <see cref="StatementContext"/> to create the <see cref="IStatement"/> from.</param>
+		/// <param name="predefined">Whether or not the <see cref="IStatement"/> is a <see cref="PredefinedStatement"/>.</param>
+		/// <returns>The <see cref="IStatement"/> created.</returns>
 		private IStatement CreateIStatement(StatementContext statement, bool predefined) {
 
 			#region Argument Checks
@@ -1853,6 +2404,12 @@ namespace MCSharp.Compilation {
 
 		}
 
+		/// <summary>
+		/// Creates an array of <see cref="IStatement"/>s from an array of <see cref="StatementContext"/>s.
+		/// </summary>
+		/// <param name="statements">The array of <see cref="StatementContext"/>s to create the <see cref="IStatement"/>s from.</param>
+		/// <param name="predefined">Whether or not the <see cref="IStatement"/>s are <see cref="PredefinedStatement"/>s.</param>
+		/// <returns>The array of <see cref="IStatement"/>s created.</returns>
 		private IStatement[] CreateIStatements(StatementContext[] statements, bool predefined) {
 
 			#region Argument Checks
@@ -1877,6 +2434,12 @@ namespace MCSharp.Compilation {
 
 		}
 
+		/// <summary>
+		/// Creates an array of <see cref="IStatement"/>s from a <see cref="StatementContext"/>.
+		/// </summary>
+		/// <param name="statement">The <see cref="StatementContext"/> to create the <see cref="IStatement"/>s from.</param>
+		/// <param name="predefined">Whether or not the <see cref="IStatement"/>s are <see cref="PredefinedStatement"/>s.</param>
+		/// <returns>The array of <see cref="IStatement"/>s created.</returns>
 		private IStatement[] CreateIStatements(StatementContext statement, bool predefined) {
 
 			#region Argument Checks
@@ -1938,6 +2501,13 @@ namespace MCSharp.Compilation {
 			public bool Predefined { get; }
 
 
+			/// <summary>
+			/// Creates a new <see cref="CompileArguments"/>.
+			/// </summary>
+			/// <param name="compiler">The <see cref="Compilation.Compiler"/>.</param>
+			/// <param name="function">The <see cref="StandaloneStatementFunction"/> being written to.</param>
+			/// <param name="scope">The current <see cref="Compilation.Scope"/>.</param>
+			/// <param name="predefined">Whether or not the <see cref="IStatement"/>s are <see cref="PredefinedStatement"/>s.</param>
 			public CompileArguments(Compiler compiler, StandaloneStatementFunction function, Scope scope, bool predefined) {
 				Compiler = compiler ?? throw new ArgumentNullException(nameof(compiler));
 				Function = function ?? throw new ArgumentNullException(nameof(function));
@@ -1946,10 +2516,25 @@ namespace MCSharp.Compilation {
 			}
 
 
+			/// <summary>
+			/// Finds the file name and line/column number of the given <see cref="ParserRuleContext"/>.
+			/// </summary>
+			/// <param name="context">The <see cref="ParserRuleContext"/> to find the file name and line/column number of.</param>
+			/// <returns>The location in a user-friendly format.</returns>
 			public string GetLocation(ParserRuleContext context) => GetLocation(context.Start);
 
+			/// <summary>
+			/// Finds the file name and line/column number of the given <see cref="ITerminalNode"/>.
+			/// </summary>
+			/// <param name="node">The <see cref="ITerminalNode"/> to find the file name and line/column number of.</param>
+			/// <returns>The location in a user-friendly format.</returns>
 			public string GetLocation(ITerminalNode node) => GetLocation(node.Symbol);
 
+			/// <summary>
+			/// Finds the file name and line/column number of the given <see cref="IToken"/>.
+			/// </summary>
+			/// <param name="token">The <see cref="IToken"/> to find the file name and line/column number of.</param>
+			/// <returns>The location in a user-friendly format.</returns>
 			public string GetLocation(IToken token) {
 				if(Predefined) {
 
@@ -1975,6 +2560,7 @@ namespace MCSharp.Compilation {
 		public class ScriptClassWalker : MCSharpBaseListener {
 
 			Compiler Compiler { get; }
+			event Action<Compiler> postFirstPass;
 
 			private TypeDefinitionContext CurrentTypeContext { get; set; }
 			private ICollection<MemberDefinitionContext> CurrentMemberContexts { get; set; } = new LinkedList<MemberDefinitionContext>();
@@ -1999,8 +2585,13 @@ namespace MCSharp.Compilation {
 
 			public override void ExitType_definition([NotNull] TypeDefinitionContext context) {
 				if(context != CurrentTypeContext) throw new Exception($"Subtypes are currently not supported by {nameof(ScriptClassWalker)}.");
-				var scriptType = new ScriptType(CurrentTypeContext, CurrentMemberContexts.ToArray(), CurrentConstructorContexts.ToArray(), Compiler.Settings, Compiler.VirtualMachine);
+				var scriptType = new ScriptType(CurrentTypeContext, CurrentMemberContexts.ToArray(), CurrentConstructorContexts.ToArray(), Compiler.Settings, Compiler.VirtualMachine, out Action<Compiler> postFirstPass);
+				this.postFirstPass += postFirstPass;
 				Compiler.DefinedTypes.Add(scriptType.Identifier.GetText(), scriptType);
+			}
+
+			public void PostFirstPass() {
+				postFirstPass.Invoke(Compiler);
 			}
 
 		}

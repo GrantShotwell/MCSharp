@@ -36,7 +36,7 @@ namespace MCSharp {
 						Match match = SettingsRegex.Match(line);
 						if(match.Success) {
 							string setting = match.Groups["Setting"].Value;
-							string value = match.Groups["Value"].Value;
+							string value   = match.Groups[ "Value" ].Value;
 							string success = $"Applied '{setting}' setting.";
 							switch(setting) {
 								case "default_datapacks_folder":  DatapackFolder = value;  PrintSuccess(success);  break;

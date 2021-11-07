@@ -74,14 +74,28 @@ namespace MCSharp.Linkage.Script {
 		/// <param name="constructorContexts">The <see cref="MCSharpParser.Constructor_definitionContext"/> values taken from script.</param>
 		/// <param name="settings">Value passed to create <see cref="StandaloneStatementFunction"/>(s).</param>
 		/// <param name="virtualMachine">Value passed to create <see cref="StandaloneStatementFunction"/>(s).</param>
-		public ScriptType(TypeDefinitionContext typeContext, MemberDefinitionContext[] memberContexts, ConstructorDefinitionContext[] constructorContexts, Settings settings, VirtualMachine virtualMachine) {
+		public ScriptType(TypeDefinitionContext typeContext, MemberDefinitionContext[] memberContexts, ConstructorDefinitionContext[] constructorContexts, Settings settings, VirtualMachine virtualMachine, out Action<Compiler> postFirstPass) {
 
 			Modifiers = EnumLinker.LinkModifiers(typeContext.modifier());
 			ClassType = EnumLinker.LinkClassType(typeContext.class_type());
 			Identifier = typeContext.NAME();
 
-			// TODO: Get base types.
-			BaseTypes = new List<IType>();
+			// Create a list of actions.
+			var secondPassActions = new List<Action<Compiler>>();
+			// postFirstPass will trigger all of these actions.
+			postFirstPass = (location) => { foreach (var action in secondPassActions) action(location); };
+
+			// Get base types.
+			List<IType> baseTypes = new List<IType>();
+			// If the type is a class, add the object type.
+			if(ClassType == ClassType.Class) {
+				// We need to wait until the second pass, so all types are defined.
+				secondPassActions.Add((compiler) => { baseTypes.Add(compiler.DefinedTypes[MCSharpLinkerExtension.ObjectIdentifier]); });
+			}
+			// TODO: Add base types.
+			BaseTypes = baseTypes;
+
+			// Update derived types.
 			foreach(IType baseType in BaseTypes) {
 				baseType.DerivedTypes.Add(this);
 			}
@@ -120,17 +134,17 @@ namespace MCSharp.Linkage.Script {
 									// Evaluate default value.
 									typeLocation.Compiler.CompileExpression(typeLocation, field.Initializer.Context, out IInstance value);
 
-									// When an object is created, all fields, stored in objectives, are assigned to that object's entity.
-									// TODO: Move block construction outside if initialization. If the first object isn't created in 'Load', there will be problems.
-									if(!objectives.ContainsKey(field)) {
-										var block = new Objective[typeLocation.Compiler.DefinedTypes[member.ReturnTypeIdentifier].GetBlockSize(initLocation.Compiler)];
-										typeLocation.Writer.WriteComments(
-											$"Create block of objectives for field '{member.ReturnTypeIdentifier} {member.Identifier ?? "[anonymous]"}' for storage in type '{Identifier}'.");
-										for(int i = 0; i < block.Length; i++)
-											block[i] = Objective.AddObjective(typeLocation.Writer, null, "dummy");
-										objectives.Add(field, block);
-									}
-									value.SaveToBlock(initLocation, MCSharpLinkerExtension.StorageSelector, objectives[field]);
+									// TODO: Move to ???, not initialization.
+									//// When an object is created, all fields, stored in objectives, are assigned to that object's entity.
+									//if(!objectives.ContainsKey(field)) {
+									//	var block = new Objective[typeLocation.Compiler.DefinedTypes[member.ReturnTypeIdentifier].GetBlockSize(initLocation.Compiler)];
+									//	typeLocation.Writer.WriteComments(
+									//		$"Create block of objectives for field '{member.ReturnTypeIdentifier} {member.Identifier ?? "[anonymous]"}' for storage in type '{Identifier}'.");
+									//	for(int i = 0; i < block.Length; i++)
+									//		block[i] = Objective.AddObjective(typeLocation.Writer, null, "dummy");
+									//	objectives.Add(field, block);
+									//}
+									//value.SaveToBlock(initLocation, MCSharpLinkerExtension.StorageSelector, objectives[field]);
 
 								});
 								break;

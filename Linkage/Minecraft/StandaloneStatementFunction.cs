@@ -22,6 +22,11 @@ namespace MCSharp.Linkage.Minecraft {
 		/// <inheritdoc/>
 		public IStatement[] Statements { get; }
 
+		/// <summary>
+		/// 
+		/// </summary>
+		private IInstance ReturnInstance { get; set; }
+
 		/// <inheritdoc/>
 		public string ReturnTypeIdentifier { get; }
 
@@ -82,11 +87,16 @@ namespace MCSharp.Linkage.Minecraft {
 		public ResultInfo Invoke(Compiler.CompileArguments location, IType[] generic, IInstance[] arguments, out IInstance result) {
 
 			if(!Compiled) {
+
+				Compiler.CompileArguments location1 = new Compiler.CompileArguments(location.Compiler, this, Scope, false);
+				ReturnInstance = location.Compiler.DefinedTypes[ReturnTypeIdentifier].InitializeInstance(location1, null);
+
 				Compiled = true;
 				location.Compiler.CompileStatements(this, Scope, Statements);
+
 			}
 
-			result = null;
+			result = ReturnInstance;
 
 			location.Writer.WriteCommand($"function {Writer.GamePath}");
 			return ResultInfo.DefaultSuccess;

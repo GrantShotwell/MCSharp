@@ -124,11 +124,11 @@ namespace MCSharp.Linkage {
 		/// </summary>
 		/// <param name="type">The <see cref="IType"/> to enumerate from.</param>
 		/// <returns>Returns an <see cref="IEnumerable{IType}"/> created by '<see langword="yield"/>-ing' over <see cref="IType.BaseTypes"/>'s <see cref="IEnumerator{IType}"/>.</returns>
-		public static IEnumerable<IType> EnumerateBasetypeTree(this IType type) {
+		public static IEnumerable<IType> EnumerateBaseTypeTree(this IType type) {
 
 			foreach(IType baseType in type.BaseTypes) {
 				yield return baseType;
-				foreach(IType enumerated in baseType.EnumerateBasetypeTree()) {
+				foreach(IType enumerated in baseType.EnumerateBaseTypeTree()) {
 					yield return enumerated;
 				}
 			}
@@ -230,6 +230,82 @@ namespace MCSharp.Linkage {
 
 			// Return final count.
 			return count;
+
+		}
+
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="type"></param>
+		/// <param name="genericArguments"></param>
+		/// <param name="methodArguments"></param>
+		public static IConstructor FindBestConstructor(this IType type, IType[] genericArguments, IInstance[] methodArguments) {
+
+			IType[] types = new IType[methodArguments.Length];
+			for(int i = 0; i < types.Length; i++)
+				types[i] = methodArguments[i].Type;
+			return type.FindBestConstructor(genericArguments, types);
+
+		}
+
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="type"></param>
+		/// <param name="genericArguments"></param>
+		/// <param name="methodArguments"></param>
+		public static IConstructor FindBestConstructor(this IType type, IType[] genericArguments, IType[] methodArguments) {
+
+			(int Score, IConstructor Constructor) best = (-1, null);
+			foreach(IConstructor constructor in type.Constructors) {
+
+				Minecraft.IFunction invoker = constructor.Invoker;
+				var methodParameters = invoker.MethodParameters;
+				var genericParameters = invoker.GenericParameters;
+
+				int genericCount = genericParameters.Count;
+				if(genericCount != genericArguments.Length) continue;
+
+				int methodCount = methodParameters.Count;
+				if(methodCount != methodArguments.Length) continue;
+
+				int score = methodCount;
+
+				for(int i = 0; i < genericCount; i++) {
+					// TODO: Test if generics match.
+				}
+
+				for(int i = 0; i < methodCount; i++) {
+					// TODO: Test if arguments match.
+				}
+
+				if(score > best.Score) best = (score, constructor);
+				else continue;
+
+			}
+
+			return best.Constructor;
+
+		}
+
+		/// <summary>
+		/// Determines if <paramref name="type1"/> is directly assignable from <paramref name="type2"/>.
+		/// </summary>
+		/// <param name="type1"></param>
+		/// <param name="type2"></param>
+		/// <returns></returns>
+		public static bool IsAssignableFrom(this IType type1, IType type2) {
+
+			// Check if the types are the same.
+			if(type1 == type2) return true;
+
+			// Check if type2 inherits from type1 using EnumerateBaseTypeTree.
+			foreach(IType type in type2.EnumerateBaseTypeTree()) {
+				if(type == type1) return true;
+			}
+
+			// Not assignable.
+			return false;
 
 		}
 

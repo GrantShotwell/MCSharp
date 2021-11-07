@@ -48,7 +48,7 @@ namespace MCSharp.Linkage.Script {
 			ScriptStatement[] statements;
 			if(context.LAMBDA() != null) {
 				// Return expression.
-				throw new NotImplementedException("Lambda definitions for methods has not been implemented.");
+				throw new NotImplementedException("Lambda definitions for constructors have not been implemented.");
 			} else {
 				// Code block.
 				statements = ScriptStatement.CreateArrayFromArray(context.code_block().statement());
