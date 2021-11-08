@@ -28,7 +28,7 @@ namespace MCSharp.Linkage.Script {
 		/// </summary>
 		public ITerminalNode ReturnTypeIdentifier { get; }
 		/// <inheritdoc/>
-		string IMember.ReturnTypeIdentifier => ReturnTypeIdentifier.GetText();
+		string IMember.TypeIdentifier => ReturnTypeIdentifier.GetText();
 		/// <summary>
 		/// The local identifier that represents this member.
 		/// </summary>

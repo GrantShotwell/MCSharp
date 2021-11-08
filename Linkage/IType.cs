@@ -201,7 +201,7 @@ namespace MCSharp.Linkage {
 			// Count field sizes.
 			foreach(var member in type.Members) {
 				if(member.MemberType != MemberType.Field) continue;
-				var memberType = compiler.DefinedTypes[member.ReturnTypeIdentifier];
+				var memberType = compiler.DefinedTypes[member.TypeIdentifier];
 				count += memberType.GetBlockSize(compiler);
 			}
 
@@ -224,7 +224,7 @@ namespace MCSharp.Linkage {
 			// Sum every member's size.
 			foreach(var member in type.Members) {
 				if(member.MemberType != MemberType.Field) continue;
-				var memberType = compiler.DefinedTypes[member.ReturnTypeIdentifier];
+				var memberType = compiler.DefinedTypes[member.TypeIdentifier];
 				count += memberType.GetBlockSize(compiler);
 			}
 

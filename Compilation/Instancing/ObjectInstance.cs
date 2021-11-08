@@ -15,17 +15,17 @@ namespace MCSharp.Compilation.Instancing {
 		/// <summary>
 		/// The name of the Minecraft objective used to store <see cref="Pointer"/>.
 		/// </summary>
-		public static string ObjectIdObjectiveName => "mcs.object.id";
+		public static string AddressObjectiveName => "mcs.object.id";
 
 		/// <summary>
 		/// The type of the Minecraft objective used to store <see cref="Pointer"/>.
 		/// </summary>
-		public static string ObjectIdObjectiveCriterion => "dummy";
+		public static string AddressObjectiveCriterion => "dummy";
 
 		/// <summary>
 		/// The <see cref="Objective"/> used to store all <see cref="Pointer"/> values.
 		/// </summary>
-		public static Objective ObjectIdObjective { get; } = new Objective(ObjectIdObjectiveName, ObjectIdObjectiveCriterion);
+		public static Objective AddressObjective { get; } = new Objective(AddressObjectiveName, AddressObjectiveCriterion);
 
 		/// <inheritdoc/>
 		public IType Type { get; }
@@ -56,6 +56,32 @@ namespace MCSharp.Compilation.Instancing {
 
 		}
 
+
+		/// <summary>
+		/// Use the <see cref="Pointer"/> to access the entity this <see cref="ObjectInstance"/> currently points to. Only one entity can be selected at a time.
+		/// </summary>
+		/// <param name="location">The location the entity will be accessed in.</param>
+		/// <returns>The selector to the entity this <see cref="ObjectInstance"/> currently points to as a <see cref="string"/>.</returns>
+		public string GetSelector(Compiler.CompileArguments location) {
+			
+			// Get the writer.
+			var writer = location.Writer;
+
+			// Get the tag to use for selection.
+			const string tag = "mcs.select";
+
+			// Remove the tag from all other entities.
+			writer.WriteCommand($"tag @e remove {tag}",
+				$"Select an object entity with the address of a pointer.");
+			
+			// Tag the entity with the address of the pointer.
+			writer.WriteCommand($"execute as @e if score @s {AddressObjective.Name} = {MCSharpLinkerExtension.StorageSelector} {Pointer.Objective.Name} " +
+			                    $"run tag @s add {tag}");
+			
+			// Return the selector of entities with the tag (there should only be one).
+			return $"@e[tag={tag},limit=1,sort=arbitrary]";
+
+		}
 
 		/// <inheritdoc/>
 		public IInstance Copy(Compiler.CompileArguments location, string identifier) {

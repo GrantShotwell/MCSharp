@@ -74,23 +74,29 @@ namespace MCSharp.Linkage.Script {
 		/// <param name="constructorContexts">The <see cref="MCSharpParser.Constructor_definitionContext"/> values taken from script.</param>
 		/// <param name="settings">Value passed to create <see cref="StandaloneStatementFunction"/>(s).</param>
 		/// <param name="virtualMachine">Value passed to create <see cref="StandaloneStatementFunction"/>(s).</param>
-		public ScriptType(TypeDefinitionContext typeContext, MemberDefinitionContext[] memberContexts, ConstructorDefinitionContext[] constructorContexts, Settings settings, VirtualMachine virtualMachine, out Action<Compiler> postFirstPass) {
+		public ScriptType(TypeDefinitionContext typeContext, MemberDefinitionContext[] memberContexts, ConstructorDefinitionContext[] constructorContexts, Settings settings, VirtualMachine virtualMachine,
+		out Action<Compiler> postFirstPass, out Action<Compiler.CompileArguments> onLoad) {
 
 			Modifiers = EnumLinker.LinkModifiers(typeContext.modifier());
 			ClassType = EnumLinker.LinkClassType(typeContext.class_type());
 			Identifier = typeContext.NAME();
 
-			// Create a list of actions.
-			var secondPassActions = new List<Action<Compiler>>();
+			// Create a list of actions for post-first-pass.
+			var postFirstPassActions = new List<Action<Compiler>>();
 			// postFirstPass will trigger all of these actions.
-			postFirstPass = (location) => { foreach (var action in secondPassActions) action(location); };
+			postFirstPass = (location) => { foreach (var action in postFirstPassActions) action(location); };
+
+			// Create a list of actions for on-load.
+			var onLoadActions = new List<Action<Compiler.CompileArguments>>();
+			// onLoad will trigger all of these actions.
+			onLoad = (location) => { foreach (var action in onLoadActions) action(location); };
 
 			// Get base types.
 			List<IType> baseTypes = new List<IType>();
 			// If the type is a class, add the object type.
 			if(ClassType == ClassType.Class) {
 				// We need to wait until the second pass, so all types are defined.
-				secondPassActions.Add((compiler) => { baseTypes.Add(compiler.DefinedTypes[MCSharpLinkerExtension.ObjectIdentifier]); });
+				postFirstPassActions.Add((compiler) => { baseTypes.Add(compiler.DefinedTypes[MCSharpLinkerExtension.ObjectIdentifier]); });
 			}
 			// TODO: Add base types.
 			BaseTypes = baseTypes;
@@ -122,32 +128,47 @@ namespace MCSharp.Linkage.Script {
 					// Use closure to have a field dictionary per type.
 					var objectives = new Dictionary<IField, Objective[]>();
 					// Use closure to run needed actions during compilation.
-					var actions = new List<Action<Compiler.CompileArguments, Compiler.CompileArguments>>(Members.Count);
-
+					var initInstanceActions = new List<Action<Compiler.CompileArguments, Compiler.CompileArguments>>(Members.Count);
+				
 					foreach(IMember member in Members) {
 						switch(member.MemberType) {
 
 							case MemberType.Field: {
+
+								// Get the field.
 								var field = member.Definition as IField;
-								actions.Add((typeLocation, initLocation) => {
 
-									// Evaluate default value.
-									typeLocation.Compiler.CompileExpression(typeLocation, field.Initializer.Context, out IInstance value);
+								// Create the objectives for the field on load.
+								onLoadActions.Add((location) => {
 
-									// TODO: Move to ???, not initialization.
-									//// When an object is created, all fields, stored in objectives, are assigned to that object's entity.
-									//if(!objectives.ContainsKey(field)) {
-									//	var block = new Objective[typeLocation.Compiler.DefinedTypes[member.ReturnTypeIdentifier].GetBlockSize(initLocation.Compiler)];
-									//	typeLocation.Writer.WriteComments(
-									//		$"Create block of objectives for field '{member.ReturnTypeIdentifier} {member.Identifier ?? "[anonymous]"}' for storage in type '{Identifier}'.");
-									//	for(int i = 0; i < block.Length; i++)
-									//		block[i] = Objective.AddObjective(typeLocation.Writer, null, "dummy");
-									//	objectives.Add(field, block);
-									//}
-									//value.SaveToBlock(initLocation, MCSharpLinkerExtension.StorageSelector, objectives[field]);
+									// Get the compiler from the location.
+									var compiler = location.Compiler;
+
+									// Get the field's type.
+									var fieldType = compiler.DefinedTypes[member.TypeIdentifier];
+
+									// Create the field's objectives array by using IType.GetBlockSize(compiler) to get the size of the array.
+									var objectivesArray = new Objective[fieldType.GetBlockSize(compiler)];
+
+									// Add the objectives to the field's objectives array.
+									location.Writer.WriteComments(
+										$"Create objectives for field '{fieldType.Identifier} {member.Identifier}' for class type '{this.Identifier}'.");
+									for(int i = 0; i < objectivesArray.Length; i++) {
+										objectivesArray[i] = Objective.AddObjective(location.Writer, null, "dummy");
+									}
+
+									// Add the objectives to the dictionary.
+									objectives.Add(field, objectivesArray);
 
 								});
+
+								// Initialize the field during initialization.
+								initInstanceActions.Add((typeLocation, initLocation) => {
+									typeLocation.Compiler.CompileExpression(typeLocation, field.Initializer.Context, out IInstance value);
+								});
+
 								break;
+
 							}
 
 							case MemberType.Property: {
@@ -161,7 +182,7 @@ namespace MCSharp.Linkage.Script {
 					InitInstance = (initLocation, identifier) => {
 
 						var typeLocation = new Compiler.CompileArguments(initLocation.Compiler, initLocation.Function, Scope, initLocation.Predefined);
-						foreach(var action in actions)
+						foreach(var action in initInstanceActions)
 							action.Invoke(initLocation, typeLocation);
 
 						initLocation.Writer.WriteComments(
@@ -219,7 +240,15 @@ namespace MCSharp.Linkage.Script {
 
 		/// <inheritdoc/>
 		public void Dispose() {
-			foreach(ScriptMember member in Members) member.Dispose();
+			
+			// Dispose of every member.
+			foreach(IMember member in Members)
+				member.Dispose();
+
+			// Dispose of every constructor.
+			foreach(ScriptConstructor constructor in Constructors)
+				constructor.Dispose();
+			
 		}
 	}
 

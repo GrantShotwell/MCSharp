@@ -69,6 +69,9 @@ namespace MCSharp.Compilation {
 
 		public VirtualMachine VirtualMachine { get; private set; }
 
+		/// <summary>
+		/// The assemblies that are loaded into the compiler.
+		/// </summary>
 		public ICollection<Assembly> Assemblies { get; }
 
 
@@ -107,10 +110,16 @@ namespace MCSharp.Compilation {
 		/// <summary>
 		/// Compiles the given <see cref="Settings"/> and returns the resulting <see cref="ResultInfo"/>.
 		/// </summary>
+		/// <returns>The result of the compilation.</returns>
 		public ResultInfo Compile() {
 			
 			// Prepare a list of things to do after the first pass.
 			List<Action> postFirstPass = new List<Action>();
+			// Prepare a list of things to do on load.
+			List<Action<CompileArguments>> onLoadActions = new List<Action<CompileArguments>>();
+			// Prepare a list of things to do on tick.
+			List<Action<CompileArguments>> onTickActions = new List<Action<CompileArguments>>();
+
 			// Find, parse, and first pass walk (types, members) all script files.
 			ResultInfo FirstPassWalk() {
 
@@ -118,27 +127,37 @@ namespace MCSharp.Compilation {
 
 					// Use Antlr generated classes to parse the file.
 
+					// Create an input stream from the file.
 					ICharStream stream = CharStreams.fromPath(file);
 					var errorListener = new ScriptErrorListener(file[(Settings.Datapack.ScriptDirectory.Length + 1)..]);
 
+					// Create a lexer.
 					var lexer = new MCSharpLexer(stream);
 					lexer.RemoveErrorListeners();
 					lexer.AddErrorListener(errorListener);
 
+					// Create a stream of tokens from the lexer.
 					ITokenStream tokens = new CommonTokenStream(lexer);
 
+					// Create a parser.
 					var parser = new MCSharpParser(tokens) { BuildParseTree = true };
 					parser.RemoveErrorListeners();
 					parser.AddErrorListener(errorListener);
 
+					// Parse the file.
 					IParseTree tree = parser.script();
 					if(errorListener.Result.Failure) {
 						return errorListener.Result;
 					}
 
+					// Walk the tree and perform the first pass.
 					var walker = new ScriptClassWalker(this);
 					ParseTreeWalker.Default.Walk(walker, tree);
+
+					// Add the post-first-pass action.
 					postFirstPass.Add(() => walker.PostFirstPass());
+					// Add the on-load action.
+					onLoadActions.Add((location) => walker.OnLoad(location));
 
 				}
 
@@ -166,8 +185,6 @@ namespace MCSharp.Compilation {
 
 
 			// Apply linker extensions.
-			var onLoadActions = new List<Action<CompileArguments>>();
-			var onTickActions = new List<Action<CompileArguments>>();
 			void ApplyLinkerExtensions() {
 				foreach(LinkerExtension extension in LinkerExtensions) {
 
@@ -2173,6 +2190,7 @@ namespace MCSharp.Compilation {
 		/// <returns>The result of the compilation.</returns>
 		public ResultInfo CompileLiteral(CompileArguments location, MCSharpParser.LiteralContext literal, out IInstance value) {
 
+			// Parse integer literal.
 			ITerminalNode integer_literal = literal.INTEGER();
 			if(integer_literal != null) {
 
@@ -2188,6 +2206,7 @@ namespace MCSharp.Compilation {
 
 			}
 
+			// Parse boolean literal.
 			ITerminalNode boolean_literal = literal.BOOLEAN();
 			if(boolean_literal != null) {
 
@@ -2203,6 +2222,7 @@ namespace MCSharp.Compilation {
 
 			}
 
+			// Parse string literal.
 			ITerminalNode string_literal = literal.STRING();
 			if(string_literal != null) {
 
@@ -2218,13 +2238,12 @@ namespace MCSharp.Compilation {
 
 			}
 
+			// Parse decimal literal.
 			ITerminalNode decimal_literal = literal.DECIMAL();
 			if(decimal_literal != null) {
 
 				string text = decimal_literal.GetText();
 				double _value = double.Parse(text);
-
-				// type
 
 				throw new NotImplementedException("Decimal/float/ect. literals have not been implemented.");
 
@@ -2299,6 +2318,8 @@ namespace MCSharp.Compilation {
 						var constructor = type.FindBestConstructor(genericArguments, methodArguments);
 
 						// Invoke constructor.
+						location.Writer.WriteComments(
+							$"Invoke constructor: {type.Identifier}");
 						ResultInfo result = constructor.Invoker.Invoke(location, new IType[] { }, methodArguments, out value);
 						if(result.Failure) return location.GetLocation(new_keyword_expression) + result;
 
@@ -2307,9 +2328,6 @@ namespace MCSharp.Compilation {
 					}
 
 				}
-
-				// NEW NAME OP expression CP
-				// removed from grammar
 
 				// NEW anonymous_object_initializer
 				var anonymous_object_initializer = new_keyword_expression.anonymous_object_initializer();
@@ -2561,6 +2579,7 @@ namespace MCSharp.Compilation {
 
 			Compiler Compiler { get; }
 			event Action<Compiler> postFirstPass;
+			event Action<Compiler.CompileArguments> onLoad;
 
 			private TypeDefinitionContext CurrentTypeContext { get; set; }
 			private ICollection<MemberDefinitionContext> CurrentMemberContexts { get; set; } = new LinkedList<MemberDefinitionContext>();
@@ -2585,13 +2604,19 @@ namespace MCSharp.Compilation {
 
 			public override void ExitType_definition([NotNull] TypeDefinitionContext context) {
 				if(context != CurrentTypeContext) throw new Exception($"Subtypes are currently not supported by {nameof(ScriptClassWalker)}.");
-				var scriptType = new ScriptType(CurrentTypeContext, CurrentMemberContexts.ToArray(), CurrentConstructorContexts.ToArray(), Compiler.Settings, Compiler.VirtualMachine, out Action<Compiler> postFirstPass);
+				var scriptType = new ScriptType(CurrentTypeContext, CurrentMemberContexts.ToArray(), CurrentConstructorContexts.ToArray(), Compiler.Settings, Compiler.VirtualMachine,
+					out Action<Compiler> postFirstPass, out Action<Compiler.CompileArguments> onLoad);
 				this.postFirstPass += postFirstPass;
+				this.onLoad += onLoad;
 				Compiler.DefinedTypes.Add(scriptType.Identifier.GetText(), scriptType);
 			}
 
 			public void PostFirstPass() {
 				postFirstPass.Invoke(Compiler);
+			}
+
+			public void OnLoad(Compiler.CompileArguments location) {
+				onLoad.Invoke(location);
 			}
 
 		}

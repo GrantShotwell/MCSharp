@@ -23,7 +23,7 @@ namespace MCSharp.Linkage {
 		/// <summary>
 		/// The local identifier that represents the return type.
 		/// </summary>
-		public string ReturnTypeIdentifier { get; }
+		public string TypeIdentifier { get; }
 
 		/// <summary>
 		/// The local identifier the represents this member.

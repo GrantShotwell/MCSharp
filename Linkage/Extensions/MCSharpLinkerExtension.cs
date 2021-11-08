@@ -19,33 +19,41 @@ namespace MCSharp.Linkage.Extensions {
 		public static string ObjectiveIdentifier => "objective";
 		public static string StringIdentifier => "string";
 		public static string SelectorIdentifier => "selector";
+		public static string FloatIdentifier => "float";
 
 		public MCSharpLinkerExtension(Compiler compiler) : base(compiler) { }
 
+		/// <inheritdoc/>
 		public override void CreatePredefinedTypes(out Action<Compiler.CompileArguments> onLoad, out Action<Compiler.CompileArguments> onTick) {
 
 			onLoad = (location) => {
 				location.Writer.WriteComments(
 					"Add objective to store object IDs.");
-				Objective.AddObjective(location.Writer, ObjectInstance.ObjectIdObjective);
+				Objective.AddObjective(location.Writer, ObjectInstance.AddressObjective);
 			};
 			onTick = (location) => { };
 
+			// Add the object type.
 			PredefinedType @object = CreatePredefinedObject();
 			Compiler.DefinedTypes.Add(@object.Identifier, @object);
 
+			// Add the int type.
 			PredefinedType @int = CreatePredefinedInt();
 			Compiler.DefinedTypes.Add(@int.Identifier, @int);
 
+			// Add the bool type.
 			PredefinedType @bool = CreatePredefinedBool();
 			Compiler.DefinedTypes.Add(@bool.Identifier, @bool);
 
+			// Add the objective type.
 			PredefinedType objective = CreatePredefinedObjective();
 			Compiler.DefinedTypes.Add(objective.Identifier, objective);
 
+			// Add the string type.
 			PredefinedType @string = CreatePredefinedString();
 			Compiler.DefinedTypes.Add(@string.Identifier, @string);
 
+			// Add the selector type.
 			PredefinedType selector = CreatePredefinedSelector();
 			Compiler.DefinedTypes.Add(selector.Identifier, selector);
 

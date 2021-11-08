@@ -26,7 +26,7 @@ namespace MCSharp.Linkage.Predefined {
 		public Modifier Modifiers { get; }
 
 		/// <inheritdoc/>
-		public string ReturnTypeIdentifier { get; }
+		public string TypeIdentifier { get; }
 
 		/// <inheritdoc/>
 		public string Identifier { get; }
@@ -50,7 +50,7 @@ namespace MCSharp.Linkage.Predefined {
 		public PredefinedMember(PredefinedType declarer, Modifier modifiers, string returnTypeIdentifier, string identifier, MemberType memberType, PredefinedMemberDefinition definition) {
 			Declarer = declarer;
 			Modifiers = modifiers;
-			ReturnTypeIdentifier = returnTypeIdentifier ?? throw new ArgumentNullException(nameof(returnTypeIdentifier));
+			TypeIdentifier = returnTypeIdentifier ?? throw new ArgumentNullException(nameof(returnTypeIdentifier));
 			Identifier = identifier ?? throw new ArgumentNullException(nameof(identifier));
 			MemberType = memberType;
 			Definition = definition ?? throw new ArgumentNullException(nameof(definition));
