@@ -29,6 +29,11 @@ namespace MCSharp.Linkage.Minecraft {
 		public string ReturnTypeIdentifier { get; }
 
 		/// <summary>
+		/// The <see cref="IInstance>"/> assigned to when returning.
+		/// </summary>
+		public IInstance ReturnInstance { get; }
+
+		/// <summary>
 		/// Invoke the <see cref="IFunction"/> with the given arguments.
 		/// </summary>
 		/// <param name="location">The location of the call.</param>

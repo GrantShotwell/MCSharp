@@ -23,10 +23,8 @@ namespace MCSharp.Linkage.Minecraft {
 		/// <inheritdoc/>
 		public IStatement[] Statements { get; }
 
-		/// <summary>
-		/// The <see cref="IInstance>"/> assigned to when returning.
-		/// </summary>
-		private IInstance ReturnInstance { get; set; }
+		/// <inheritdoc/>
+		public IInstance ReturnInstance { get; private set; }
 
 		/// <inheritdoc/>
 		public string ReturnTypeIdentifier { get; }

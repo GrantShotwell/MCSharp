@@ -15,3 +15,4 @@ C:\Projects\MCSharp\MCSharp\bin\Debug\netcoreapp3.1\Antlr4.Runtime.Standard.dll
 C:\Projects\MCSharp\MCSharp\obj\Debug\netcoreapp3.1\MCSharp.csproj.CoreCompileInputs.cache
 C:\Projects\MCSharp\MCSharp\obj\Debug\netcoreapp3.1\MCSharp.csproj.AssemblyReference.cache
 C:\Projects\MCSharp\MCSharp\obj\Debug\netcoreapp3.1\MCSharp.GeneratedMSBuildEditorConfig.editorconfig
+C:\Projects\MCSharp\MCSharp\obj\Debug\netcoreapp3.1\MCSharp.csproj.CopyComplete

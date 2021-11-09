@@ -29,6 +29,9 @@ namespace MCSharp.Linkage.Minecraft {
 		/// <inheritdoc/>
 		public string ReturnTypeIdentifier { get; }
 
+		/// <inheritdoc/>
+		public IInstance ReturnInstance { get; private set; }
+
 
 		public CustomFunction(string returnTypeIdentifier, PredefinedGenericParameter[] genericParameters, PredefinedMethodParameter[] methodParameters, InvokeDelegate @delegate) {
 			Delegate = @delegate ?? throw new ArgumentNullException(nameof(@delegate));

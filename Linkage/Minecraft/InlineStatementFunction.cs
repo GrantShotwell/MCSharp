@@ -20,6 +20,9 @@ namespace MCSharp.Linkage.Minecraft {
 		/// <inheritdoc/>
 		public string ReturnTypeIdentifier { get; }
 
+		/// <inheritdoc/>
+		public IInstance ReturnInstance { get; private set; }
+
 
 		public InlineStatementFunction(IGenericParameter[] genericParameters, IMethodParameter[] methodParameters, IStatement[] statements, string returnTypeIdentifier) {
 
