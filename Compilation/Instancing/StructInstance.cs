@@ -20,7 +20,7 @@ namespace MCSharp.Compilation.Instancing {
 
 		public IReadOnlyDictionary<IField, IInstance> FieldInstances { get; }
 
-		public Scope Scope { get; set; }
+		public Scope Scope { get; }
 
 		public StructInstance(Compiler.CompileArguments location, IType type, string identifier) {
 
@@ -29,9 +29,11 @@ namespace MCSharp.Compilation.Instancing {
 				throw new IInstance.InvalidTypeException(type, "any struct");
 			#endregion
 
+
 			Type = type;
 			Identifier = identifier;
-			Scope = new Scope(null, type.Scope, this);
+			Scope = new Scope(null, type.Scope);
+			Scope.Holder = this;
 			IDictionary<IField, IInstance> fieldInstances = new Dictionary<IField, IInstance>(type.Members.Count);
 			FieldInstances = (IReadOnlyDictionary<IField, IInstance>)fieldInstances;
 

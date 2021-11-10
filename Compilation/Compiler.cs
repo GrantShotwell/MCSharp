@@ -119,6 +119,8 @@ namespace MCSharp.Compilation {
 			List<Action<CompileArguments>> onLoadActions = new List<Action<CompileArguments>>();
 			// Prepare a list of things to do on tick.
 			List<Action<CompileArguments>> onTickActions = new List<Action<CompileArguments>>();
+			// Make the root scope.
+			Scope rootScope = new Scope(null, null);
 
 			// Find, parse, and first pass walk (types, members) all script files.
 			ResultInfo FirstPassWalk() {
@@ -151,7 +153,7 @@ namespace MCSharp.Compilation {
 					}
 
 					// Walk the tree and perform the first pass.
-					var walker = new ScriptClassWalker(this);
+					var walker = new ScriptClassWalker(this, rootScope);
 					ParseTreeWalker.Default.Walk(walker, tree);
 
 					// Add the post-first-pass action.
@@ -188,7 +190,7 @@ namespace MCSharp.Compilation {
 			void ApplyLinkerExtensions() {
 				foreach(LinkerExtension extension in LinkerExtensions) {
 
-					extension.CreatePredefinedTypes(out Action<CompileArguments> onLoad, out Action<CompileArguments> onTick);
+					extension.CreatePredefinedTypes(rootScope, out Action<CompileArguments> onLoad, out Action<CompileArguments> onTick);
 					onLoadActions.Add(onLoad);
 					onTickActions.Add(onTick);
 
@@ -224,12 +226,6 @@ namespace MCSharp.Compilation {
 
 			}
 
-
-			// Give every type a scope.
-			Scope rootScope = new Scope(null, null, null);
-			foreach(IType type in DefinedTypes.Values) {
-				new Scope(type.Identifier, rootScope, type);
-			}
 
 			// Compile 'Program.Load()' and 'Program.Tick()'.
 			foreach(IType type in DefinedTypes.Values) {
@@ -281,7 +277,7 @@ namespace MCSharp.Compilation {
 				throw new ArgumentOutOfRangeException(nameof(member), $"The given {member.MemberType} is not {nameof(MemberType.Method)}.");
 			#endregion
 
-			Scope methodScope = new Scope(member.Identifier, typeScope, member);
+			Scope methodScope = member.Scope;
 			IMethod method = member.Definition as IMethod;
 			StandaloneStatementFunction invoker = method.Invoker as StandaloneStatementFunction;
 			invoker.Writer.WriteTitle(
@@ -379,7 +375,7 @@ namespace MCSharp.Compilation {
 					ResultInfo conditionResult = CompileExpression(location, condition, out IInstance value);
 					if(conditionResult.Failure) return conditionResult;
 
-					Scope statement1Scope = new Scope(null, location.Scope, null);
+					Scope statement1Scope = new Scope(null, location.Scope);
 					StandaloneStatementFunction statement1Function = location.Function.CreateChildFunction(CreateIStatements(statement1, location.Predefined), Settings);
 					CompileArguments statement1Location = new CompileArguments(location.Compiler, statement1Function, statement1Scope, location.Predefined);
 
@@ -393,7 +389,7 @@ namespace MCSharp.Compilation {
 
 						if(statement2 != null) {
 
-							Scope statement2Scope = new Scope(null, location.Scope, null);
+							Scope statement2Scope = new Scope(null, location.Scope);
 							StandaloneStatementFunction statement2Function = location.Function.CreateChildFunction(CreateIStatements(statement2, location.Predefined), Settings);
 							CompileArguments statement2Location = new CompileArguments(location.Compiler, statement2Function, statement2Scope, location.Predefined);
 
@@ -424,10 +420,10 @@ namespace MCSharp.Compilation {
 					ExpressionContext increment = for_expressions[1];
 					StatementContext statement = for_statement.statement();
 
-					Scope scopeOuter = new Scope(null, location.Scope, null);
+					Scope scopeOuter = new Scope(null, location.Scope);
 					CompileArguments locationOuter = new CompileArguments(location.Compiler, location.Function, scopeOuter, location.Predefined);
 
-					Scope scopeInner = new Scope(null, scopeOuter, null);
+					Scope scopeInner = new Scope(null, scopeOuter);
 					StandaloneStatementFunction statementFunction = locationOuter.Function.CreateChildFunction(CreateIStatements(statement, locationOuter.Predefined), Settings);
 					CompileArguments locationInner = new CompileArguments(locationOuter.Compiler, statementFunction, scopeInner, locationOuter.Predefined);
 
@@ -481,10 +477,10 @@ namespace MCSharp.Compilation {
 					ExpressionContext condition = while_statement.expression();
 					StatementContext statement = while_statement.statement();
 
-					Scope scopeOuter = new Scope(null, location.Scope, null);
+					Scope scopeOuter = new Scope(null, location.Scope);
 					CompileArguments locationOuter = new CompileArguments(location.Compiler, location.Function, scopeOuter, location.Predefined);
 
-					Scope scopeInner = new Scope(null, scopeOuter, null);
+					Scope scopeInner = new Scope(null, scopeOuter);
 					StandaloneStatementFunction statementFunction = locationOuter.Function.CreateChildFunction(CreateIStatements(statement, locationOuter.Predefined), Settings);
 					CompileArguments locationInner = new CompileArguments(locationOuter.Compiler, statementFunction, scopeInner, locationOuter.Predefined);
 
@@ -525,7 +521,7 @@ namespace MCSharp.Compilation {
 					ExpressionContext condition = do_statement.expression();
 					StatementContext statement = do_statement.statement();
 
-					Scope scopeInner = new Scope(null, location.Scope, null);
+					Scope scopeInner = new Scope(null, location.Scope);
 					StandaloneStatementFunction statementFunction = location.Function.CreateChildFunction(CreateIStatements(statement, location.Predefined), Settings);
 					CompileArguments locationInner = new CompileArguments(location.Compiler, statementFunction, scopeInner, location.Predefined);
 
@@ -618,7 +614,13 @@ namespace MCSharp.Compilation {
 
 						}
 
+					} else {
+
+						// 'return' statement is invalid here.
+						return new ResultInfo(false, location.GetLocation(return_statement) + "A 'return' statement is invalid here.");
+
 					}
+
 					return ResultInfo.DefaultSuccess;
 
 				}
@@ -2879,15 +2881,17 @@ namespace MCSharp.Compilation {
 		public class ScriptClassWalker : MCSharpBaseListener {
 
 			Compiler Compiler { get; }
+			Scope RootScope { get; }
 			event Action<Compiler> postFirstPass;
-			event Action<Compiler.CompileArguments> onLoad;
+			event Action<CompileArguments> onLoad;
 
 			private TypeDefinitionContext CurrentTypeContext { get; set; }
 			private ICollection<MemberDefinitionContext> CurrentMemberContexts { get; set; } = new LinkedList<MemberDefinitionContext>();
 			private ICollection<ConstructorDefinitionContext> CurrentConstructorContexts { get; set; } = new LinkedList<ConstructorDefinitionContext>();
 
-			public ScriptClassWalker(Compiler compiler) {
+			public ScriptClassWalker(Compiler compiler, Scope rootScope) {
 				Compiler = compiler;
+				RootScope = rootScope;
 			}
 
 			public override void EnterType_definition([NotNull] TypeDefinitionContext context) {
@@ -2904,12 +2908,21 @@ namespace MCSharp.Compilation {
 			}
 
 			public override void ExitType_definition([NotNull] TypeDefinitionContext context) {
+				
 				if(context != CurrentTypeContext) throw new Exception($"Subtypes are currently not supported by {nameof(ScriptClassWalker)}.");
-				var scriptType = new ScriptType(CurrentTypeContext, CurrentMemberContexts.ToArray(), CurrentConstructorContexts.ToArray(), Compiler.Settings, Compiler.VirtualMachine,
-					out Action<Compiler> postFirstPass, out Action<Compiler.CompileArguments> onLoad);
+				
+				Scope typeScope = new Scope(context.NAME().GetText(), RootScope);
+				
+				var scriptType = new ScriptType(
+					CurrentTypeContext, CurrentMemberContexts.ToArray(), CurrentConstructorContexts.ToArray(),
+					Compiler.Settings, Compiler.VirtualMachine, typeScope,
+					out Action<Compiler> postFirstPass, out Action<CompileArguments> onLoad
+				);
+
 				this.postFirstPass += postFirstPass;
 				this.onLoad += onLoad;
 				Compiler.DefinedTypes.Add(scriptType.Identifier.GetText(), scriptType);
+
 			}
 
 			public void PostFirstPass() {

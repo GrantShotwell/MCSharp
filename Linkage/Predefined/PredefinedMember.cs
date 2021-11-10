@@ -20,7 +20,7 @@ namespace MCSharp.Linkage.Predefined {
 		IType IMember.Declarer => Declarer;
 
 		/// <inheritdoc/>
-		public Scope Scope { get; set; }
+		public Scope Scope { get; }
 
 		/// <inheritdoc/>
 		public Modifier Modifiers { get; }
@@ -47,13 +47,18 @@ namespace MCSharp.Linkage.Predefined {
 		/// <param name="identifier">The local identifier for this member definition.</param>
 		/// <param name="memberType">Whether this member is a field, property, or method.</param>
 		/// <param name="definition">The <see cref="IMemberDefinition"/>.</param>
-		public PredefinedMember(PredefinedType declarer, Modifier modifiers, string returnTypeIdentifier, string identifier, MemberType memberType, PredefinedMemberDefinition definition) {
+		public PredefinedMember(Scope scope, PredefinedType declarer, Modifier modifiers, string returnTypeIdentifier, string identifier, MemberType memberType, PredefinedMemberDefinition definition) {
+			
+			Scope = scope;
+			Scope.Holder = this;
+
 			Declarer = declarer;
 			Modifiers = modifiers;
 			TypeIdentifier = returnTypeIdentifier ?? throw new ArgumentNullException(nameof(returnTypeIdentifier));
 			Identifier = identifier ?? throw new ArgumentNullException(nameof(identifier));
 			MemberType = memberType;
 			Definition = definition ?? throw new ArgumentNullException(nameof(definition));
+
 		}
 
 		public void Dispose() {

@@ -36,7 +36,7 @@ namespace MCSharp.Linkage.Script {
 		public ICollection<IType> DerivedTypes { get; } = new List<IType>();
 
 		/// <inheritdoc/>
-		public Scope Scope { get; set; }
+		public Scope Scope { get; }
 
 		/// <inheritdoc cref="IType.Members"/>
 		public IReadOnlyCollection<ScriptMember> Members { get; }
@@ -74,8 +74,11 @@ namespace MCSharp.Linkage.Script {
 		/// <param name="constructorContexts">The <see cref="MCSharpParser.Constructor_definitionContext"/> values taken from script.</param>
 		/// <param name="settings">Value passed to create <see cref="StandaloneStatementFunction"/>(s).</param>
 		/// <param name="virtualMachine">Value passed to create <see cref="StandaloneStatementFunction"/>(s).</param>
-		public ScriptType(TypeDefinitionContext typeContext, MemberDefinitionContext[] memberContexts, ConstructorDefinitionContext[] constructorContexts, Settings settings, VirtualMachine virtualMachine,
+		public ScriptType(TypeDefinitionContext typeContext, MemberDefinitionContext[] memberContexts, ConstructorDefinitionContext[] constructorContexts, Settings settings, VirtualMachine virtualMachine, Scope scope,
 		out Action<Compiler> postFirstPass, out Action<Compiler.CompileArguments> onLoad) {
+
+			Scope = scope;
+			Scope.Holder = this;
 
 			Modifiers = EnumLinker.LinkModifiers(typeContext.modifier());
 			ClassType = EnumLinker.LinkClassType(typeContext.class_type());
@@ -109,14 +112,18 @@ namespace MCSharp.Linkage.Script {
 			// Get members (excluding constructors).
 			ScriptMember[] members = new ScriptMember[memberContexts.Length];
 			for(int i = 0; i < memberContexts.Length; i++) {
-				members[i] = new ScriptMember(this, memberContexts[i], settings, virtualMachine);
+				var context = memberContexts[i];
+				var memberScope = new Scope(context.NAME()[1].GetText(), Scope);
+				members[i] = new ScriptMember(memberScope, this, context, settings, virtualMachine);
 			}
 			Members = members;
 
 			// Get constructors.
 			ScriptConstructor[] constructors = new ScriptConstructor[constructorContexts.Length];
 			for(int i = 0; i < constructorContexts.Length; i++) {
-				constructors[i] = new ScriptConstructor(this, constructorContexts[i], settings, virtualMachine);
+				var context = constructorContexts[i];
+				var memberScope = new Scope(context.NAME().GetText(), Scope);
+				constructors[i] = new ScriptConstructor(memberScope, this, context, settings, virtualMachine);
 			}
 			Constructors = constructors;
 

@@ -27,7 +27,7 @@ namespace MCSharp.Linkage.Script {
 		IFunction IConstructor.Invoker => Invoker;
 
 		/// <inheritdoc/>
-		public Scope Scope { get; set; }
+		public Scope Scope { get; }
 
 
 		/// <summary>
@@ -37,9 +37,10 @@ namespace MCSharp.Linkage.Script {
 		/// <param name="context">The parser context used to create the constructor.</param>
 		/// <param name="settings">Value passed to create <see cref="StandaloneStatementFunction"/>(s).</param>
 		/// <param name="virtualMachine">Value passed to create <see cref="StandaloneStatementFunction"/>(s).</param>
-		public ScriptConstructor(ScriptType declarer, ConstructorDefinitionContext context, Settings settings, VirtualMachine virtualMachine) {
+		public ScriptConstructor(Scope scope, ScriptType declarer, ConstructorDefinitionContext context, Settings settings, VirtualMachine virtualMachine) {
 
-			Declarer = declarer;
+			Scope = scope;
+			Scope.Holder = this;
 
 			var writer = new FunctionWriter(virtualMachine, settings, Declarer.Identifier.GetText(), $"{Declarer.Identifier.GetText()}_{Declarer.i_constructor++}");
 			ScriptMethodParameter[] parameters = ScriptMethodParameter.CreateArrayFromArray(context.method_parameters().method_parameter_list()?.method_parameter());
@@ -54,8 +55,7 @@ namespace MCSharp.Linkage.Script {
 				statements = ScriptStatement.CreateArrayFromArray(context.code_block().statement());
 			}
 
-			Scope = new Scope(null, declarer.Scope, this);
-			Invoker = new StandaloneStatementFunction(writer, Scope, new ScriptGenericParameter[] { }, parameters, statements, Declarer.Identifier.GetText());
+			Invoker = new StandaloneStatementFunction(writer, this, new ScriptGenericParameter[] { }, parameters, statements, Declarer.Identifier.GetText());
 
 		}
 

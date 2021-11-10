@@ -12,7 +12,7 @@ namespace MCSharp.Compilation {
 		/// <summary>
 		/// The <see cref="Scope"/> held by this <see cref="IScopeHolder"/>.
 		/// </summary>
-		public Scope Scope { get; set; }
+		public Scope Scope { get; }
 
 	}
 

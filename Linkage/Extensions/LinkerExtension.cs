@@ -29,7 +29,7 @@ namespace MCSharp.Linkage.Extensions {
 		/// <summary>
 		/// Create <see cref="PredefinedType"/>(s) and add them to <see cref="Compiler.DefinedTypes"/>.
 		/// </summary>
-		public abstract void CreatePredefinedTypes(out Action<Compiler.CompileArguments> onLoad, out Action<Compiler.CompileArguments> onTick);
+		public abstract void CreatePredefinedTypes(Scope rootScope, out Action<Compiler.CompileArguments> onLoad, out Action<Compiler.CompileArguments> onTick);
 
 	}
 

@@ -24,7 +24,7 @@ namespace MCSharp.Linkage.Extensions {
 		public MCSharpLinkerExtension(Compiler compiler) : base(compiler) { }
 
 		/// <inheritdoc/>
-		public override void CreatePredefinedTypes(out Action<Compiler.CompileArguments> onLoad, out Action<Compiler.CompileArguments> onTick) {
+		public override void CreatePredefinedTypes(Scope rootScope, out Action<Compiler.CompileArguments> onLoad, out Action<Compiler.CompileArguments> onTick) {
 
 			onLoad = (location) => {
 				location.Writer.WriteComments(
@@ -34,37 +34,38 @@ namespace MCSharp.Linkage.Extensions {
 			onTick = (location) => { };
 
 			// Add the object type.
-			PredefinedType @object = CreatePredefinedObject();
+			PredefinedType @object = CreatePredefinedObject(rootScope);
 			Compiler.DefinedTypes.Add(@object.Identifier, @object);
 
 			// Add the int type.
-			PredefinedType @int = CreatePredefinedInt();
+			PredefinedType @int = CreatePredefinedInt(rootScope);
 			Compiler.DefinedTypes.Add(@int.Identifier, @int);
 
 			// Add the bool type.
-			PredefinedType @bool = CreatePredefinedBool();
+			PredefinedType @bool = CreatePredefinedBool(rootScope);
 			Compiler.DefinedTypes.Add(@bool.Identifier, @bool);
 
 			// Add the objective type.
-			PredefinedType objective = CreatePredefinedObjective();
+			PredefinedType objective = CreatePredefinedObjective(rootScope);
 			Compiler.DefinedTypes.Add(objective.Identifier, objective);
 
 			// Add the string type.
-			PredefinedType @string = CreatePredefinedString();
+			PredefinedType @string = CreatePredefinedString(rootScope);
 			Compiler.DefinedTypes.Add(@string.Identifier, @string);
 
 			// Add the selector type.
-			PredefinedType selector = CreatePredefinedSelector();
+			PredefinedType selector = CreatePredefinedSelector(rootScope);
 			Compiler.DefinedTypes.Add(selector.Identifier, selector);
 
 		}
 
-		private static PredefinedType CreatePredefinedObject() {
+		private static PredefinedType CreatePredefinedObject(Scope rootScope) {
 
 			Modifier modifiers = Modifier.Public;
 			ClassType classType = ClassType.Primitive;
 			string identifier = ObjectIdentifier;
 			PredefinedType predefinedType = null;
+			Scope typeScope = new Scope(identifier, rootScope);
 
 			#region Members
 
@@ -192,20 +193,21 @@ namespace MCSharp.Linkage.Extensions {
 
 			};
 
-			predefinedType = new PredefinedType(modifiers, classType, identifier, members.ToArray(), constructors.ToArray(), new PredefinedType[] { }, init, operations);
+			predefinedType = new PredefinedType(typeScope, modifiers, classType, identifier, members.ToArray(), constructors.ToArray(), new PredefinedType[] { }, init, operations);
 			foreach(PredefinedMember member in members) member.Declarer = predefinedType;
 			foreach(PredefinedConstructor constructor in constructors) constructor.Declarer = predefinedType;
 			return predefinedType;
 
 		}
 
-		private static PredefinedType CreatePredefinedInt() {
+		private static PredefinedType CreatePredefinedInt(Scope rootScope) {
 
 			Modifier modifiers = Modifier.Public;
 			ClassType classType = ClassType.Primitive;
 			string identifier = IntIdentifier;
 			PredefinedType[] subtypes = new PredefinedType[] { };
 			PredefinedType predefinedType = null;
+			Scope typeScope = new Scope(identifier, rootScope);
 
 			#region Members
 
@@ -217,11 +219,12 @@ namespace MCSharp.Linkage.Extensions {
 				Modifier member_modifiers = Modifier.Private;
 				string returnType = ObjectiveIdentifier;
 				string member_identifier = "objective";
+				Scope memberScope = new Scope(member_identifier, typeScope);
 
 				PredefinedExpression initializer = new PredefinedExpression("= new objective(\"dummy\");");
 				PredefinedMemberDefinition definition = new PredefinedMemberDefinition.Field(initializer);
 
-				PredefinedMember member = new PredefinedMember(null, member_modifiers, returnType, member_identifier, MemberType.Field, definition);
+				PredefinedMember member = new PredefinedMember(memberScope, null, member_modifiers, returnType, member_identifier, MemberType.Field, definition);
 				members.Add(member);
 
 			}
@@ -232,12 +235,13 @@ namespace MCSharp.Linkage.Extensions {
 				Modifier member_modifiers = Modifier.Private;
 				string returnType = ObjectiveIdentifier;
 				string member_identifier = "Objective";
+				Scope memberScope = new Scope(member_identifier, typeScope);
 
 				var getStatements = new IStatement[] { new PredefinedStatement("return objective;") };
 				InlineStatementFunction getDefinition = new InlineStatementFunction(new IGenericParameter[] { }, new IMethodParameter[] { }, getStatements, returnType);
 				PredefinedMemberDefinition definition = new PredefinedMemberDefinition.Property(getDefinition, null);
 
-				PredefinedMember member = new PredefinedMember(null, member_modifiers, returnType, member_identifier, MemberType.Property, definition);
+				PredefinedMember member = new PredefinedMember(memberScope, null, member_modifiers, returnType, member_identifier, MemberType.Property, definition);
 				members.Add(member);
 
 			}
@@ -805,20 +809,21 @@ namespace MCSharp.Linkage.Extensions {
 
 			};
 
-			predefinedType = new PredefinedType(modifiers, classType, identifier, members.ToArray(), constructors.ToArray(), new PredefinedType[] { }, init, operations);
+			predefinedType = new PredefinedType(typeScope, modifiers, classType, identifier, members.ToArray(), constructors.ToArray(), new PredefinedType[] { }, init, operations);
 			foreach(PredefinedMember member in members) member.Declarer = predefinedType;
 			foreach(PredefinedConstructor constructor in constructors) constructor.Declarer = predefinedType;
 			return predefinedType;
 
 		}
 
-		private static PredefinedType CreatePredefinedBool() {
+		private static PredefinedType CreatePredefinedBool(Scope rootScope) {
 
 			Modifier modifiers = Modifier.Public;
 			ClassType classType = ClassType.Primitive;
 			string identifier = BoolIdentifier;
 			PredefinedType[] subtypes = new PredefinedType[] { };
 			PredefinedType predefinedType = null;
+			Scope typeScope = new Scope(identifier, rootScope);
 
 			#region Members
 
@@ -830,11 +835,12 @@ namespace MCSharp.Linkage.Extensions {
 				Modifier member_modifiers = Modifier.Private;
 				string returnType = ObjectiveIdentifier;
 				string member_identifier = "objective";
+				Scope memberScope = new Scope(member_identifier, typeScope);
 
 				PredefinedExpression initializer = new PredefinedExpression("= new objective(\"dummy\");");
 				PredefinedMemberDefinition definition = new PredefinedMemberDefinition.Field(initializer);
 
-				PredefinedMember member = new PredefinedMember(null, member_modifiers, returnType, member_identifier, MemberType.Field, definition);
+				PredefinedMember member = new PredefinedMember(memberScope, null, member_modifiers, returnType, member_identifier, MemberType.Field, definition);
 				members.Add(member);
 
 			}
@@ -845,12 +851,13 @@ namespace MCSharp.Linkage.Extensions {
 				Modifier member_modifiers = Modifier.Private;
 				string returnType = ObjectiveIdentifier;
 				string member_identifier = "Objective";
+				Scope memberScope = new Scope(member_identifier, typeScope);
 
 				var getStatements = new IStatement[] { new PredefinedStatement("return objective;") };
 				InlineStatementFunction getDefinition = new InlineStatementFunction(new IGenericParameter[] { }, new IMethodParameter[] { }, getStatements, returnType);
 				PredefinedMemberDefinition definition = new PredefinedMemberDefinition.Property(getDefinition, null);
 
-				PredefinedMember member = new PredefinedMember(null, member_modifiers, returnType, member_identifier, MemberType.Property, definition);
+				PredefinedMember member = new PredefinedMember(memberScope, null, member_modifiers, returnType, member_identifier, MemberType.Property, definition);
 				members.Add(member);
 
 			}
@@ -1027,20 +1034,21 @@ namespace MCSharp.Linkage.Extensions {
 
 			};
 
-			predefinedType = new PredefinedType(modifiers, classType, identifier, members.ToArray(), constructors.ToArray(), new PredefinedType[] { }, init, operations);
+			predefinedType = new PredefinedType(typeScope, modifiers, classType, identifier, members.ToArray(), constructors.ToArray(), new PredefinedType[] { }, init, operations);
 			foreach(PredefinedMember member in members) member.Declarer = predefinedType;
 			foreach(PredefinedConstructor constructor in constructors) constructor.Declarer = predefinedType;
 			return predefinedType;
 
 		}
 
-		private static PredefinedType CreatePredefinedObjective() {
+		private static PredefinedType CreatePredefinedObjective(Scope rootScope) {
 
 			Modifier modifiers = Modifier.Public;
 			ClassType classType = ClassType.Primitive;
 			string identifier = ObjectiveIdentifier;
 			PredefinedType[] subtypes = new PredefinedType[] { };
 			PredefinedType predefinedType = null;
+			Scope typeScope = new Scope(identifier, rootScope);
 
 			#region Members
 
@@ -1052,11 +1060,12 @@ namespace MCSharp.Linkage.Extensions {
 				Modifier member_modifiers = Modifier.Private;
 				string returnType = ObjectiveIdentifier;
 				string member_identifier = "name";
+				Scope memberScope = new Scope(member_identifier, typeScope);
 
 				PredefinedExpression initializer = null;
 				PredefinedMemberDefinition definition = new PredefinedMemberDefinition.Field(initializer);
 
-				PredefinedMember member = new PredefinedMember(null, member_modifiers, returnType, member_identifier, MemberType.Field, definition);
+				PredefinedMember member = new PredefinedMember(memberScope, null, member_modifiers, returnType, member_identifier, MemberType.Field, definition);
 				members.Add(member);
 
 			}
@@ -1067,12 +1076,13 @@ namespace MCSharp.Linkage.Extensions {
 				Modifier member_modifiers = Modifier.Private;
 				string returnType = ObjectiveIdentifier;
 				string member_identifier = "Name";
+				Scope memberScope = new Scope(member_identifier, typeScope);
 
 				var getStatements = new IStatement[] { new PredefinedStatement("return name;") };
 				InlineStatementFunction getDefinition = new InlineStatementFunction(new IGenericParameter[] { }, new IMethodParameter[] { }, getStatements, returnType);
 				PredefinedMemberDefinition definition = new PredefinedMemberDefinition.Property(getDefinition, null);
 
-				PredefinedMember member = new PredefinedMember(null, member_modifiers, returnType, member_identifier, MemberType.Property, definition);
+				PredefinedMember member = new PredefinedMember(memberScope, null, member_modifiers, returnType, member_identifier, MemberType.Property, definition);
 				members.Add(member);
 
 			}
@@ -1105,20 +1115,21 @@ namespace MCSharp.Linkage.Extensions {
 
 			};
 
-			predefinedType = new PredefinedType(modifiers, classType, identifier, members.ToArray(), constructors.ToArray(), new PredefinedType[] { }, init, operations);
+			predefinedType = new PredefinedType(typeScope, modifiers, classType, identifier, members.ToArray(), constructors.ToArray(), new PredefinedType[] { }, init, operations);
 			foreach(PredefinedMember member in members) member.Declarer = predefinedType;
 			foreach(PredefinedConstructor constructor in constructors) constructor.Declarer = predefinedType;
 			return predefinedType;
 
 		}
 
-		private static PredefinedType CreatePredefinedString() {
+		private static PredefinedType CreatePredefinedString(Scope rootScope) {
 
 			Modifier modifiers = Modifier.Public;
 			ClassType classType = ClassType.Primitive;
 			string identifier = StringIdentifier;
 			PredefinedType[] subtypes = new PredefinedType[] { };
 			PredefinedType predefinedType = null;
+			Scope typeScope = new Scope(identifier, rootScope);
 
 			#region Members
 
@@ -1156,19 +1167,20 @@ namespace MCSharp.Linkage.Extensions {
 
 			};
 
-			predefinedType = new PredefinedType(modifiers, classType, identifier, members.ToArray(), constructors.ToArray(), new PredefinedType[] { }, init, operations);
+			predefinedType = new PredefinedType(typeScope, modifiers, classType, identifier, members.ToArray(), constructors.ToArray(), new PredefinedType[] { }, init, operations);
 			foreach(PredefinedMember member in members) member.Declarer = predefinedType;
 			foreach(PredefinedConstructor constructor in constructors) constructor.Declarer = predefinedType;
 			return predefinedType;
 
 		}
 
-		private static PredefinedType CreatePredefinedSelector() {
+		private static PredefinedType CreatePredefinedSelector(Scope rootScope) {
 
 			Modifier modifiers = Modifier.Public;
 			ClassType classType = ClassType.Primitive;
 			string identifier = SelectorIdentifier;
 			PredefinedType predefinedType = null;
+			Scope typeScope = new Scope(identifier, rootScope);
 
 			#region Members
 
@@ -1206,7 +1218,7 @@ namespace MCSharp.Linkage.Extensions {
 
 			};
 
-			predefinedType = new PredefinedType(modifiers, classType, identifier, members.ToArray(), constructors.ToArray(), new PredefinedType[] { }, init, operations);
+			predefinedType = new PredefinedType(typeScope, modifiers, classType, identifier, members.ToArray(), constructors.ToArray(), new PredefinedType[] { }, init, operations);
 			foreach(PredefinedMember member in members) member.Declarer = predefinedType;
 			foreach(PredefinedConstructor constructor in constructors) constructor.Declarer = predefinedType;
 			return predefinedType;

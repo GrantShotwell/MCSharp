@@ -4,74 +4,77 @@ using MemberDefinitionContext = MCSharpParser.Member_definitionContext;
 
 namespace MCSharp.Linkage.Script {
 
-	public class ScriptMember : IMember {
+    public class ScriptMember : IMember {
 
-		/// <summary>
-		/// The type, defined by script, that has defined this member.
-		/// </summary>
-		public ScriptType Declarer { get; }
-		/// <inheritdoc/>
-		IType IMember.Declarer => Declarer;
+        /// <summary>
+        /// The type, defined by script, that has defined this member.
+        /// </summary>
+        public ScriptType Declarer { get; }
+        /// <inheritdoc/>
+        IType IMember.Declarer => Declarer;
 
-		/// <inheritdoc/>
-		public Scope Scope { get; set; }
+        /// <inheritdoc/>
+        public Scope Scope { get; }
 
-		/// <summary>
-		/// TODO: Possibly remove this.
-		/// </summary>
-		public MemberDefinitionContext FullContext { get; }
+        /// <summary>
+        /// TODO: Possibly remove this.
+        /// </summary>
+        public MemberDefinitionContext FullContext { get; }
 
-		/// <inheritdoc/>
-		public Modifier Modifiers { get; }
-		/// <summary>
-		/// The local identifier that represents the return type.
-		/// </summary>
-		public ITerminalNode ReturnTypeIdentifier { get; }
-		/// <inheritdoc/>
-		string IMember.TypeIdentifier => ReturnTypeIdentifier.GetText();
-		/// <summary>
-		/// The local identifier that represents this member.
-		/// </summary>
-		public ITerminalNode Identifier { get; }
-		/// <inheritdoc/>
-		string IMember.Identifier => Identifier.GetText();
-		/// <inheritdoc/>
-		public MemberType MemberType { get; }
-		/// <summary>
-		/// The <see cref="ScriptMemberDefinition"/> of this <see cref="ScriptMember"/>
-		/// </summary>
-		public ScriptMemberDefinition Definition { get; }
-		/// <inheritdoc/>
-		IMemberDefinition IMember.Definition => Definition;
+        /// <inheritdoc/>
+        public Modifier Modifiers { get; }
+        /// <summary>
+        /// The local identifier that represents the return type.
+        /// </summary>
+        public ITerminalNode ReturnTypeIdentifier { get; }
+        /// <inheritdoc/>
+        string IMember.TypeIdentifier => ReturnTypeIdentifier.GetText();
+        /// <summary>
+        /// The local identifier that represents this member.
+        /// </summary>
+        public ITerminalNode Identifier { get; }
+        /// <inheritdoc/>
+        string IMember.Identifier => Identifier.GetText();
+        /// <inheritdoc/>
+        public MemberType MemberType { get; }
+        /// <summary>
+        /// The <see cref="ScriptMemberDefinition"/> of this <see cref="ScriptMember"/>
+        /// </summary>
+        public ScriptMemberDefinition Definition { get; }
+        /// <inheritdoc/>
+        IMemberDefinition IMember.Definition => Definition;
 
-		/// <summary>
-		/// Creates a new member defined by script.
-		/// </summary>
-		/// <param name="declarer">The type that has defined this member.</param>
-		/// <param name="context"></param>
-		/// <param name="settings">Value passed to create <see cref="Minecraft.StandaloneStatementFunction"/>(s).</param>
-		/// <param name="virtualMachine">Value passed to create <see cref="Minecraft.StandaloneStatementFunction"/>(s).</param>
-		public ScriptMember(ScriptType declarer, MemberDefinitionContext context, Settings settings, VirtualMachine virtualMachine) {
+        /// <summary>
+        /// Creates a new member defined by script.
+        /// </summary>
+        /// <param name="declarer">The type that has defined this member.</param>
+        /// <param name="context"></param>
+        /// <param name="settings">Value passed to create <see cref="Minecraft.StandaloneStatementFunction"/>(s).</param>
+        /// <param name="virtualMachine">Value passed to create <see cref="Minecraft.StandaloneStatementFunction"/>(s).</param>
+        public ScriptMember(Scope scope, ScriptType declarer, MemberDefinitionContext context, Settings settings, VirtualMachine virtualMachine) {
 
-			Declarer = declarer;
-			FullContext = context;
+            Scope = scope;
+            Scope.Holder = this;
 
-			Modifiers = EnumLinker.LinkModifiers(context.modifier());
+            Declarer = declarer;
+            FullContext = context;
 
-			ITerminalNode[] names = context.NAME();
-			ReturnTypeIdentifier = names[0];
-			Identifier = names[1];
+            Modifiers = EnumLinker.LinkModifiers(context.modifier());
 
-			MemberType = EnumLinker.LinkMemberType(context);
+            ITerminalNode[] names = context.NAME();
+            ReturnTypeIdentifier = names[0];
+            Identifier = names[1];
 
-			Definition = ScriptMemberDefinition.CreateMemberDefinitionLink(this, settings, virtualMachine);
+            MemberType = EnumLinker.LinkMemberType(context);
 
-		}
+            Definition = ScriptMemberDefinition.CreateMemberDefinitionLink(this, settings, virtualMachine);
 
-		public void Dispose() {
-			Definition.Dispose();
-		}
+        }
 
-	}
+        public void Dispose() {
+            Definition.Dispose();
+        }
+
+    }
 
 }

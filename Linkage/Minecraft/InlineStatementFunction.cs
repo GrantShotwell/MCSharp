@@ -37,7 +37,7 @@ namespace MCSharp.Linkage.Minecraft {
 		/// <inheritdoc/>
 		public ResultInfo Invoke(Compiler.CompileArguments location, IType[] generic, IInstance[] arguments, out IInstance result) {
 
-			location.Compiler.CompileStatements(location.Function, new Scope(null, location.Scope, null), Statements);
+			location.Compiler.CompileStatements(location.Function, new Scope(null, location.Scope), Statements);
 			result = null;
 			return ResultInfo.DefaultSuccess;
 

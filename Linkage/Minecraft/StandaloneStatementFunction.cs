@@ -33,14 +33,44 @@ namespace MCSharp.Linkage.Minecraft {
 
 		public bool Compiled { get; set; }
 
-		public Scope Scope { get; }
+		private IScopeHolder ScopeHolder { get; }
+		private Scope scope;
+
+		/// <summary>
+		/// The <see cref="Compilation.Scope"/> this <see cref="IFunction"/> is in.
+		/// </summary>
+		public Scope Scope => ScopeHolder?.Scope ?? scope;
 
 
 		/// <summary>
-		/// Creates a new <see cref="StandaloneStatementFunction"/>.
+		/// Creates a new <see cref="StandaloneStatementFunction"/> with a scope of a <see cref="IScopeHolder"/>.
 		/// </summary>
 		/// <param name="writer">The <see cref="FunctionWriter"/> this <see cref="IFunction"/> will write to.</param>
-		/// <param name="scope">The <see cref="Scope"/> used when writing the function.</param>
+		/// <param name="holder">The <see cref="IScopeHolder"/> this <see cref="IFunction"/> belongs to.</param>
+		/// <param name="parent">The <see cref="Scope"/> used when writing the function.</param>
+		/// <param name="genericParameters">The <see cref="IGenericParameter"/>s of this <see cref="IFunction"/>.</param>
+		/// <param name="methodParameters">The <see cref="IMethodParameter"/>s of this <see cref="IFunction"/>.</param>
+		/// <param name="statements">The <see cref="IStatement"/>s of this <see cref="IFunction"/>.</param>
+		/// <param name="returnType">The local identifier of the return type for this <see cref="IFunction"/>.</param>
+		/// <exception cref="ArgumentNullException">Thrown when any argument is <see langword="null"/></exception>
+		public StandaloneStatementFunction(FunctionWriter writer, IScopeHolder holder, IGenericParameter[] genericParameters, IMethodParameter[] methodParameters, IStatement[] statements, string returnType) {
+
+			Writer = writer ?? throw new ArgumentNullException(nameof(writer));
+			GenericParameters = genericParameters ?? throw new ArgumentNullException(nameof(genericParameters));
+			MethodParameters = methodParameters ?? throw new ArgumentNullException(nameof(methodParameters));
+			Statements = statements ?? throw new ArgumentNullException(nameof(statements));
+			ReturnTypeIdentifier = returnType ?? throw new ArgumentNullException(nameof(returnType));
+			
+			ScopeHolder = holder ?? throw new ArgumentNullException(nameof(holder));
+
+		}
+		
+		/// <summary>
+		/// Creates a new <see cref="StandaloneStatementFunction"/> with a custom <see cref="Compilation.Scope"/>.
+		/// </summary>
+		/// <param name="writer">The <see cref="FunctionWriter"/> this <see cref="IFunction"/> will write to.</param>
+		/// <param name="scope">The <see cref="Compilation.Scope"/> this <see cref="IFunction"/> belongs to.</param>
+		/// <param name="parent">The <see cref="Scope"/> used when writing the function.</param>
 		/// <param name="genericParameters">The <see cref="IGenericParameter"/>s of this <see cref="IFunction"/>.</param>
 		/// <param name="methodParameters">The <see cref="IMethodParameter"/>s of this <see cref="IFunction"/>.</param>
 		/// <param name="statements">The <see cref="IStatement"/>s of this <see cref="IFunction"/>.</param>
@@ -49,11 +79,12 @@ namespace MCSharp.Linkage.Minecraft {
 		public StandaloneStatementFunction(FunctionWriter writer, Scope scope, IGenericParameter[] genericParameters, IMethodParameter[] methodParameters, IStatement[] statements, string returnType) {
 
 			Writer = writer ?? throw new ArgumentNullException(nameof(writer));
-			Scope = scope ?? throw new ArgumentNullException(nameof(scope));
 			GenericParameters = genericParameters ?? throw new ArgumentNullException(nameof(genericParameters));
 			MethodParameters = methodParameters ?? throw new ArgumentNullException(nameof(methodParameters));
 			Statements = statements ?? throw new ArgumentNullException(nameof(statements));
 			ReturnTypeIdentifier = returnType ?? throw new ArgumentNullException(nameof(returnType));
+			
+			this.scope = scope ?? throw new ArgumentNullException(nameof(scope));
 
 		}
 
@@ -75,7 +106,7 @@ namespace MCSharp.Linkage.Minecraft {
 
 			if(name == null) name = NextChildName();
 			FunctionWriter writer = new FunctionWriter(Writer.VirtualMachine, settings, $"{Writer.LocalDirectory}\\{Writer.Name}", name);
-			StandaloneStatementFunction child = new StandaloneStatementFunction(writer, new Scope(null, Scope, null), GenericParameters.ToArray(), MethodParameters.ToArray(), statements, ReturnTypeIdentifier);
+			StandaloneStatementFunction child = new StandaloneStatementFunction(writer, new Scope(null, Scope), GenericParameters.ToArray(), MethodParameters.ToArray(), statements, ReturnTypeIdentifier);
 			ChildFunctions.Add(child);
 			return child;
 

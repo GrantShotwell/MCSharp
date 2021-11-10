@@ -31,7 +31,7 @@ namespace MCSharp.Linkage.Predefined {
 		public ICollection<IType> DerivedTypes { get; } = new List<IType>();
 
 		/// <inheritdoc/>
-		public Scope Scope { get; set; }
+		public Scope Scope { get; }
 
 		/// <inheritdoc cref="IType.Members"/>
 		public IReadOnlyCollection<PredefinedMember> Members { get; }
@@ -65,8 +65,11 @@ namespace MCSharp.Linkage.Predefined {
 		/// <param name="identifier">The local identifier for this type definition.</param>
 		/// <param name="members">The members defined by this type definition.</param>
 		/// <param name="subTypes">The type definitions defined by this type definition.</param>
-		public PredefinedType(Modifier modifiers, ClassType classType, string identifier, PredefinedMember[] members,
+		public PredefinedType(Scope scope, Modifier modifiers, ClassType classType, string identifier, PredefinedMember[] members,
 		PredefinedConstructor[] constructors, PredefinedType[] subTypes, IType.InitializeInstanceDelegate init, IHashSetDictionary<Operation, IOperation> operations) {
+
+			Scope = scope;
+			Scope.Holder = this;
 
 			// TODO
 			BaseTypes = new List<IType>();

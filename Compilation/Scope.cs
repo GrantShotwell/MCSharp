@@ -17,11 +17,14 @@ namespace MCSharp.Compilation {
 		/// </summary>
 		public string Name { get; }
 
-		private readonly IScopeHolder holder = null;
+		private IScopeHolder holder = null;
 		/// <summary>
 		/// The <see cref="IScopeHolder"/> that holds this <see cref="Scope"/>, if any.
 		/// </summary>
-		public IScopeHolder Holder => holder ?? Parent?.Holder;
+		public IScopeHolder Holder {
+			get => holder ?? Parent?.Holder;
+			set => holder = value;
+		}
 
 		/// <summary>
 		/// The root of this <see cref="Scope"/>, found recursively.
@@ -62,7 +65,7 @@ namespace MCSharp.Compilation {
 		/// <param name="parent">The parent of the new <see cref="Scope"/>. Can be <see langword="null"/> to make this a root.</param>
 		/// <param name="holder">The <see cref="IScopeHolder"/> to hold this <see cref="Scope"/>.</param>
 		/// <exception cref="InvalidOperationException">Thrown when <paramref name="parent"/> already contains an immediate child called <paramref name="name"/>.</exception>
-		public Scope(string name, Scope parent, IScopeHolder holder) {
+		public Scope(string name, Scope parent) {
 
 			Name = name;
 
@@ -74,9 +77,6 @@ namespace MCSharp.Compilation {
 				}
 				Parent.children.Add(this);
 			}
-
-			this.holder = holder;
-			if(holder != null) holder.Scope = this;
 
 		}
 
