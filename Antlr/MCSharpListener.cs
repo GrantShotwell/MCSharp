@@ -251,6 +251,16 @@ public interface IMCSharpListener : IParseTreeListener {
 	/// <param name="context">The parse tree.</param>
 	void ExitClass_type([NotNull] MCSharpParser.Class_typeContext context);
 	/// <summary>
+	/// Enter a parse tree produced by <see cref="MCSharpParser.attribute_tag"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterAttribute_tag([NotNull] MCSharpParser.Attribute_tagContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="MCSharpParser.attribute_tag"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitAttribute_tag([NotNull] MCSharpParser.Attribute_tagContext context);
+	/// <summary>
 	/// Enter a parse tree produced by <see cref="MCSharpParser.type_definition"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>

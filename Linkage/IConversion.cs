@@ -24,14 +24,14 @@ namespace MCSharp.Linkage {
 		public bool Implicit => !Explicit;
 
 		/// <summary>
-		/// The <see cref="IType"/> of <see cref="IInstance"/>s that will be cast to <see cref="ToType"/>.
+		/// The <see cref="IType"/> of <see cref="IInstance"/>s that will be cast to <see cref="TargetType"/>.
 		/// </summary>
-		public IType FromType { get; }
+		public IType ReferenceType { get; }
 
 		/// <summary>
-		/// The <see cref="IType"/> of <see cref="IInstance"/>s that will be cast from <see cref="FromType"/>.
+		/// The <see cref="IType"/> of <see cref="IInstance"/>s that will be cast from <see cref="ReferenceType"/>.
 		/// </summary>
-		public IType ToType { get; }
+		public IType TargetType { get; }
 
 		/// <summary>
 		/// The <see cref="IFunction"/> used to invoke the conversion.

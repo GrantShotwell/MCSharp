@@ -82,21 +82,25 @@ anonymous_object_initializer
 modifier: PUBLIC | PRIVATE | PROTECTED | STATIC | ABSTRACT | VIRTUAL;
 parameter_modifier: IN | OUT | REF;
 class_type: CLASS | STRUCT;
+attribute_tag
+	: OB NAME ( OP method_parameters CP )? CB
+	;
 type_definition
-	: modifier* class_type NAME OC ( constructor_definition | member_definition )* CC
+	: attribute_tag* modifier* class_type NAME OC ( constructor_definition | member_definition )* CC
 	;
 member_definition
-	: modifier* NAME NAME ( field_definition | property_definition | method_definition )
+	: attribute_tag* modifier* NAME NAME ( field_definition | property_definition | method_definition )
 	;
 constructor_definition
-	: modifier* NAME method_parameters ( code_block | LAMBDA expression )
+	: attribute_tag* modifier* NAME method_parameters ( code_block | LAMBDA expression )
 	;
 field_definition
 	: ( ASSIGN expression )? END
 	;
 property_definition
 	: LAMBDA expression
-	| OC ( ( modifier* property_get_definition ) ( modifier* property_set_definition )? ) | ( ( modifier* property_set_definition ) ( modifier* property_get_definition )? ) CC
+	| OC ( ( attribute_tag* modifier* property_get_definition ) ( attribute_tag* modifier* property_set_definition )? ) 
+	   | ( ( attribute_tag* modifier* property_set_definition ) ( attribute_tag* modifier* property_get_definition )? ) CC
 	;
 property_get_definition
 	: GET END

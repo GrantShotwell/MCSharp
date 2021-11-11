@@ -299,6 +299,18 @@ public partial class MCSharpBaseListener : IMCSharpListener {
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitClass_type([NotNull] MCSharpParser.Class_typeContext context) { }
 	/// <summary>
+	/// Enter a parse tree produced by <see cref="MCSharpParser.attribute_tag"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterAttribute_tag([NotNull] MCSharpParser.Attribute_tagContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="MCSharpParser.attribute_tag"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitAttribute_tag([NotNull] MCSharpParser.Attribute_tagContext context) { }
+	/// <summary>
 	/// Enter a parse tree produced by <see cref="MCSharpParser.type_definition"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>

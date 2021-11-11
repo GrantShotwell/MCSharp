@@ -156,19 +156,22 @@ namespace MCSharp.Linkage.Minecraft {
 							IField field = member.Definition as IField;
 
 							// Get the field initializer expression context, and compile it.
-							var initializerContext = field.Initializer.Context;
-							ResultInfo initializerResult = location1.Compiler.CompileExpression(location1, initializerContext, out IInstance value);
-							if(initializerResult.Failure) {
-								result = null;
-								return location1.GetLocation(initializerContext) + initializerResult;
-							}
+							if(field.Initializer != null) {
+								var initializerContext = field.Initializer.Context;
+								ResultInfo initializerResult = location1.Compiler.CompileExpression(location1, initializerContext, out IInstance value);
+								if(initializerResult.Failure) {
+									result = null;
+									return location1.GetLocation(initializerContext) + initializerResult;
+								}
 
-							// Assign the value to the field.
-							writer.WriteComments(
-								$"Assign the value of the field '{member.TypeIdentifier} {member.Identifier}' to the new object.",
-								indentBefore: true);
-							value.SaveToBlock(location1, objectInstance.GetSelector(location1), classInstance.FieldObjectives[field]);
-							writer.AddBufferedLines(1);
+
+								// Assign the value to the field.
+								writer.WriteComments(
+									$"Assign the value of the field '{member.TypeIdentifier} {member.Identifier}' to the new object.",
+									indentBefore: true);
+								value.SaveToBlock(location1, objectInstance.GetSelector(location1), classInstance.FieldObjectives[field]);
+								writer.AddBufferedLines(1);
+							}
 
 						}
 

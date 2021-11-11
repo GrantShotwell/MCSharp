@@ -4,6 +4,7 @@ using MCSharp.Compilation;
 using MCSharp.Compilation.Instancing;
 using MCSharp.Linkage.Extensions;
 using MCSharp.Linkage.Minecraft;
+using MCSharp.Linkage.Predefined;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -86,12 +87,10 @@ namespace MCSharp.Linkage.Script {
 
 			// Create a list of actions for post-first-pass.
 			var postFirstPassActions = new List<Action<Compiler>>();
-			// postFirstPass will trigger all of these actions.
 			postFirstPass = (location) => { foreach (var action in postFirstPassActions) action(location); };
 
 			// Create a list of actions for on-load.
 			var onLoadActions = new List<Action<Compiler.CompileArguments>>();
-			// onLoad will trigger all of these actions.
 			onLoad = (location) => { foreach (var action in onLoadActions) action(location); };
 
 			// Get base types.
@@ -171,7 +170,8 @@ namespace MCSharp.Linkage.Script {
 
 								// Initialize the field during initialization.
 								initInstanceActions.Add((typeLocation, initLocation) => {
-									typeLocation.Compiler.CompileExpression(typeLocation, field.Initializer.Context, out IInstance value);
+									if(field.Initializer != null)
+										typeLocation.Compiler.CompileExpression(typeLocation, field.Initializer.Context, out IInstance value);
 								});
 
 								break;
@@ -232,9 +232,63 @@ namespace MCSharp.Linkage.Script {
 
 			}
 
+			// Get casts.
+			var casts = new Dictionary<IType, IConversion>();
+			onLoadActions.Add((location) => {
+
+				// Make implicit casts to all base types.
+				foreach(IType baseType in this.EnumerateBaseTypeTree()) {
+					
+					// Get cast types.
+					IType reference = this;
+					IType target = baseType;
+
+					// Create cast function.
+					CustomFunction function = new CustomFunction(target.Identifier,
+						new PredefinedGenericParameter [] {
+
+                        },
+						new PredefinedMethodParameter [] {
+							new PredefinedMethodParameter(reference.Identifier, "value")
+                        },
+						(Compiler.CompileArguments location, IType[] generic, IInstance[] arguments, out IInstance result) => {
+
+							// Get arguments.
+							ClassInstance value = arguments[0] as ClassInstance;
+
+							if(ClassType == ClassType.Class) {
+
+								// Class instances inherit from object instances, so can just return the value.
+								result = value;
+
+							} else if(ClassType == ClassType.Struct) {
+
+								throw new NotImplementedException("Converting a struct instance to a base type has not been implemented.");
+
+							} else {
+
+								// Should never get here.
+								throw new Exception();
+
+							}
+
+							// Return a success.
+							return ResultInfo.DefaultSuccess;
+
+                        }
+					);
+
+					// Create and add cast.
+					var cast = new PredefinedConversion(reference, target, function, @implicit: true);
+					casts.Add(target, cast);
+
+				}
+
+			});
+
 			// TODO
 			SubTypes = new List<ScriptType>();
-			Conversions = new Dictionary<IType, IConversion>();
+			Conversions = casts;
 			Operations = new HashSetDictionary<Operation, IOperation>();
 
 		}

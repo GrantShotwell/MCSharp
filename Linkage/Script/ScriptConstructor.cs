@@ -41,6 +41,7 @@ namespace MCSharp.Linkage.Script {
 
 			Scope = scope;
 			Scope.Holder = this;
+			Declarer = declarer;
 
 			var writer = new FunctionWriter(virtualMachine, settings, Declarer.Identifier.GetText(), $"{Declarer.Identifier.GetText()}_{Declarer.i_constructor++}");
 			ScriptMethodParameter[] parameters = ScriptMethodParameter.CreateArrayFromArray(context.method_parameters().method_parameter_list()?.method_parameter());

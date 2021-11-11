@@ -3,6 +3,7 @@ using MCSharp.Linkage;
 using MCSharp.Linkage.Minecraft;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 
 namespace MCSharp.Compilation.Instancing {
@@ -10,6 +11,7 @@ namespace MCSharp.Compilation.Instancing {
 	/// <summary>
 	/// Represents an instance of a class type.
 	/// </summary>
+	[DebuggerDisplay("{ToString,nq}")]
 	public class ClassInstance : ObjectInstance {
 
 		/// <summary>
@@ -35,6 +37,11 @@ namespace MCSharp.Compilation.Instancing {
 			// Handled by base constructor.
 			//location.Scope.AddInstance(this);
 
+		}
+	
+		/// <inheritdoc/>
+		public override string ToString() {
+			return $"{Type.Identifier} {Identifier}";
 		}
 
 	}

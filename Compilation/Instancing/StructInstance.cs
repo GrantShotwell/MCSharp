@@ -3,6 +3,7 @@ using MCSharp.Linkage;
 using MCSharp.Linkage.Minecraft;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 
 namespace MCSharp.Compilation.Instancing {
@@ -10,6 +11,7 @@ namespace MCSharp.Compilation.Instancing {
 	/// <summary>
 	/// Represents an instance of a struct type.
 	/// </summary>
+	[DebuggerDisplay("{ToString,nq}")]
 	public class StructInstance : IInstance, IScopeHolder {
 
 		/// <inheritdoc/>
@@ -75,6 +77,18 @@ namespace MCSharp.Compilation.Instancing {
 			int expected = Type.GetBlockSize(location.Compiler);
 			if(length != expected) IInstance.GenerateInvalidBlockRangeException(length, expected);
 			throw new NotImplementedException();
+		}
+
+		public void LoadFromBlock(Compiler.CompileArguments location, string selector, Objective[] block, Range range) {
+			(int offset, int length) = range.GetOffsetAndLength(block.Length);
+			int expected = Type.GetBlockSize(location.Compiler);
+			if(length != expected) IInstance.GenerateInvalidBlockRangeException(length, expected);
+			throw new NotImplementedException();
+		}
+
+		/// <inheritdoc/>
+		public override string ToString() {
+			return $"{Type.Identifier} {Identifier}";
 		}
 
 	}

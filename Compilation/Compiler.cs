@@ -677,17 +677,28 @@ namespace MCSharp.Compilation {
 			ITerminalNode identifier = names[1];
 
 			IType type = DefinedTypes[typeName.GetText()];
+
+			// Check if type can be initialized (not abstract or static).
+			if((type.Modifiers & Modifier.Abstract) != 0) {
+				value = null;
+				return new ResultInfo(false, location.GetLocation(initialization_expression) + $"Cannot initialize abstract type '{type.Identifier}'.");
+			}
+			if((type.Modifiers & Modifier.Static) != 0) {
+				value = null;
+				return new ResultInfo(false, location.GetLocation(initialization_expression) + $"Cannot initialize static type '{type.Identifier}'.");
+			}
+
 			value = type.InitializeInstance(location, identifier.GetText());
 
 			ExpressionContext expression = initialization_expression.expression();
 			if(expression != null) {
 
-				ResultInfo expression_result = CompileExpression(location, expression, out IInstance assignment_value);
+				ResultInfo expression_result = CompileExpression(location, expression, out IInstance expression_value);
 				if(expression_result.Failure) return expression_result;
 
-				ResultInfo assign_result = CompileSimpleOperation(location, Operation.Assign, value, assignment_value, out _);
+				ResultInfo assign_result = CompileSimpleOperation(location, Operation.InitializationAssign, value, expression_value, out _);
 				if(assign_result.Failure) return location.GetLocation(initialization_expression.ASSIGN()) + assign_result;
-
+				
 				return ResultInfo.DefaultSuccess;
 
 			}
@@ -718,7 +729,7 @@ namespace MCSharp.Compilation {
 
 			// Find all operations in the given type that match the operands.
 			// Return true if the operation is found.
-			bool FindMatchesInType(IType type) {
+			bool FindMatchesInType(IType type, Operation op) {
 
 				// Look for matches within the top-level of this type.
 				if(type.Operations.ContainsKey(op)) {
@@ -757,19 +768,23 @@ namespace MCSharp.Compilation {
 
 				// Look for matches within the base types of this type.
 				foreach(IType baseType in type.BaseTypes) {
-
-					if(FindMatchesInType(baseType)) return true;
-
+					if(FindMatchesInType(baseType, op)) return true;
 				}
 
+				// If "Initialization Assign" is the operator, try again with "Assign".
+				if(op == Operation.InitializationAssign) {
+					if(FindMatchesInType(type, Operation.Assign)) return true;
+				}
+
+				// If no matches were found, return false.
 				return false;
 
 			}
 
 			// Find all operations in the given type that match the operands.
-			FindMatchesInType(type1);
+			FindMatchesInType(type1, op);
 			// Don't search type2 if it is the same as type1.
-			if(type1 != type2) FindMatchesInType(type2);
+			if(type1 != type2) FindMatchesInType(type2, op);
 
 			if(matches.Count == 0) {
 
@@ -1960,31 +1975,241 @@ namespace MCSharp.Compilation {
 
 			(IInstance Instance, IType Type) holder = (null, null);
 
-			// Access a member of an instance (holder).
+			// Local method for accessing a member of an instance (holder).
+			// Captured variables: this, member_access.
 			ResultInfo AccessFromInstance(CompileArguments location, IInstance holder, ITerminalNode identifier, out IInstance value,
 				MCSharpParser.Generic_argumentsContext generic_arguments, MCSharpParser.Method_argumentsContext method_arguments, MCSharpParser.Indexer_argumentsContext indexer_arguments) {
 
-				// Get the accessed member by name.
-				IMember accessedMember = null;
-				foreach(IMember member in holder.Type.Members) {
-					if(member.Identifier == identifier.GetText()) {
-						accessedMember = member;
-						break;
+				// If there are method arguments, then this is a method call.
+				if(method_arguments != null) {
+
+					// Get generic argument types.
+					MCSharpParser.Generic_parameterContext[] genericContexts = generic_arguments?.generic_parameter_list()?.generic_parameter() ?? new MCSharpParser.Generic_parameterContext[0];
+					IType[] genericTypes = new IType[genericContexts.Length];
+					for(int i = 0; i < genericContexts.Length; i++) {
+						ITerminalNode typeNode = genericContexts[i].NAME();
+						IType type = location.Compiler.DefinedTypes[typeNode.GetText()];
+						genericTypes[i] = type;
 					}
-				}
 
-				// TODO: Check inherited types.
+					// Get method argument types.
+					MCSharpParser.ArgumentContext[] argumentContexts = method_arguments.argument_list()?.argument() ?? new MCSharpParser.ArgumentContext[0];
+					IType[] argumentTypes = new IType[argumentContexts.Length];
+					for(int i = 0; i < argumentContexts.Length; i++) {
+						ITerminalNode typeNode = argumentContexts[i].NAME()[0];
+						IType type = location.Compiler.DefinedTypes[typeNode.GetText()];
+						argumentTypes[i] = type;
+					}
 
-				if(accessedMember == null) {
-					
-					// Accessed member does not exist.
-					value = null;
-					return new ResultInfo(false, $"{location.GetLocation(identifier)}'{identifier.GetText()}' does not exist in type '{holder.Type.Identifier}'.");
+					// Get the method by best.
+					IMethod method = holder.Type.FindBestMethod(location.Compiler, genericTypes, argumentTypes, identifier.GetText()).Definition as IMethod;
+					if(method == null) {
+						value = null;
+
+						// If a method with that name exists, give an error about no matching overflow.
+						// Otherwise, give an error about no method with that name existing.
+
+						bool exists = false;
+						foreach(IMember m in holder.Type.Members) {
+							if(m.Identifier == identifier.GetText()) {
+								exists = true;
+								break;
+							}
+						}
+
+						if(exists) {
+							string[] identifiers = new string[argumentTypes.Length];
+							for(int i = 0; i < argumentTypes.Length; i++) identifiers[i] = argumentTypes[i].Identifier;
+							return new ResultInfo(false, $"{location.GetLocation(identifier)}No matching overload for method '{identifier.GetText()}' in type '{holder.Identifier}': " +
+								$"({string.Join(", ", identifiers)}).");
+						} else {
+							return new ResultInfo(false, $"{location.GetLocation(identifier)}Method '{identifier.GetText()}' does not exist in type '{holder.Identifier}'.");
+						}
+
+					}
+
+					// Get method argument instances.
+					IInstance[] arguments = new IInstance[argumentTypes.Length];
+					for(int i = 0; i < argumentTypes.Length; i++) {
+						ResultInfo argument_result = CompileExpression(location, argumentContexts[i].expression(), out IInstance argument);
+						if(argument_result.Failure)  {
+							value = null;
+							return argument_result;
+						}
+						arguments[i] = argument;
+					}
+
+					// Invoke method.
+					ResultInfo result = method.Invoker.Invoke(location, genericTypes, arguments, out value);
+					if(result.Failure) return location.GetLocation(member_access) + result;
+
+					return ResultInfo.DefaultSuccess;
 
 				} else {
 
-					IMemberDefinition definition = accessedMember.Definition;
+					// Get the member by name.
+					// TODO: Check inherited types.
+					IMember member = null;
+					foreach(IMember m in holder.Type.Members) {
+						if(m.Identifier == identifier.GetText()) {
+							member = m;
+							break;
+						}
+					}
 
+					if(member == null) {
+						value = null;
+						return new ResultInfo(false, $"{location.GetLocation(identifier)}Member '{identifier.GetText()}' does not exist in type '{holder.Type.Identifier}'.");
+					}
+
+					IMemberDefinition definition = member.Definition;
+					switch(definition) {
+
+						case IField field: {
+
+							// Struct, Class, and Predefined all have different ways of storing fields.
+							switch(holder) {
+
+								// Get IInstance value from struct field dictionary.
+								case StructInstance structInstance: {
+									value = structInstance.FieldInstances[field];
+									return ResultInfo.DefaultSuccess;
+								}
+
+								// Create IInstance value from object reference.
+								// Simple objects do not have fields so we can assume it is a class type.
+								case ClassInstance classInstance: {
+									value = location.Compiler.DefinedTypes[member.TypeIdentifier].InitializeInstance(location, null);
+									Objective[] block = classInstance.FieldObjectives[field];
+									string selector = classInstance.GetSelector(location);
+									value.LoadFromBlock(location, selector, block);
+									return ResultInfo.DefaultSuccess;
+								}
+
+								// TODO: PredefinedInstance
+
+								default: throw new Exception($"Unsupported type of {nameof(IInstance)}: '{holder.GetType().FullName}'.");
+							}
+
+						}
+
+						case IProperty property: {
+
+							// Get getter.
+							var getter = property.Getter;
+							if(getter == null) {
+								value = null;
+								return new ResultInfo(false, location.GetLocation(identifier)+"This property is not get-able.");
+							}
+
+							// Invoke 'get' method.
+							ResultInfo result = property.Getter.Invoke(location, new IType[] { }, new IInstance[] { }, out value);
+							if(result.Failure) return location.GetLocation(identifier) + result;
+
+							return ResultInfo.DefaultSuccess;
+
+						}
+
+						default: throw new Exception($"Unsupported type of {nameof(IMemberDefinition)}: '{definition.GetType().FullName}'.");
+
+					}
+
+				}
+
+			}
+
+			// Local method for accessing a member of a type (holder).
+			// Captured variables: this, member_access.
+			ResultInfo AccessFromStaticType(CompileArguments location, IType holder, ITerminalNode identifier, out IInstance value,
+				MCSharpParser.Generic_argumentsContext generic_arguments, MCSharpParser.Method_argumentsContext method_arguments, MCSharpParser.Indexer_argumentsContext indexer_arguments) {
+
+				// If there are method arguments, then this is a method call.
+				if(method_arguments != null) {
+
+					// Get generic argument types.
+					MCSharpParser.Generic_parameterContext[] genericContexts = generic_arguments?.generic_parameter_list()?.generic_parameter() ?? new MCSharpParser.Generic_parameterContext[0];
+					IType[] genericTypes = new IType[genericContexts.Length];
+					for(int i = 0; i < genericContexts.Length; i++) {
+
+						// Get generic type from name and defined types.
+						ITerminalNode typeNode = genericContexts[i].NAME();
+						IType type = location.Compiler.DefinedTypes[typeNode.GetText()];
+
+						// Save generic type to array.
+						genericTypes[i] = type;
+
+					}
+
+					// Get method argument instances and types.
+					MCSharpParser.ArgumentContext[] argumentContexts = method_arguments.argument_list()?.argument() ?? new MCSharpParser.ArgumentContext[0];
+					IType[] argumentTypes = new IType[argumentContexts.Length];
+					IInstance[] argumentInstances = new IInstance[argumentContexts.Length];
+					for(int i = 0; i < argumentContexts.Length; i++) {
+
+						// Compile argument expression.
+						ResultInfo argumentResult = CompileExpression(location, argumentContexts[i].expression(), out IInstance instance);
+						if(argumentResult.Failure) {
+							value = null;
+							return argumentResult;
+						}
+
+						// Save argument instance and type to arrays.
+						argumentInstances[i] = instance;
+						argumentTypes[i] = instance.Type;
+
+					}
+
+					// Get the method by best.
+					IMethod method = holder.FindBestMethod(location.Compiler, genericTypes, argumentTypes, identifier.GetText())?.Definition as IMethod;
+					if(method == null) {
+						value = null;
+
+						// If a method with that name exists, give an error about no matching overflow.
+						// Otherwise, give an error about no method with that name existing.
+
+						bool exists = false;
+						foreach(IMember m in holder.Members) {
+							if(m.Identifier == identifier.GetText()) {
+								exists = true;
+								break;
+							}
+						}
+
+						if(exists) {
+							string[] identifiers = new string[argumentTypes.Length];
+							for(int i = 0; i < argumentTypes.Length; i++) identifiers[i] = argumentTypes[i].Identifier;
+							return new ResultInfo(false, $"{location.GetLocation(identifier)}No matching overload for method '{identifier.GetText()}' in type '{holder.Identifier}': " +
+								$"({string.Join(", ", identifiers)}).");
+						} else {
+							return new ResultInfo(false, $"{location.GetLocation(identifier)}Method '{identifier.GetText()}' does not exist in type '{holder.Identifier}'.");
+						}
+
+					}
+
+					// Invoke method.
+					ResultInfo result = method.Invoker.Invoke(location, genericTypes, argumentInstances, out value);
+					if(result.Failure) return location.GetLocation(member_access) + result;
+
+					return ResultInfo.DefaultSuccess;
+
+				} else {
+
+					// Get the member by name.
+					// TODO: Check inherited types.
+					IMember member = null;
+					foreach(IMember m in holder.Members) {
+						if(m.Identifier == identifier.GetText()) {
+							member = m;
+							break;
+						}
+					}
+
+					if(member == null) {
+						value = null;
+						return new ResultInfo(false, $"{location.GetLocation(identifier)}Member '{identifier.GetText()}' does not exist in type '{holder.Identifier}'.");
+					}
+
+					IMemberDefinition definition = member.Definition;
 					switch(definition) {
 
 						case IField field: {
@@ -2013,7 +2238,7 @@ namespace MCSharp.Compilation {
 							var getter = property.Getter;
 							if(getter == null) {
 								value = null;
-								return new ResultInfo(false, location.GetLocation(identifier)+"This property is not get-able.");
+								return new ResultInfo(false, location.GetLocation(identifier) + "This property is not get-able.");
 							}
 
 							// Invoke 'get' method.
@@ -2024,155 +2249,57 @@ namespace MCSharp.Compilation {
 
 						}
 
-						case IMethod method: {
+						default: throw new Exception($"Unsupported type of {nameof(IMemberDefinition)}: '{definition.GetType().FullName}'.");
 
-							// Get generic arguments.
-							IType[] generics;
-							if(generic_arguments == null) {
-								generics = new IType[] { };
-							} else {
-								throw new NotImplementedException(location.GetLocation(generic_arguments)+"Invoking methods with generic arguments has not been implemented.");
-							}
-
-							// Get method arguments.
-							IInstance[] arguments;
-							if(method_arguments == null) {
-								value = null;
-								return new ResultInfo(false, $"{location.GetLocation(member_access)}Expected method arguments for accessing method.");
-							} else {
-								MCSharpParser.Argument_listContext argument_list = method_arguments.argument_list();
-								MCSharpParser.ArgumentContext[] arguments_context = argument_list.argument();
-								arguments = new IInstance[arguments_context.Length];
-								for(int i = 0; i < arguments_context.Length; i++) {
-									ResultInfo argument_result = CompileExpression(location, arguments_context[i].expression(), out IInstance argument);
-									if(argument_result.Failure)  {
-										value = null;
-										return argument_result;
-									}
-									arguments[i] = argument;
-								}
-							}
-
-							// Invoke method.
-							ResultInfo result = method.Invoker.Invoke(location, generics, arguments, out value);
-							if(result.Failure) return location.GetLocation(member_access) + result;
-
-							return ResultInfo.DefaultSuccess;
-
-						}
-
-						default: throw new Exception($"Unsupported type of {nameof(IMember)}: '{definition.GetType().FullName}'.");
 					}
 
 				}
 
 			}
 
-			// Access a member of a type (holder).
-			ResultInfo AccessFromStaticType(CompileArguments location, IType holder, ITerminalNode identifier, out IInstance value,
+			// Local method for accessing through "this" keyword.
+			// Captured variables: this, member_access.
+			ResultInfo AccessFromThis(CompileArguments location, Scope scope, ITerminalNode identifier, out (IInstance instance, IType type) holder,
 				MCSharpParser.Generic_argumentsContext generic_arguments, MCSharpParser.Method_argumentsContext method_arguments, MCSharpParser.Indexer_argumentsContext indexer_arguments) {
 
-				// Get the accessed member by name.
-				IMember accessedMember = null;
-				foreach(IMember member in holder.Members) {
-					if((member.Modifiers & Modifier.Static) != 0 && member.Identifier == identifier.GetText()) {
-						accessedMember = member;
-						break;
-					}
-				}
+				// Access "this".
+				if(scope == null) scope = location.Scope;
+				IScopeHolder scopeHolder = scope.Holder;
 
-				// TODO: Check inherited types.
+				if(scopeHolder == null) {
 
-				if(accessedMember == null) {
-					
-					// Accessed member does not exist.
-					value = null;
-					return new ResultInfo(false, location.GetLocation(identifier) + $"'{identifier.GetText()}' does not exist static in type '{holder.Identifier}'.");
+					// "this" does not exist.
+					holder = (null, null);
+					return new ResultInfo(success: false, location.GetLocation(identifier)+"Accessing 'this' is not possible here.");
+
+				} else if(scopeHolder is IInstance instance) {
+
+					// "this" is an instance.
+					holder = (instance, null);
+					return ResultInfo.DefaultSuccess;
+
+				} else if(scopeHolder is IType type) {
+
+					// "this" is a type.
+					var staticResult = AccessFromStaticType(location, type, identifier, out IInstance instanceHolder, generic_arguments, method_arguments, indexer_arguments);
+					holder = (instanceHolder, null);
+					return staticResult;
 
 				} else {
 
-					IMemberDefinition definition = accessedMember.Definition;
-
-					switch(definition) {
-
-						case IField field: {
-
-							throw new NotImplementedException(location.GetLocation(identifier)+"Accessing static fields has not been implemented.");
-
-						}
-
-						case IProperty property: {
-
-							// Get getter.
-							var getter = property.Getter;
-							if(getter == null) {
-								value = null;
-								return new ResultInfo(false, location.GetLocation(identifier)+"This property is not get-able.");
-							}
-
-							// Invoke 'get' method.
-							ResultInfo result = property.Getter.Invoke(location, new IType[] { }, new IInstance[] { }, out value);
-							if(result.Failure) return location.GetLocation(identifier) + result;
-
-							return ResultInfo.DefaultSuccess;
-
-						}
-
-						case IMethod method: {
-
-							// Get generic arguments.
-							IType[] generics;
-							if(generic_arguments == null) {
-								generics = new IType[] { };
-							} else {
-								throw new NotImplementedException(location.GetLocation(generic_arguments)+"Invoking methods with generic arguments has not been implemented.");
-							}
-
-							// Get method arguments.
-							IInstance[] arguments;
-							if(method_arguments == null) {
-								value = null;
-								return new ResultInfo(false, $"{location.GetLocation(member_access)}Expected method arguments for accessing method.");
-							} else {
-
-								MCSharpParser.Argument_listContext argument_list = method_arguments.argument_list();
-								if(argument_list != null) {
-
-									MCSharpParser.ArgumentContext[] arguments_context = argument_list.argument();
-									arguments = new IInstance[arguments_context.Length];
-
-									for(int i = 0; i < arguments_context.Length; i++) {
-
-										ResultInfo argument_result = CompileExpression(location, arguments_context[i].expression(), out IInstance argument);
-										if(argument_result.Failure) {
-											value = null;
-											return argument_result;
-										}
-
-										arguments[i] = argument;
-
-									}
-
-								} else {
-
-									arguments = new IInstance[] { };
-
-                                }
-
-							}
-
-							// Invoke method.
-							ResultInfo result = method.Invoker.Invoke(location, generics, arguments, out value);
-							if(result.Failure) return location.GetLocation(member_access) + result;
-
-							return ResultInfo.DefaultSuccess;
-
-						}
-
-						default: throw new Exception($"Unsupported type of {nameof(IMember)}: '{definition.GetType().FullName}'.");
-					}
+					// "this" is a member of a type.
+					return AccessFromThis(location, scope.Parent, identifier, out holder, generic_arguments, method_arguments, indexer_arguments);
 
 				}
+
+			}
+
+			// Local method for accessing through "base" keyword.
+			// Captured variables: this, member_access.
+			ResultInfo AccessFromBase(CompileArguments location, Scope scope, ITerminalNode identifier, out (IInstance instance, IType type) holder,
+				MCSharpParser.Generic_argumentsContext generic_arguments, MCSharpParser.Method_argumentsContext method_arguments, MCSharpParser.Indexer_argumentsContext indexer_arguments) {
+
+				throw new NotImplementedException(location.GetLocation(identifier)+"Accessing 'base' has not been implemented.");
 
 			}
 
@@ -2228,53 +2355,12 @@ namespace MCSharp.Compilation {
 						ITerminalNode identifier = prefix_short_identifier.NAME();
 						string name = identifier.GetText();
 
-						// Local method for accessing through "this" keyword.
-						ResultInfo AccessFromThis(Scope scope = null) {
-
-							// Access "this".
-							if(scope == null) scope = location.Scope;
-							var _holder = scope.Holder;
-
-							if(_holder == null) {
-
-								// "this" does not exist.
-								return new ResultInfo(success: false, location.GetLocation(identifier)+"Accessing 'this' is not possible here.");
-
-							} else if(_holder is IInstance instance) {
-
-								// "this" is an instance.
-								holder = (instance, null);
-								return ResultInfo.DefaultSuccess;
-
-							} else if(_holder is IType type) {
-
-								// "this" is a type.
-								var staticResult = AccessFromStaticType(location, type, identifier, out IInstance instanceHolder, prefix_generic_arguments, prefix_method_arguments, prefix_indexer_arguments);
-								holder = (instanceHolder, null);
-								return staticResult;
-
-							} else {
-
-								// "this" is a member of a type.
-								return AccessFromThis(scope.Parent);
-
-							}
-
-						}
-
-						// Local method for accessing through "base" keyword.
-						ResultInfo AccessFromBase() {
-
-							throw new NotImplementedException(location.GetLocation(identifier)+"Accessing 'base' has not been implemented.");
-
-						}
-
 						// Options:
 
 						if(name == "this") {
 							
 							// (1) Accessing through "this".
-							var thisResult = AccessFromThis();
+							var thisResult = AccessFromThis(location, scope: null, identifier, out holder, prefix_generic_arguments, prefix_method_arguments, prefix_indexer_arguments);
 							if(thisResult.Failure) {
 								value = null;
 								return thisResult;
@@ -2283,7 +2369,7 @@ namespace MCSharp.Compilation {
 						} else if(name == "base") {
 
 							// (2) Accessing through "base".
-							var baseResult = AccessFromBase();
+							var baseResult = AccessFromBase(location, scope: null, identifier, out holder, prefix_generic_arguments, prefix_method_arguments, prefix_indexer_arguments);
 							if(baseResult.Failure) {
 								value = null;
 								return baseResult;
@@ -2301,14 +2387,18 @@ namespace MCSharp.Compilation {
                             } else {
 
                                 // (4) The identifier requires an implicit 'this' call.
-                                var thisResult = AccessFromThis();
+                                var thisResult = AccessFromThis(location, scope: null, identifier, out (IInstance, IType) _holder, prefix_generic_arguments, prefix_method_arguments, prefix_indexer_arguments);
 
-                                if(thisResult.Failure) {
+                                if (thisResult.Success) {
 
-                                    if(DefinedTypes.ContainsKey(name)) {
+                                    holder = _holder;
 
-                                		// (5) The identifier is a type name.
-										holder = (null, DefinedTypes[name]);
+                                } else {
+
+                                    if (DefinedTypes.ContainsKey(name)) {
+
+                                        // (5) The identifier is a type name.
+                                        holder = (null, DefinedTypes[name]);
 
                                     } else {
                                         value = null;
@@ -2316,7 +2406,6 @@ namespace MCSharp.Compilation {
                                     }
 
                                 }
-
                             }
 
                         }
@@ -2455,10 +2544,6 @@ namespace MCSharp.Compilation {
 
 				}
 
-			} else {
-
-				throw new NotImplementedException(location.GetLocation(member_access) + "Implicit 'this' access has not been implemented.");
-
 			}
 			
 			// Final access in chain.
@@ -2471,12 +2556,21 @@ namespace MCSharp.Compilation {
 				if(finalResult.Failure) return finalResult;
 				else return ResultInfo.DefaultSuccess;
 
-			} else {
+			} else if(holder.Instance != null) {
 
 				// Access from an instance.
 				IInstance instanceHolder = holder.Instance;
 
 				ResultInfo finalResult = AccessFromInstance(location, instanceHolder, member_identifier.NAME(), out value, generic_arguments, method_arguments, indexer_arguments);
+				if(finalResult.Failure) return finalResult;
+				else return ResultInfo.DefaultSuccess;
+
+			} else {
+
+				// Access from implicit "this".
+				ResultInfo finalResult = AccessFromThis(location, scope: null, member_identifier.NAME(), out holder, generic_arguments, method_arguments, indexer_arguments);
+				value = holder.Instance;
+				
 				if(finalResult.Failure) return finalResult;
 				else return ResultInfo.DefaultSuccess;
 
@@ -2618,7 +2712,7 @@ namespace MCSharp.Compilation {
 						var genericArguments = new IType[] { };
 
 						// Get constructor.
-						var constructor = type.FindBestConstructor(genericArguments, methodArguments);
+						var constructor = type.FindBestConstructor(location.Compiler, genericArguments, methodArguments);
 
 						// Invoke constructor.
 						location.Writer.WriteComments(
@@ -2929,7 +3023,7 @@ namespace MCSharp.Compilation {
 				postFirstPass.Invoke(Compiler);
 			}
 
-			public void OnLoad(Compiler.CompileArguments location) {
+			public void OnLoad(CompileArguments location) {
 				onLoad.Invoke(location);
 			}
 

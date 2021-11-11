@@ -137,7 +137,8 @@ namespace MCSharp.Linkage.Script {
 			IExpression IField.Initializer => Initializer;
 
 			public Field(MCSharpParser.ExpressionContext initialize) {
-				Initializer = new ScriptExpression(initialize);
+				if(initialize == null) Initializer = null;
+				else Initializer = new ScriptExpression(initialize);
 			}
 
 			public override void Dispose() {

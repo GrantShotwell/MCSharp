@@ -70,13 +70,7 @@ namespace MCSharp.Compilation {
 			Name = name;
 
 			Parent = parent;
-			if(Parent != null) {
-				if(name != null) {
-					foreach(Scope child in Parent.Children)
-						if(child.Name == Name) throw new InvalidOperationException($"{nameof(Parent)} already contains a child called '{Name}'.");
-				}
-				Parent.children.Add(this);
-			}
+			Parent?.children.Add(this);
 
 		}
 
@@ -126,8 +120,13 @@ namespace MCSharp.Compilation {
 		/// <returns>Returns the <see cref="Scope"/> found.</returns>
 		public Scope FindFirstParentScopeByName(string name) {
 
-			if(Parent.Name == name) return Parent;
-			else return Parent.FindFirstParentScopeByName(name);
+			Scope current = Parent;
+			while(current != null) {
+				if(current.Name == name) return current;
+				current = current.Parent;
+            }
+
+			return null;
 
 		}
 

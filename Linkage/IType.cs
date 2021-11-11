@@ -239,12 +239,12 @@ namespace MCSharp.Linkage {
 		/// <param name="type"></param>
 		/// <param name="genericArguments"></param>
 		/// <param name="methodArguments"></param>
-		public static IConstructor FindBestConstructor(this IType type, IType[] genericArguments, IInstance[] methodArguments) {
+		public static IConstructor FindBestConstructor(this IType type, Compiler compiler, IType[] genericArguments, IInstance[] methodArguments) {
 
 			IType[] types = new IType[methodArguments.Length];
 			for(int i = 0; i < types.Length; i++)
 				types[i] = methodArguments[i].Type;
-			return type.FindBestConstructor(genericArguments, types);
+			return type.FindBestConstructor(compiler, genericArguments, types);
 
 		}
 
@@ -254,37 +254,128 @@ namespace MCSharp.Linkage {
 		/// <param name="type"></param>
 		/// <param name="genericArguments"></param>
 		/// <param name="methodArguments"></param>
-		public static IConstructor FindBestConstructor(this IType type, IType[] genericArguments, IType[] methodArguments) {
+		public static IConstructor FindBestConstructor(this IType type, Compiler compiler, IType[] genericArguments, IType[] methodArguments) {
 
 			(int Score, IConstructor Constructor) best = (-1, null);
 			foreach(IConstructor constructor in type.Constructors) {
 
+				// Get the parameters.
 				Minecraft.IFunction invoker = constructor.Invoker;
 				var methodParameters = invoker.MethodParameters;
 				var genericParameters = invoker.GenericParameters;
 
+				// Check if generic parameter count matches.
 				int genericCount = genericParameters.Count;
 				if(genericCount != genericArguments.Length) continue;
 
+				// Check if method parameter count matches.
 				int methodCount = methodParameters.Count;
 				if(methodCount != methodArguments.Length) continue;
 
+				// Set maximum score to number of method parameters.
 				int score = methodCount;
 
+				// Check if generic parameters match.
 				for(int i = 0; i < genericCount; i++) {
-					// TODO: Test if generics match.
+					// TODO
 				}
 
+				// Check if method parameters match.
 				for(int i = 0; i < methodCount; i++) {
-					// TODO: Test if arguments match.
+					
+					// Get types of argument and parameter.
+					IType argumentType = methodArguments[i];
+					IType parameterType = compiler.DefinedTypes[methodParameters[i].TypeIdentifier];
+					
+					// If the argument is directly assignable to the parameter, don't subtract score.
+					if(parameterType.IsAssignableFrom(argumentType)) {
+						continue;
+					}
+
+					// If the argument has a cast to the parameter type, subtract 1 from the score.
+					if(argumentType.Conversions.ContainsKey(parameterType)) {
+						score--;
+						continue;
+					}
+
+					// The argument is not assignable to the parameter. Don't use this method.
+					score = -1;
+					break;
+
 				}
 
+				// If the score is better than the best, use this constructor.
 				if(score > best.Score) best = (score, constructor);
 				else continue;
 
 			}
 
 			return best.Constructor;
+
+		}
+
+		public static IMember FindBestMethod(this IType type, Compiler compiler, IType[] genericArguments, IType[] methodArguments, string methodName) {
+
+			(int Score, IMember Member) best = (-1, null);
+			foreach(IMember member in type.Members) {
+
+				// Iterate over all methods.
+				if(member.MemberType != MemberType.Method) continue;
+				IMethod method = member.Definition as IMethod;
+				if(member.Identifier != methodName) continue;
+
+				// Get the parameters.
+				Minecraft.IFunction invoker = method.Invoker;
+				var methodParameters = invoker.MethodParameters;
+				var genericParameters = invoker.GenericParameters;
+
+				// Check if generic parameter count matches.
+				int genericCount = genericParameters.Count;
+				if(genericCount != genericArguments.Length) continue;
+
+				// Check if method parameter count matches.
+				int methodCount = methodParameters.Count;
+				if(methodCount != methodArguments.Length) continue;
+
+				// Set maximum score to number of method parameters.
+				int score = methodCount;
+
+				// Test if generics match.
+				for(int i = 0; i < genericCount; i++) {
+					// TODO
+				}
+
+				// Test if arguments match.
+				for(int i = 0; i < methodCount; i++) {
+
+					// Get types of argument and parameter.
+					IType argumentType = methodArguments[i];
+					IType parameterType = compiler.DefinedTypes[methodParameters[i].TypeIdentifier];
+					
+					// If the argument is directly assignable to the parameter, don't subtract score.
+					if(parameterType.IsAssignableFrom(argumentType)) {
+						continue;
+					}
+
+					// If the argument has a cast to the parameter type, subtract 1 from the score.
+					if(argumentType.Conversions.ContainsKey(parameterType)) {
+						score--;
+						continue;
+					}
+
+					// The argument is not assignable to the parameter. Don't use this method.
+					score = -1;
+					break;
+
+				}
+
+				// If the score is better than the best, use this method.
+				if(score > best.Score) best = (score, member);
+				else continue;
+
+			}
+
+			return best.Member;
 
 		}
 

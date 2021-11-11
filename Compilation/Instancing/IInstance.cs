@@ -48,6 +48,11 @@ namespace MCSharp.Compilation.Instancing {
 		/// <seealso cref="SaveToBlock(IInstance, Compiler.CompileArguments, Objective[])"/>
 		public void SaveToBlock(Compiler.CompileArguments location, string selector, Objective[] block, Range range);
 
+		/// <inheritdoc cref="IInstanceExtensions.LoadFromBlock(IInstance, Compiler.CompileArguments, Objective[])"/>
+		/// <param name="range"></param>
+		/// <seealso cref="LoadFromBlock(IInstance, Compiler.CompileArguments, Objective[])"/>
+		public void LoadFromBlock(Compiler.CompileArguments location, string selector, Objective[] block, Range range);
+
 	}
 
 	public static class IInstanceExtensions {
@@ -86,6 +91,19 @@ namespace MCSharp.Compilation.Instancing {
 
 		public static void SaveToBlock(this IInstance instance, Compiler.CompileArguments location, string selector, Objective[] block) {
 			instance.SaveToBlock(location, selector, block, 0..^0);
+		}
+
+		/// <summary>
+		/// Loads a value for this <see cref="IInstance"/> from the given set of <see cref="Objective"/>s.
+		/// </summary>
+		/// <param name="instance">The <see cref="IInstance"/> to load.</param>
+		/// <param name="location"></param>
+		/// <param name="selector"></param>
+		/// <exception cref="InvalidOperationException">Thrown when the relevant length of <paramref name="block"/> does not match <see cref="ITypeExtensions.GetBlockSize(IType, Compiler)"/>.</exception>
+		/// <seealso cref="IInstance.SaveToBlock(Compiler.CompileArguments, string, Objective[], Range)"/>
+		/// <param name="block">The array of <see cref="Objective"/>s to load from.</param>
+		public static void LoadFromBlock(this IInstance instance, Compiler.CompileArguments location, string selector, Objective[] block) {
+			instance.LoadFromBlock(location, selector, block, 0..^0);
 		}
 
 	}

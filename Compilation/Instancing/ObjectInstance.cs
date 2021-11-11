@@ -98,7 +98,17 @@ namespace MCSharp.Compilation.Instancing {
 			if(length != expected) IInstance.GenerateInvalidBlockRangeException(length, expected);
 			else location.Writer.WriteCommand($"scoreboard players operation {selector} {block[offset].Name} = {MCSharpLinkerExtension.StorageSelector} {Pointer.Objective.Name}",
 				Identifier == null ? "Save anonymous object pointer to a block."
-				: $"Save object instance '{Identifier}' pointer to a block.");
+				: $"Save from object instance '{Identifier}' pointer to a block.");
+		}
+
+		/// <inheritdoc/>
+		public void LoadFromBlock(Compiler.CompileArguments location, string selector, Objective[] block, Range range) {
+			(int offset, int length) = range.GetOffsetAndLength(block.Length);
+			int expected = 1;
+			if(length != expected) IInstance.GenerateInvalidBlockRangeException(length, expected);
+			else location.Writer.WriteCommand($"scoreboard players operation {MCSharpLinkerExtension.StorageSelector} {Pointer.Objective.Name} = {selector} {block[offset].Name}",
+				Identifier == null ? "Load anonymous object pointer from a block."
+				: $"Load to object instance '{Identifier}' pointer from a block.");
 		}
 
 	}

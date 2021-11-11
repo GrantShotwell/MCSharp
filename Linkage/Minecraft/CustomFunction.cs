@@ -42,7 +42,18 @@ namespace MCSharp.Linkage.Minecraft {
 
 
 		public ResultInfo Invoke(Compiler.CompileArguments compile, IType[] generic, IInstance[] arguments, out IInstance result) {
+
+			// Cast the arguments to the correct type.
+			for (int i = 0; i < arguments.Length; i++) {
+				IInstance argument = arguments[i];
+				IType parameterType = compile.Compiler.DefinedTypes[MethodParameters[i].TypeIdentifier];
+				if(argument.Type == parameterType) continue;
+				argument.Type.Conversions[parameterType].Function.Invoke(compile, new IType[] { }, new IInstance[] { argument }, out arguments[i]);
+			}
+
+			// Invoke the function.
 			return Delegate.Invoke(compile, generic, arguments, out result);
+
 		}
 
 		public void Dispose() {

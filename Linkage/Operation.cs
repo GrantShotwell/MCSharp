@@ -19,6 +19,7 @@ namespace MCSharp.Linkage {
 		AssignBitwiseXOR,
 		AssignShiftLeft,
 		AssignShiftRight,
+		InitializationAssign,
 
 		// Conditional Expression
 		Conditional,

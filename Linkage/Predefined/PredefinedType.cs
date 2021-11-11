@@ -66,7 +66,8 @@ namespace MCSharp.Linkage.Predefined {
 		/// <param name="members">The members defined by this type definition.</param>
 		/// <param name="subTypes">The type definitions defined by this type definition.</param>
 		public PredefinedType(Scope scope, Modifier modifiers, ClassType classType, string identifier, PredefinedMember[] members,
-		PredefinedConstructor[] constructors, PredefinedType[] subTypes, IType.InitializeInstanceDelegate init, IHashSetDictionary<Operation, IOperation> operations) {
+		PredefinedConstructor[] constructors, PredefinedType[] subTypes, IType.InitializeInstanceDelegate init,
+		IHashSetDictionary<Operation, IOperation> operations, IDictionary<IType, IConversion> conversions) {
 
 			Scope = scope;
 			Scope.Holder = this;
@@ -82,6 +83,7 @@ namespace MCSharp.Linkage.Predefined {
 			SubTypes = subTypes;
 			Init = init;
 			Operations = operations;
+			Conversions = conversions;
 
 		}
 
