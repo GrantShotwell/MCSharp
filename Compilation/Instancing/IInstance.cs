@@ -45,12 +45,12 @@ namespace MCSharp.Compilation.Instancing {
 
 		/// <inheritdoc cref="IInstanceExtensions.SaveToBlock(IInstance, Compiler.CompileArguments, string, Objective[])"/>
 		/// <param name="range"></param>
-		/// <seealso cref="SaveToBlock(IInstance, Compiler.CompileArguments, Objective[])"/>
+		/// <seealso cref="IInstanceExtensions.SaveToBlock(IInstance, Compiler.CompileArguments, string, Objective[])"/>
 		public void SaveToBlock(Compiler.CompileArguments location, string selector, Objective[] block, Range range);
 
-		/// <inheritdoc cref="IInstanceExtensions.LoadFromBlock(IInstance, Compiler.CompileArguments, Objective[])"/>
+		/// <inheritdoc cref="IInstanceExtensions.LoadFromBlock(IInstance, Compiler.CompileArguments, string, Objective[])"/>
 		/// <param name="range"></param>
-		/// <seealso cref="LoadFromBlock(IInstance, Compiler.CompileArguments, Objective[])"/>
+		/// <seealso cref="IInstanceExtensions.LoadFromBlock(IInstance, Compiler.CompileArguments, string, Objective[])"/>
 		public void LoadFromBlock(Compiler.CompileArguments location, string selector, Objective[] block, Range range);
 
 	}

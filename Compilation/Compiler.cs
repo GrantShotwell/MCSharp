@@ -60,6 +60,9 @@ using MCSharp.Linkage.Extensions;
 
 namespace MCSharp.Compilation {
 
+	/// <summary>
+	/// 
+	/// </summary>
 	public class Compiler : IDisposable {
 
 		/// <summary>
@@ -67,6 +70,9 @@ namespace MCSharp.Compilation {
 		/// </summary>
 		public Settings Settings { get; }
 
+		/// <summary>
+		/// 
+		/// </summary>
 		public VirtualMachine VirtualMachine { get; private set; }
 
 		/// <summary>
@@ -89,7 +95,14 @@ namespace MCSharp.Compilation {
 
 		#region Data
 
+		/// <summary>
+		/// 
+		/// </summary>
 		public IDictionary<string, IType> DefinedTypes { get; } = new Dictionary<string, IType>();
+
+		/// <summary>
+		/// 
+		/// </summary>
 		public ICollection<LinkerExtension> LinkerExtensions { get; } = new LinkedList<LinkerExtension>();
 
 		/// <summary>
@@ -667,7 +680,7 @@ namespace MCSharp.Compilation {
 		/// Compiles an initialization expression.
 		/// </summary>
 		/// <param name="location">The location of the expression.</param>
-		/// <param name="initialization_expressoin">The initialization expression.</param>
+		/// <param name="initialization_expression">The initialization expression.</param>
 		/// <param name="value">The value of the initialization expression.</param>
 		/// <returns>The result of the compilation.</returns>
 		public ResultInfo CompileInitializationExpression(CompileArguments location, InitializationExpressionContext initialization_expression, out IInstance value) {
@@ -935,6 +948,7 @@ namespace MCSharp.Compilation {
 		/// conditional_expression
 		///   : null_coalescing_expression ( CONDITION_IF expression CONDITION_ELSE expression )?
 		///   ;
+		/// </code>
 		/// </summary>
 		/// <param name="conditional_expression">The expression to compile.</param>
 		/// <inheritdoc cref="CompileExpression(CompileArguments, ExpressionContext, out IInstance)"/>
@@ -1737,7 +1751,7 @@ namespace MCSharp.Compilation {
 		///   ;
 		/// </code>
 		/// </summary>
-		/// <param name="address_of_expression">The expression to compile.</param>
+		/// <param name="addressof_expression">The expression to compile.</param>
 		/// <inheritdoc cref="CompileExpression(CompileArguments, ExpressionContext, out IInstance)"/>
 		public ResultInfo CompileAddressofExpression(CompileArguments location, AddressofExpressionContext addressof_expression, out IInstance value) {
 
@@ -1773,16 +1787,23 @@ namespace MCSharp.Compilation {
 				throw new ArgumentNullException(nameof(assignment_expression));
 			#endregion
 
-			value = null;
-
+			// Get the left-hand side of the assignment.
 			UnaryExpressionContext unary_expression = assignment_expression.unary_expression();
 			ResultInfo unary_result = CompileUnaryExpression(location, unary_expression, out IInstance unary_value);
-			if(unary_result.Failure) return unary_result;
+			if(unary_result.Failure) {
+				value = null;
+				return unary_result;
+			}
 
+			// Get the right-hand side of the assignment.
 			ExpressionContext expression = assignment_expression.expression();
 			ResultInfo expression_result = CompileExpression(location, expression, out IInstance expression_value);
-			if(expression_result.Failure) return expression_result;
+			if(expression_result.Failure) {
+				value = null;
+				return expression_result;
+			}
 
+			// Get assignment operator.
 			Operation op;
 			var assignment_operator = assignment_expression.assignment_operator();
 			if(assignment_operator.ASSIGN() != null) op = Operation.Assign;
@@ -1798,9 +1819,11 @@ namespace MCSharp.Compilation {
 			else if(assignment_operator.ASSIGN_LEFT() != null) op = Operation.AssignShiftLeft;
 			else op = Operation.AssignShiftRight;
 
+			// Perform the assignment.
 			ResultInfo simple_operation_result = CompileSimpleOperation(location, op, unary_value, expression_value, out value);
 			if(simple_operation_result.Failure) return location.GetLocation(assignment_expression) + simple_operation_result;
 
+			// Return success.
 			return ResultInfo.DefaultSuccess;
 
 		}
@@ -2020,8 +2043,8 @@ namespace MCSharp.Compilation {
 						if(exists) {
 							string[] identifiers = new string[argumentTypes.Length];
 							for(int i = 0; i < argumentTypes.Length; i++) identifiers[i] = argumentTypes[i].Identifier;
-							return new ResultInfo(false, $"{location.GetLocation(identifier)}No matching overload for method '{identifier.GetText()}' in type '{holder.Identifier}': " +
-								$"({string.Join(", ", identifiers)}).");
+							return new ResultInfo(false, $"{location.GetLocation(identifier)}No matching overload for method '{identifier.GetText()}' in type '{holder.Identifier}' " +
+								$"with arguments: ({string.Join(", ", identifiers)}).");
 						} else {
 							return new ResultInfo(false, $"{location.GetLocation(identifier)}Method '{identifier.GetText()}' does not exist in type '{holder.Identifier}'.");
 						}
@@ -2086,9 +2109,14 @@ namespace MCSharp.Compilation {
 									return ResultInfo.DefaultSuccess;
 								}
 
-								// TODO: PredefinedInstance
+								// PrimitiveInstance
+								case PrimitiveInstance primitiveInstance: {
+									value = null;
+									return new ResultInfo(false, $"{location.GetLocation(identifier)}Accessing fields of primitive types is not supported.");
+								}
 
 								default: throw new Exception($"Unsupported type of {nameof(IInstance)}: '{holder.GetType().FullName}'.");
+
 							}
 
 						}
@@ -2178,8 +2206,8 @@ namespace MCSharp.Compilation {
 						if(exists) {
 							string[] identifiers = new string[argumentTypes.Length];
 							for(int i = 0; i < argumentTypes.Length; i++) identifiers[i] = argumentTypes[i].Identifier;
-							return new ResultInfo(false, $"{location.GetLocation(identifier)}No matching overload for method '{identifier.GetText()}' in type '{holder.Identifier}': " +
-								$"({string.Join(", ", identifiers)}).");
+							return new ResultInfo(false, $"{location.GetLocation(identifier)}No matching overload for method '{identifier.GetText()}' in type '{holder.Identifier}' " +
+								$"with arguments: ({string.Join(", ", identifiers)}).");
 						} else {
 							return new ResultInfo(false, $"{location.GetLocation(identifier)}Method '{identifier.GetText()}' does not exist in type '{holder.Identifier}'.");
 						}
@@ -2872,6 +2900,7 @@ namespace MCSharp.Compilation {
 
 		#endregion
 
+		/// <inheritdoc/>
 		public void Dispose() {
 
 			foreach(var type in DefinedTypes.Values) {
@@ -2972,6 +3001,9 @@ namespace MCSharp.Compilation {
 
 		}
 
+		/// <summary>
+		/// 
+		/// </summary>
 		public class ScriptClassWalker : MCSharpBaseListener {
 
 			Compiler Compiler { get; }
@@ -2983,24 +3015,33 @@ namespace MCSharp.Compilation {
 			private ICollection<MemberDefinitionContext> CurrentMemberContexts { get; set; } = new LinkedList<MemberDefinitionContext>();
 			private ICollection<ConstructorDefinitionContext> CurrentConstructorContexts { get; set; } = new LinkedList<ConstructorDefinitionContext>();
 
+			/// <summary>
+			/// 
+			/// </summary>
+			/// <param name="compiler"></param>
+			/// <param name="rootScope"></param>
 			public ScriptClassWalker(Compiler compiler, Scope rootScope) {
 				Compiler = compiler;
 				RootScope = rootScope;
 			}
 
+			/// <inheritdoc/>
 			public override void EnterType_definition([NotNull] TypeDefinitionContext context) {
 				CurrentMemberContexts.Clear();
 				CurrentTypeContext = context;
 			}
 
+			/// <inheritdoc/>
 			public override void EnterMember_definition([NotNull] MemberDefinitionContext context) {
 				CurrentMemberContexts.Add(context);
 			}
 
+			/// <inheritdoc/>
 			public override void EnterConstructor_definition([NotNull] ConstructorDefinitionContext context) {
 				CurrentConstructorContexts.Add(context);
 			}
 
+			/// <inheritdoc/>
 			public override void ExitType_definition([NotNull] TypeDefinitionContext context) {
 				
 				if(context != CurrentTypeContext) throw new Exception($"Subtypes are currently not supported by {nameof(ScriptClassWalker)}.");
@@ -3019,31 +3060,51 @@ namespace MCSharp.Compilation {
 
 			}
 
+			/// <inheritdoc/>
 			public void PostFirstPass() {
 				postFirstPass.Invoke(Compiler);
 			}
 
+			/// <inheritdoc/>
 			public void OnLoad(CompileArguments location) {
 				onLoad.Invoke(location);
 			}
 
 		}
 
+		/// <summary>
+		/// 
+		/// </summary>
 		public class ScriptErrorListener : IAntlrErrorListener<IToken>, IAntlrErrorListener<int> {
 
+			/// <summary>
+			/// 
+			/// </summary>
 			public ResultInfo Result { get; private set; }
+
+			/// <summary>
+			/// 
+			/// </summary>
 			string Source { get; }
 
+
+			/// <summary>
+			/// 
+			/// </summary>
+			/// <param name="source"></param>
 			public ScriptErrorListener(string source) {
 				Result = ResultInfo.DefaultSuccess;
 				Source = source;
 			}
 
+
+			/// <inheritdoc/>
 			void IAntlrErrorListener<IToken>.SyntaxError(TextWriter output, IRecognizer recognizer, IToken offendingSymbol, int line, int charPositionInLine, string msg, RecognitionException e) {
 				string message = $"{Source} line {line}:{charPositionInLine} {msg}";
 				Result = new ResultInfo(false, message);
 			}
 
+			/// <inheritdoc/>
 			void IAntlrErrorListener<int>.SyntaxError(TextWriter output, IRecognizer recognizer, int offendingSymbol, int line, int charPositionInLine, string msg, RecognitionException e) {
 				string message = $"{Source} line {line}:{charPositionInLine} {msg}";
 				Result = new ResultInfo(false, message);

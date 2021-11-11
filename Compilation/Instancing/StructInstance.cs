@@ -20,10 +20,22 @@ namespace MCSharp.Compilation.Instancing {
 		/// <inheritdoc/>
 		public string Identifier { get; }
 
+		/// <summary>
+		/// 
+		/// </summary>
 		public IReadOnlyDictionary<IField, IInstance> FieldInstances { get; }
 
+		/// <inheritdoc/>
 		public Scope Scope { get; }
 
+
+		/// <summary>
+		/// Creates a new <see cref="StructInstance"/>.
+		/// </summary>
+		/// <param name="location"></param>
+		/// <param name="type"></param>
+		/// <param name="identifier"></param>
+		/// <exception cref="IInstance.InvalidTypeException"></exception>
 		public StructInstance(Compiler.CompileArguments location, IType type, string identifier) {
 
 			#region Argument Checks
@@ -79,6 +91,7 @@ namespace MCSharp.Compilation.Instancing {
 			throw new NotImplementedException();
 		}
 
+		/// <inheritdoc/>
 		public void LoadFromBlock(Compiler.CompileArguments location, string selector, Objective[] block, Range range) {
 			(int offset, int length) = range.GetOffsetAndLength(block.Length);
 			int expected = Type.GetBlockSize(location.Compiler);

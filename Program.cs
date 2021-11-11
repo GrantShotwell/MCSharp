@@ -36,16 +36,17 @@ namespace MCSharp {
 						Match match = SettingsRegex.Match(line);
 						if(match.Success) {
 							string setting = match.Groups["Setting"].Value;
-							string value   = match.Groups[ "Value" ].Value;
+							string value = match.Groups["Value"].Value;
 							string success = $"Applied '{setting}' setting.";
 							switch(setting) {
-								case "default_datapacks_folder":  DatapackFolder = value;  PrintSuccess(success);  break;
-								case "default_datapack_name":     DatapackName = value;    PrintSuccess(success);  break;
+								case "default_datapacks_folder": DatapackFolder = value; PrintSuccess(success); break;
+								case "default_datapack_name": DatapackName = value; PrintSuccess(success); break;
 								default: PrintWarning($"Skipped unknown setting '{setting}'."); break;
 							}
 						}
 					}
-				} catch(Exception e) {
+				}
+				catch(Exception e) {
 					PrintError(e);
 				}
 			}
@@ -86,7 +87,7 @@ namespace MCSharp {
 		}
 
 		private static bool GetDatapack(out Datapack datapack) {
-			
+
 			bool setfolder = DatapackFolder is null;
 			bool setname = DatapackName is null;
 			if(setfolder || setname) {
@@ -101,7 +102,7 @@ namespace MCSharp {
 
 		}
 
-#region Console Helpers
+		#region Console Helpers
 
 		public static void PrintText(string text) {
 			Console.ForegroundColor = ConsoleColor.Gray;
@@ -182,8 +183,10 @@ namespace MCSharp {
 		public static void PrintCommandName(string alias) {
 			if(alias is null) throw new ArgumentNullException(nameof(alias));
 			if(!CommandDictionary.ContainsKey(alias)) PrintText($"A command with the alias '{alias}' does not exist.");
-			Command command = CommandDictionary[alias];
-			PrintCommandName(command);
+			else {
+				Command command = CommandDictionary[alias];
+				PrintCommandName(command);
+			}
 		}
 
 		private static void PrintCommandName(Command command) {
@@ -196,8 +199,10 @@ namespace MCSharp {
 		public static void PrintCommandDescription(string alias) {
 			if(alias is null) throw new ArgumentNullException(nameof(alias));
 			if(!CommandDictionary.ContainsKey(alias)) PrintText($"A command with the alias '{alias}' does not exist.");
-			Command command = CommandDictionary[alias];
-			PrintCommandDescription(command);
+			else {
+				Command command = CommandDictionary[alias];
+				PrintCommandDescription(command);
+			}
 		}
 
 		private static void PrintCommandDescription(Command command) {
@@ -209,8 +214,10 @@ namespace MCSharp {
 		public static void PrintCommandAliases(string alias) {
 			if(alias is null) throw new ArgumentNullException(nameof(alias));
 			if(!CommandDictionary.ContainsKey(alias)) PrintText($"A command with the alias '{alias}' does not exist.");
-			Command command = CommandDictionary[alias];
-			PrintCommandAliases(command);
+			else {
+				Command command = CommandDictionary[alias];
+				PrintCommandAliases(command);
+			}
 		}
 
 		private static void PrintCommandAliases(Command command) {
@@ -220,9 +227,9 @@ namespace MCSharp {
 			else PrintText(string.Join(", ", attribute.Aliases));
 		}
 
-#endregion
+		#endregion
 
-#region Commands
+		#region Commands
 
 		private static void AddCommand(Command command) {
 
@@ -237,7 +244,7 @@ namespace MCSharp {
 
 		[Command("Provides information about commands.", "help", "h")]
 		public static void Command_Help(Input input, out bool exit) {
-			
+
 			if(input.Arguments != string.Empty) {
 
 				// Display help for given command.
@@ -279,7 +286,7 @@ namespace MCSharp {
 
 		[Command("Creates a datapack file structure located at the current save with the current name.", "create")]
 		public static void Command_Create(Input input, out bool exit) {
-			
+
 			if(!GetDatapack(out Datapack datapack)) {
 				exit = false;
 				return;
@@ -322,7 +329,7 @@ namespace MCSharp {
 				return;
 			}
 			PrintText($"Files will be edited within '{datapack.RootDirectory}'.\nSome data may be overwritten.");
-			
+
 			if(!PrintYN("Continue? ")) {
 				exit = false;
 				return;
@@ -354,7 +361,7 @@ namespace MCSharp {
 
 		}
 
-#endregion
+		#endregion
 
 		public struct Input {
 			private static Regex Regex { get; } = new Regex(@"(?'Command'[\x21-\x7E]+)[\s]*(?'Arguments'([\s]*[\x21-\x7E]+)*)[\s]*");

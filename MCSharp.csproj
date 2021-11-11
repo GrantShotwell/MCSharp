@@ -2,12 +2,13 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <StartupObject>MCSharp.Program</StartupObject>
     <ApplicationIcon>MC-crafting-center_with_CS-logo-placed.ico</ApplicationIcon>
     <Win32Resource />
     <Configurations>Debug;Release;Debug Out</Configurations>
     <RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -27,7 +28,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Antlr4.Runtime.Standard" Version="4.9.1" />
+    <PackageReference Include="Antlr4.Runtime.Standard" Version="4.9.3" />
   </ItemGroup>
 
   <ItemGroup>

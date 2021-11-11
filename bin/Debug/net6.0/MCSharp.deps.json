@@ -1,0 +1,41 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v6.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v6.0": {
+      "MCSharp/1.0.0": {
+        "dependencies": {
+          "Antlr4.Runtime.Standard": "4.9.3"
+        },
+        "runtime": {
+          "MCSharp.dll": {}
+        }
+      },
+      "Antlr4.Runtime.Standard/4.9.3": {
+        "runtime": {
+          "lib/netstandard2.0/Antlr4.Runtime.Standard.dll": {
+            "assemblyVersion": "4.9.3.0",
+            "fileVersion": "4.9.3.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "MCSharp/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Antlr4.Runtime.Standard/4.9.3": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-wn+a34a9r3jOMxnIWxWJQ7QAbKi+KyZ9YAiEVVw0qII0J4Z6Z9F6a1b8WNzU00LlsIt++nZIz1BokksielrQYA==",
+      "path": "antlr4.runtime.standard/4.9.3",
+      "hashPath": "antlr4.runtime.standard.4.9.3.nupkg.sha512"
+    }
+  }
+}

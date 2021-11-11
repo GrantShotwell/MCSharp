@@ -10,7 +10,7 @@ namespace MCSharp.Linkage.Minecraft {
 	/// Represents in-game code with arguments and a returnable value.
 	/// </summary>
 	/// <seealso cref="IStatementFunction"/>
-	/// <seealso cref="ICustomFunction"/>
+	/// <seealso cref="CustomFunction"/>
 	public interface IFunction : IDisposable {
 
 		/// <summary>
@@ -29,7 +29,7 @@ namespace MCSharp.Linkage.Minecraft {
 		public string ReturnTypeIdentifier { get; }
 
 		/// <summary>
-		/// The <see cref="IInstance>"/> assigned to when returning.
+		/// The <see cref="IInstance"/> assigned to when returning.
 		/// </summary>
 		public IInstance ReturnInstance { get; }
 

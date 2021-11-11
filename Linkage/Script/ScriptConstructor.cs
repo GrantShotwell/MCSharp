@@ -60,6 +60,7 @@ namespace MCSharp.Linkage.Script {
 
 		}
 
+		/// <inheritdoc/>
 		public void Dispose() {
 			Invoker.Dispose();
 		}

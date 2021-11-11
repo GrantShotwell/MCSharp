@@ -39,7 +39,7 @@ namespace MCSharp.Compilation {
 		private readonly ICollection<Scope> children = new List<Scope>();
 		/// <summary>
 		/// The read-only child <see cref="Scope"/>s of this <see cref="Scope"/>.
-		/// <para>The only way to add more children is to call <see cref="Scope(Scope)"/>.</para>
+		/// <para>The only way to add more children is to call <see cref="Scope(string, Scope)"/>.</para>
 		/// </summary>
 		public IReadOnlyCollection<Scope> Children => (IReadOnlyCollection<Scope>)children;
 
@@ -63,7 +63,6 @@ namespace MCSharp.Compilation {
 		/// </summary>
 		/// <param name="name">The name of this <see cref="Scope"/>. Can be <see langword="null"/> to make this anonymous.</param>
 		/// <param name="parent">The parent of the new <see cref="Scope"/>. Can be <see langword="null"/> to make this a root.</param>
-		/// <param name="holder">The <see cref="IScopeHolder"/> to hold this <see cref="Scope"/>.</param>
 		/// <exception cref="InvalidOperationException">Thrown when <paramref name="parent"/> already contains an immediate child called <paramref name="name"/>.</exception>
 		public Scope(string name, Scope parent) {
 

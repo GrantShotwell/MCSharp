@@ -91,20 +91,35 @@ namespace MCSharp.Linkage.Minecraft.Text {
 		#endregion
 
 
+		/// <summary>
+		/// Creates a new <see cref="RawText"/> from a <see cref="string"/>.
+		/// </summary>
+		/// <param name="json">The JSON <see cref="string"/> to use.</param>
+		/// <returns>The resulting <see cref="RawText"/>.</returns>
 		public static RawText FromJson(string json) => JsonSerializer.Deserialize<RawText>(json, DeserializerOptions);
+		/// <summary>
+		/// Creates the JSON <see cref="string"/> from this <see cref="RawText"/>.
+		/// </summary>
+		/// <returns>The resulting JSON <see cref="string"/>.</returns>
 		public string GetJson() {
 			string json = JsonSerializer.Serialize(this, SerializerOptions);
 			return json;
 		}
 
 		private static JsonSerializerOptions serializerOptions = null;
+		/// <summary>
+		/// The <see cref="JsonNamingPolicy"/> for the serialization process.
+		/// </summary>
 		public static JsonNamingPolicy SerializeNamingPolicy { get; } = new MinecraftNamingPolicy();
+		/// <summary>
+		/// The <see cref="JsonSerializerOptions"/> for this <see cref="RawText"/>.
+		/// </summary>
 		public static JsonSerializerOptions SerializerOptions {
 			get {
 				if(serializerOptions is null) {
 					serializerOptions = new JsonSerializerOptions() {
 						PropertyNamingPolicy = SerializeNamingPolicy,
-						IgnoreNullValues = true,
+						DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
 						WriteIndented = false
 					};
 					serializerOptions.Converters.Add(NullableBoolConverter);
@@ -114,13 +129,19 @@ namespace MCSharp.Linkage.Minecraft.Text {
 		}
 
 		private static JsonSerializerOptions deserializerOptions = null;
+		/// <summary>
+		/// The <see cref="JsonNamingPolicy"/> for the deserialization process.
+		/// </summary>
 		public static JsonNamingPolicy DeserializeNamingPolicy { get; } = new MinecraftNamingPolicy();
+		/// <summary>
+		/// The <see cref="JsonSerializerOptions"/> for the deserialization process.
+		/// </summary>
 		public static JsonSerializerOptions DeserializerOptions {
 			get {
 				if(deserializerOptions is null) {
 					deserializerOptions = new JsonSerializerOptions() {
 						PropertyNamingPolicy = DeserializeNamingPolicy,
-						IgnoreNullValues = true,
+						DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
 						WriteIndented = false
 					};
 					deserializerOptions.Converters.Add(NullableBoolConverter);
@@ -129,20 +150,36 @@ namespace MCSharp.Linkage.Minecraft.Text {
 			}
 		}
 
+		/// <summary>
+		/// 
+		/// </summary>
 		public static NullableBoolJsonConverter NullableBoolConverter { get; } = new NullableBoolJsonConverter();
 
+		/// <summary>
+		/// 
+		/// </summary>
 		public class NullableBoolJsonConverter : JsonConverter<bool?> {
+
+			/// <inheritdoc/>
 			public override bool? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) {
 				bool result = bool.Parse(reader.GetString());
 				return result;
 			}
+
+			/// <inheritdoc/>
 			public override void Write(Utf8JsonWriter writer, bool? value, JsonSerializerOptions options) {
 				string result = value.Value.ToString();
 				writer.WriteStringValue(result);
 			}
+
 		}
 
+		/// <summary>
+		/// Represents the naming policy for Minecraft's raw JSON text.
+		/// </summary>
 		public class MinecraftNamingPolicy : JsonNamingPolicy {
+
+			/// <inheritdoc/>
 			public override string ConvertName(string name) {
 				if(name.ToLower().StartsWith("show")) {
 					string sub = name.Substring("show".Length);
@@ -157,9 +194,15 @@ namespace MCSharp.Linkage.Minecraft.Text {
 					return result;
 				}
 			}
-		}
 
+		}
+		
+		/// <summary>
+		/// Represents the naming policy for Dot NET.
+		/// </summary>
 		public class DotNetNamingPolicy : JsonNamingPolicy {
+
+			/// <inheritdoc/>
 			public override string ConvertName(string name) {
 				if(name.ToLower().StartsWith("show")) {
 					string sub = name.Substring("show".Length);
@@ -174,6 +217,7 @@ namespace MCSharp.Linkage.Minecraft.Text {
 					return result;
 				}
 			}
+
 		}
 
 	}

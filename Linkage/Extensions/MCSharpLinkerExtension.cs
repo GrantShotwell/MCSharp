@@ -11,29 +11,51 @@ using System.Text;
 
 namespace MCSharp.Linkage.Extensions {
 
+	/// <summary>
+	/// 
+	/// </summary>
 	public class MCSharpLinkerExtension : LinkerExtension {
 
+		/// <summary>
+		/// The selector for default storage.
+		/// </summary>
 		public static string StorageSelector => "mcs.value";
 
-		// Primitive Types
+		#region Primitive Type Identifiers
+		/// <summary>Identifier for the object type.</summary>
 		public static string ObjectIdentifier => "object";
+		/// <summary>Identifier for the objective type.</summary>
 		public static string ObjectiveIdentifier => "objective";
+		/// <summary>Identifier for the integer type.</summary>
 		public static string IntIdentifier => "int";
+		/// <summary>Identifier for the boolean type.</summary>
 		public static string BoolIdentifier => "bool";
+		/// <summary>Identifier for the floating-point type.</summary>
 		public static string FloatIdentifier => "float";
+		/// <summary>Identifier for the string type.</summary>
 		public static string StringIdentifier => "string";
+		/// <summary>Identifier for the selector type.</summary>
 		public static string SelectorIdentifier => "Selector";
+		/// <summary>Identifier for the JSON type.</summary>
 		public static string JsonIdentifier => "Json";
+		#endregion
 
-		// Static Types
+		#region Static Type Identifiers
+		/// <summary>Identifier for the "chat" class.</summary>
 		public static string ChatIdentifier => "Chat";
+		/// <summary>Identifier for the "world" class.</summary>
 		public static string WorldIdentifier => "World";
+		#endregion
 
-		// Attribute Types
+		#region Attributes Type Identifiers
+		/// <summary>Identifier for the attribute abstract class.</summary>
 		public static string AttributeIdentifier => "Attribute";
-		public static string EntityTypeAttributeIdentifier => "EntityType";
+		/// <summary>Identifier for the entity attribute.</summary>
+		public static string EntityAttributeIdentifier => "Entity";
+		#endregion
 
 
+		/// <inheritdoc/>
 		public MCSharpLinkerExtension(Compiler compiler) : base(compiler) { }
 
 		/// <inheritdoc/>
@@ -2256,7 +2278,7 @@ namespace MCSharp.Linkage.Extensions {
 		}
 
 		/// <summary>
-		/// Creates the <see cref="PredefinedTypes"/> for the type "Attribute".
+		/// Creates the <see cref="PredefinedType"/>s for the type "Attribute".
 		/// </summary>
 		public static PredefinedType CreatePredefinedAttribute(Scope rootScope, List<Action<Compiler.CompileArguments>> onLoadActions) {
 

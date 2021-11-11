@@ -1,38 +1,38 @@
 {
   "version": 3,
   "targets": {
-    ".NETCoreApp,Version=v3.1": {
-      "Antlr4.Runtime.Standard/4.9.1": {
+    "net6.0": {
+      "Antlr4.Runtime.Standard/4.9.3": {
         "type": "package",
         "compile": {
-          "lib/netstandard2.1/Antlr4.Runtime.Standard.dll": {}
+          "lib/netstandard2.0/Antlr4.Runtime.Standard.dll": {}
         },
         "runtime": {
-          "lib/netstandard2.1/Antlr4.Runtime.Standard.dll": {}
+          "lib/netstandard2.0/Antlr4.Runtime.Standard.dll": {}
         }
       }
     }
   },
   "libraries": {
-    "Antlr4.Runtime.Standard/4.9.1": {
-      "sha512": "2b6SrwXRa3lgJ7nQyG+EZFJHGDWRW0Bb8KfqdXaAVL3QoGOuXkFRLBxTIbRt1lNUop9k++SG2kid/pl1Q49UGw==",
+    "Antlr4.Runtime.Standard/4.9.3": {
+      "sha512": "wn+a34a9r3jOMxnIWxWJQ7QAbKi+KyZ9YAiEVVw0qII0J4Z6Z9F6a1b8WNzU00LlsIt++nZIz1BokksielrQYA==",
       "type": "package",
-      "path": "antlr4.runtime.standard/4.9.1",
+      "path": "antlr4.runtime.standard/4.9.3",
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
-        "antlr4.runtime.standard.4.9.1.nupkg.sha512",
+        "antlr4.runtime.standard.4.9.3.nupkg.sha512",
         "antlr4.runtime.standard.nuspec",
+        "lib/net45/Antlr4.Runtime.Standard.dll",
+        "lib/net45/Antlr4.Runtime.Standard.xml",
         "lib/netstandard2.0/Antlr4.Runtime.Standard.dll",
-        "lib/netstandard2.0/Antlr4.Runtime.Standard.xml",
-        "lib/netstandard2.1/Antlr4.Runtime.Standard.dll",
-        "lib/netstandard2.1/Antlr4.Runtime.Standard.xml"
+        "lib/netstandard2.0/Antlr4.Runtime.Standard.xml"
       ]
     }
   },
   "projectFileDependencyGroups": {
-    ".NETCoreApp,Version=v3.1": [
-      "Antlr4.Runtime.Standard >= 4.9.1"
+    "net6.0": [
+      "Antlr4.Runtime.Standard >= 4.9.3"
     ]
   },
   "packageFolders": {
@@ -52,15 +52,15 @@
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
       "originalTargetFrameworks": [
-        "netcoreapp3.1"
+        "net6.0"
       ],
       "sources": {
         "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
-        "netcoreapp3.1": {
-          "targetAlias": "netcoreapp3.1",
+        "net6.0": {
+          "targetAlias": "net6.0",
           "projectReferences": {}
         }
       },
@@ -71,12 +71,12 @@
       }
     },
     "frameworks": {
-      "netcoreapp3.1": {
-        "targetAlias": "netcoreapp3.1",
+      "net6.0": {
+        "targetAlias": "net6.0",
         "dependencies": {
           "Antlr4.Runtime.Standard": {
             "target": "Package",
-            "version": "[4.9.1, )"
+            "version": "[4.9.3, )"
           }
         },
         "imports": [
@@ -89,12 +89,6 @@
         ],
         "assetTargetFallback": true,
         "warn": true,
-        "downloadDependencies": [
-          {
-            "name": "Microsoft.NETCore.App.Host.win-x64",
-            "version": "[3.1.21, 3.1.21]"
-          }
-        ],
         "frameworkReferences": {
           "Microsoft.NETCore.App": {
             "privateAssets": "all"

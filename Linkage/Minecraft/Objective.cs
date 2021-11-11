@@ -6,6 +6,9 @@ using System.Text;
 
 namespace MCSharp.Linkage.Minecraft {
 
+	/// <summary>
+	/// Represents a Minecraft scoreboard objective.
+	/// </summary>
 	public class Objective {
 		
 		/// <summary>
@@ -57,10 +60,17 @@ namespace MCSharp.Linkage.Minecraft {
 			return $"mcs.{anonCount++}";
 		}
 
+		/// <summary>
+		/// 
+		/// </summary>
 		public static void ClearAnonymousNames() {
 			anonCount = 0;
 		}
 
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="function"></param>
 		public void WriteRemove(FunctionWriter function) {
 
 			string comment =
@@ -70,7 +80,7 @@ namespace MCSharp.Linkage.Minecraft {
 
 		}
 
-		/// </inheritdoc>
+		/// <inheritdoc/>
 		public override string ToString() => $"{Name} ({Criterion})";
 
 	}

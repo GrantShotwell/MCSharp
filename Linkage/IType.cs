@@ -85,6 +85,9 @@ namespace MCSharp.Linkage {
 
 	}
 
+	/// <summary>
+	/// Extensions for the <see cref="IType"/> interface.
+	/// </summary>
 	public static class ITypeExtensions {
 
 		/// <summary>
@@ -314,6 +317,15 @@ namespace MCSharp.Linkage {
 
 		}
 
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="type"></param>
+		/// <param name="compiler"></param>
+		/// <param name="genericArguments"></param>
+		/// <param name="methodArguments"></param>
+		/// <param name="methodName"></param>
+		/// <returns></returns>
 		public static IMember FindBestMethod(this IType type, Compiler compiler, IType[] genericArguments, IType[] methodArguments, string methodName) {
 
 			(int Score, IMember Member) best = (-1, null);

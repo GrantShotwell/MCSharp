@@ -7,6 +7,9 @@ using System.Linq;
 
 namespace MCSharp.Linkage.Minecraft {
 
+	/// <summary>
+	/// 
+	/// </summary>
 	public class StandaloneStatementFunction : IStatementFunction {
 
 		/// <summary>
@@ -31,6 +34,9 @@ namespace MCSharp.Linkage.Minecraft {
 		
 		private ICollection<StandaloneStatementFunction> ChildFunctions { get; } = new LinkedList<StandaloneStatementFunction>();
 
+		/// <summary>
+		/// Whether or not the function has been compiled.
+		/// </summary>
 		public bool Compiled { get; set; }
 
 		private IScopeHolder ScopeHolder { get; }
@@ -47,7 +53,6 @@ namespace MCSharp.Linkage.Minecraft {
 		/// </summary>
 		/// <param name="writer">The <see cref="FunctionWriter"/> this <see cref="IFunction"/> will write to.</param>
 		/// <param name="holder">The <see cref="IScopeHolder"/> this <see cref="IFunction"/> belongs to.</param>
-		/// <param name="parent">The <see cref="Scope"/> used when writing the function.</param>
 		/// <param name="genericParameters">The <see cref="IGenericParameter"/>s of this <see cref="IFunction"/>.</param>
 		/// <param name="methodParameters">The <see cref="IMethodParameter"/>s of this <see cref="IFunction"/>.</param>
 		/// <param name="statements">The <see cref="IStatement"/>s of this <see cref="IFunction"/>.</param>
@@ -70,7 +75,6 @@ namespace MCSharp.Linkage.Minecraft {
 		/// </summary>
 		/// <param name="writer">The <see cref="FunctionWriter"/> this <see cref="IFunction"/> will write to.</param>
 		/// <param name="scope">The <see cref="Compilation.Scope"/> this <see cref="IFunction"/> belongs to.</param>
-		/// <param name="parent">The <see cref="Scope"/> used when writing the function.</param>
 		/// <param name="genericParameters">The <see cref="IGenericParameter"/>s of this <see cref="IFunction"/>.</param>
 		/// <param name="methodParameters">The <see cref="IMethodParameter"/>s of this <see cref="IFunction"/>.</param>
 		/// <param name="statements">The <see cref="IStatement"/>s of this <see cref="IFunction"/>.</param>
@@ -157,13 +161,13 @@ namespace MCSharp.Linkage.Minecraft {
 
 							// Get the field initializer expression context, and compile it.
 							if(field.Initializer != null) {
+
 								var initializerContext = field.Initializer.Context;
 								ResultInfo initializerResult = location1.Compiler.CompileExpression(location1, initializerContext, out IInstance value);
 								if(initializerResult.Failure) {
 									result = null;
 									return location1.GetLocation(initializerContext) + initializerResult;
 								}
-
 
 								// Assign the value to the field.
 								writer.WriteComments(
@@ -202,6 +206,7 @@ namespace MCSharp.Linkage.Minecraft {
 			return ChildFunctions.Count.ToString();
 		}
 
+		/// <inheritdoc/>
 		public void Dispose() {
 			
 			// Dispose of the writer.

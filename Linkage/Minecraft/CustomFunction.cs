@@ -12,6 +12,14 @@ namespace MCSharp.Linkage.Minecraft {
 	/// </summary>
 	public class CustomFunction : IFunction {
 
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="compile"></param>
+		/// <param name="generic"></param>
+		/// <param name="arguments"></param>
+		/// <param name="result"></param>
+		/// <returns></returns>
 		public delegate ResultInfo InvokeDelegate(Compiler.CompileArguments compile, IType[] generic, IInstance[] arguments, out IInstance result);
 
 		private InvokeDelegate Delegate { get; }
@@ -33,6 +41,14 @@ namespace MCSharp.Linkage.Minecraft {
 		public IInstance ReturnInstance { get; private set; }
 
 
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="returnTypeIdentifier"></param>
+		/// <param name="genericParameters"></param>
+		/// <param name="methodParameters"></param>
+		/// <param name="delegate"></param>
+		/// <exception cref="ArgumentNullException"></exception>
 		public CustomFunction(string returnTypeIdentifier, PredefinedGenericParameter[] genericParameters, PredefinedMethodParameter[] methodParameters, InvokeDelegate @delegate) {
 			Delegate = @delegate ?? throw new ArgumentNullException(nameof(@delegate));
 			GenericParameters = genericParameters ?? throw new ArgumentNullException(nameof(genericParameters));
@@ -41,6 +57,14 @@ namespace MCSharp.Linkage.Minecraft {
 		}
 
 
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="compile"></param>
+		/// <param name="generic"></param>
+		/// <param name="arguments"></param>
+		/// <param name="result"></param>
+		/// <returns></returns>
 		public ResultInfo Invoke(Compiler.CompileArguments compile, IType[] generic, IInstance[] arguments, out IInstance result) {
 
 			// Cast the arguments to the correct type.
@@ -56,6 +80,7 @@ namespace MCSharp.Linkage.Minecraft {
 
 		}
 
+		/// <inheritdoc/>
 		public void Dispose() {
 			// Nothing to dispose of.
 		}

@@ -58,13 +58,13 @@ namespace MCSharp.Linkage.Predefined {
 				Statement = statement;
 			}
 
-			/// <exception cref="InvalidPredefinedExpressionException">Thrown when Antlr sends a syntax error while lexing/parsing <paramref name="expression"/>.</exception>
+			/// <exception cref="InvalidPredefinedExpressionException">Thrown when Antlr sends a syntax error while lexing/parsing.</exception>
 			void IAntlrErrorListener<IToken>.SyntaxError(TextWriter output, IRecognizer recognizer, IToken offendingSymbol, int line, int charPositionInLine, string msg, RecognitionException e) {
 				string message = $"line {line}:{charPositionInLine} {msg}";
 				throw new InvalidPredefinedExpressionException(Statement, message);
 			}
 
-			/// <exception cref="InvalidPredefinedExpressionException">Thrown when Antlr sends a syntax error while lexing/parsing <paramref name="expression"/>.</exception>
+			/// <exception cref="InvalidPredefinedExpressionException">Thrown when Antlr sends a syntax error while lexing/parsing.</exception>
 			void IAntlrErrorListener<int>.SyntaxError(TextWriter output, IRecognizer recognizer, int offendingSymbol, int line, int charPositionInLine, string msg, RecognitionException e) {
 				string message = $"line {line}:{charPositionInLine} {msg}";
 				throw new InvalidPredefinedExpressionException(Statement, message);

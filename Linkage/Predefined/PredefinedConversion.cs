@@ -29,7 +29,7 @@ namespace MCSharp.Linkage.Predefined {
         /// <param name="referenceType">The reference type.</param>
         /// <param name="targetType">The target type.</param>
         /// <param name="function">The function.</param>
-        /// <param name="explicit">Whether the conversion is explicit.</param>
+        /// <param name="implicit">Whether the conversion is explicit.</param>
         public PredefinedConversion(IType referenceType, IType targetType, IFunction function, bool @implicit = false) {
             ReferenceType = referenceType ?? throw new ArgumentNullException(nameof(referenceType));
             TargetType = targetType ?? throw new ArgumentNullException(nameof(targetType));

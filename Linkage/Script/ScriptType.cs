@@ -48,6 +48,7 @@ namespace MCSharp.Linkage.Script {
 		public IReadOnlyCollection<ScriptConstructor> Constructors { get; }
 		/// <inheritdoc/>
 		IReadOnlyCollection<IConstructor> IType.Constructors => Constructors;
+		/// <summary>The count of constructors.</summary>
 		public int i_constructor = 0;
 
 		/// <inheritdoc cref="IType.SubTypes"/>

@@ -6,8 +6,20 @@ using System.Collections.Generic;
 
 namespace MCSharp.Linkage.Script {
 
+	/// <summary>
+	/// Represents a <see cref="IMemberDefinition"/> defined in script.
+	/// </summary>
 	public abstract class ScriptMemberDefinition : IMemberDefinition {
 
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="member"></param>
+		/// <param name="settings"></param>
+		/// <param name="virtualMachine"></param>
+		/// <returns></returns>
+		/// <exception cref="NotImplementedException"></exception>
+		/// <exception cref="Exception"></exception>
 		public static ScriptMemberDefinition CreateMemberDefinitionLink(ScriptMember member, Settings settings, VirtualMachine virtualMachine) {
 
 			switch(member.MemberType) {
@@ -129,37 +141,58 @@ namespace MCSharp.Linkage.Script {
 
 		}
 
+		/// <inheritdoc/>
 		public abstract void Dispose();
 
+		/// <summary>
+		/// Represents a <see cref="IField"/> defined by script.
+		/// </summary>
 		public class Field : ScriptMemberDefinition, IField {
 
+			/// <inheritdoc cref="IField.Initializer"/>
 			public ScriptExpression Initializer { get; }
 			IExpression IField.Initializer => Initializer;
 
+			/// <summary>
+			/// Creates a new <see cref="Field"/>.
+			/// </summary>
+			/// <param name="initialize">The value of <see cref="Initializer"/>.</param>
 			public Field(MCSharpParser.ExpressionContext initialize) {
 				if(initialize == null) Initializer = null;
 				else Initializer = new ScriptExpression(initialize);
 			}
 
+			/// <inheritdoc/>
 			public override void Dispose() {
 				// Nothing to dispose of.
 			}
 
 		}
 
+		/// <summary>
+		/// Represents a <see cref="IProperty"/> defined by script.
+		/// </summary>
 		public class Property : ScriptMemberDefinition, IProperty {
 
+			/// <inheritdoc cref="IProperty.Getter"/>
 			public StandaloneStatementFunction Getter { get; }
 			IFunction IProperty.Getter => Getter;
 
+			/// <inheritdoc cref="IProperty.Setter"/>
 			public StandaloneStatementFunction Setter { get; }
 			IFunction IProperty.Setter => Setter;
 
+			/// <summary>
+			/// Creates a new <see cref="Property"/>.
+			/// </summary>
+			/// <param name="get">The value of <see cref="Getter"/>.</param>
+			/// <param name="set">The value of <see cref="Setter"/>.</param>
 			public Property(StandaloneStatementFunction get, StandaloneStatementFunction set) {
 				Getter = get;
 				Setter = set;
 			}
 
+			/// <inheritdoc/>
 			public override void Dispose() {
 				Getter?.Dispose();
 				Setter?.Dispose();
@@ -167,15 +200,25 @@ namespace MCSharp.Linkage.Script {
 
 		}
 
+		/// <summary>
+		/// Represents a <see cref="IMethod"/> defined by script.
+		/// </summary>
 		public class Method : ScriptMemberDefinition, IMethod {
 
+			/// <inheritdoc cref="IMethod.Invoker"/>
 			public StandaloneStatementFunction Invoker { get; }
 			IFunction IMethod.Invoker => Invoker;
 
+			/// <summary>
+			/// Creates a new <see cref="Method"/>.
+			/// </summary>
+			/// <param name="invoke">The value of <see cref="Invoker"/>.</param>
+			/// <exception cref="ArgumentNullException">Thrown when <paramref name="invoke"/> is <see langword="null"/>.</exception>
 			public Method(StandaloneStatementFunction invoke) {
 				Invoker = invoke ?? throw new ArgumentNullException(nameof(invoke));
 			}
 
+			/// <inheritdoc/>
 			public override void Dispose() {
 				Invoker.Dispose();
 			}
