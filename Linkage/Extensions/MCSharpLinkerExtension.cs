@@ -59,55 +59,54 @@ namespace MCSharp.Linkage.Extensions {
 		public MCSharpLinkerExtension(Compiler compiler) : base(compiler) { }
 
 		/// <inheritdoc/>
-		public override void CreatePredefinedTypes(Scope rootScope, out Action<Compiler.CompileArguments> onLoad, out Action<Compiler.CompileArguments> onTick) {
+		public override void CreatePredefinedTypes(Scope rootScope, ref Compiler.OnLoadDelegate onLoad, ref Compiler.OnTickDelegate onTick) {
 
-			var onLoadActions = new List<Action<Compiler.CompileArguments>>();
-			onLoad = (location) => {
+			onLoad += (location) => {
 				location.Writer.WriteComments(
 					"Add objective to store object IDs.");
 				Objective.AddObjective(location.Writer, ObjectInstance.AddressObjective);
-				foreach(var action in onLoadActions) action(location);
+				return ResultInfo.DefaultSuccess;
 			};
-			onTick = (location) => { };
+			onTick += (location) => ResultInfo.DefaultSuccess;
 
 			// Add the object type.
-			PredefinedType @object = CreatePredefinedObject(rootScope, onLoadActions);
+			PredefinedType @object = CreatePredefinedObject(rootScope, ref onLoad);
 			Compiler.DefinedTypes.Add(@object.Identifier, @object);
 
 			// Add the objective type.
-			PredefinedType objective = CreatePredefinedObjective(rootScope, onLoadActions);
+			PredefinedType objective = CreatePredefinedObjective(rootScope, ref onLoad);
 			Compiler.DefinedTypes.Add(objective.Identifier, objective);
 
 			// Add the int type.
-			PredefinedType @int = CreatePredefinedInt(rootScope, onLoadActions);
+			PredefinedType @int = CreatePredefinedInt(rootScope, ref onLoad);
 			Compiler.DefinedTypes.Add(@int.Identifier, @int);
 
 			// Add the bool type.
-			PredefinedType @bool = CreatePredefinedBool(rootScope, onLoadActions);
+			PredefinedType @bool = CreatePredefinedBool(rootScope, ref onLoad);
 			Compiler.DefinedTypes.Add(@bool.Identifier, @bool);
 
 			// Add the string type.
-			PredefinedType @string = CreatePredefinedString(rootScope, onLoadActions);
+			PredefinedType @string = CreatePredefinedString(rootScope, ref onLoad);
 			Compiler.DefinedTypes.Add(@string.Identifier, @string);
 
 			// Add the Selector type.
-			PredefinedType selector = CreatePredefinedSelector(rootScope, onLoadActions);
+			PredefinedType selector = CreatePredefinedSelector(rootScope, ref onLoad);
 			Compiler.DefinedTypes.Add(selector.Identifier, selector);
 
 			// Add the Json type.
-			PredefinedType json = CreatePredefinedJson(rootScope, onLoadActions);
+			PredefinedType json = CreatePredefinedJson(rootScope, ref onLoad);
 			Compiler.DefinedTypes.Add(json.Identifier, json);
 
 			// Add the Chat type.
-			PredefinedType chat = CreatePredefinedChat(rootScope, onLoadActions);
+			PredefinedType chat = CreatePredefinedChat(rootScope, ref onLoad);
 			Compiler.DefinedTypes.Add(chat.Identifier, chat);
 
 			// Add the World type.
-			PredefinedType world = CreatePredefinedWorld(rootScope, onLoadActions);
+			PredefinedType world = CreatePredefinedWorld(rootScope, ref onLoad);
 			Compiler.DefinedTypes.Add(world.Identifier, world);
 
 			// Add the Attribute type.
-			PredefinedType attribute = CreatePredefinedAttribute(rootScope, onLoadActions);
+			PredefinedType attribute = CreatePredefinedAttribute(rootScope, ref onLoad);
 			Compiler.DefinedTypes.Add(attribute.Identifier, attribute);
 
 		}
@@ -115,7 +114,7 @@ namespace MCSharp.Linkage.Extensions {
 		/// <summary>
 		/// Creates the <see cref="PredefinedType"/> for the <see cref="ObjectInstance"/> type "object".
 		/// </summary>
-		private static PredefinedType CreatePredefinedObject(Scope rootScope, List<Action<Compiler.CompileArguments>> onLoadActions) {
+		private static PredefinedType CreatePredefinedObject(Scope rootScope, ref Compiler.OnLoadDelegate onLoad) {
 
 			Modifier modifiers = Modifier.Public;
 			ClassType classType = ClassType.Primitive;
@@ -152,9 +151,7 @@ namespace MCSharp.Linkage.Extensions {
 			{
 
 				CustomFunction function = new CustomFunction(identifier,
-					new PredefinedGenericParameter[] {
-
-					},
+					Array.Empty<PredefinedGenericParameter>(),
 					new PredefinedMethodParameter[] {
 						new PredefinedMethodParameter(identifier, "left"),
 						new PredefinedMethodParameter(identifier, "right")
@@ -184,9 +181,7 @@ namespace MCSharp.Linkage.Extensions {
 			{
 
 				CustomFunction function = new CustomFunction(identifier,
-					new PredefinedGenericParameter[] {
-
-					},
+					Array.Empty<PredefinedGenericParameter>(),
 					new PredefinedMethodParameter[] {
 						new PredefinedMethodParameter(identifier, "left"),
 						new PredefinedMethodParameter(identifier, "right")
@@ -216,9 +211,7 @@ namespace MCSharp.Linkage.Extensions {
 			{
 
 				CustomFunction function = new CustomFunction(identifier,
-					new PredefinedGenericParameter[] {
-
-					},
+					Array.Empty<PredefinedGenericParameter>(),
 					new PredefinedMethodParameter[] {
 						new PredefinedMethodParameter(identifier, "left"),
 						new PredefinedMethodParameter(identifier, "right")
@@ -249,25 +242,25 @@ namespace MCSharp.Linkage.Extensions {
 
 			Dictionary<IType, IConversion> casts = new Dictionary<IType, IConversion>();
 
-			void OnLoad(Compiler.CompileArguments location) {
+			ResultInfo OnLoad(Compiler.CompileArguments location) {
 
-				
+				return ResultInfo.DefaultSuccess;
 
             }
 
-			onLoadActions.Add(OnLoad);
+			onLoad += OnLoad;
 
 			#endregion
-			
-			IType.InitializeInstanceDelegate init = (location, identifier) => {
+
+			IInstance Init(Compiler.CompileArguments location, string identifier) {
 
 				if(predefinedType is null) throw new Exception();
 				var rand = VirtualMachine.GenerateRandomIntegerInstance(location);
 				return new ObjectInstance(location, predefinedType, identifier, rand);
 
-			};
+			}
 
-			predefinedType = new PredefinedType(typeScope, modifiers, classType, identifier, members.ToArray(), constructors.ToArray(), new PredefinedType[] { }, init, operations, casts);
+			predefinedType = new PredefinedType(typeScope, modifiers, classType, identifier, members.ToArray(), constructors.ToArray(), Array.Empty<PredefinedType>(), Init, operations, casts);
 			foreach(PredefinedMember member in members) member.Declarer = predefinedType;
 			foreach(PredefinedConstructor constructor in constructors) constructor.Declarer = predefinedType;
 			return predefinedType;
@@ -277,12 +270,12 @@ namespace MCSharp.Linkage.Extensions {
 		/// <summary>
 		/// Creates the <see cref="PredefinedType"/> for the <see cref="PrimitiveInstance.IntegerInstance"/> type "int".
 		/// </summary>
-		private static PredefinedType CreatePredefinedInt(Scope rootScope, List<Action<Compiler.CompileArguments>> onLoadActions) {
+		private static PredefinedType CreatePredefinedInt(Scope rootScope, ref Compiler.OnLoadDelegate onLoad) {
 
 			Modifier modifiers = Modifier.Public;
 			ClassType classType = ClassType.Primitive;
 			string identifier = IntIdentifier;
-			PredefinedType[] subtypes = new PredefinedType[] { };
+			PredefinedType[] subtypes = Array.Empty<PredefinedType>();
 			PredefinedType predefinedType = null;
 			Scope typeScope = new Scope(identifier, rootScope);
 
@@ -315,7 +308,7 @@ namespace MCSharp.Linkage.Extensions {
 				Scope memberScope = new Scope(member_identifier, typeScope);
 
 				var getStatements = new IStatement[] { new PredefinedStatement("return objective;") };
-				InlineStatementFunction getDefinition = new InlineStatementFunction(new IGenericParameter[] { }, new IMethodParameter[] { }, getStatements, returnType);
+				InlineStatementFunction getDefinition = new InlineStatementFunction(Array.Empty<IGenericParameter>(), Array.Empty<IMethodParameter>(), getStatements, returnType);
 				PredefinedMemberDefinition definition = new PredefinedMemberDefinition.Property(getDefinition, null);
 
 				PredefinedMember member = new PredefinedMember(memberScope, null, member_modifiers, returnType, member_identifier, MemberType.Property, definition);
@@ -443,9 +436,7 @@ namespace MCSharp.Linkage.Extensions {
 			{
 
 				CustomFunction function = new CustomFunction(identifier,
-					new PredefinedGenericParameter[] {
-
-					},
+					Array.Empty<PredefinedGenericParameter>(),
 					new PredefinedMethodParameter[] {
 						new PredefinedMethodParameter(identifier, "left"),
 						new PredefinedMethodParameter(identifier, "right")
@@ -482,9 +473,7 @@ namespace MCSharp.Linkage.Extensions {
 			{
 
 				CustomFunction function = new CustomFunction(identifier,
-					new PredefinedGenericParameter[] {
-
-					},
+					Array.Empty<PredefinedGenericParameter>(),
 					new PredefinedMethodParameter[] {
 						new PredefinedMethodParameter(identifier, "left"),
 						new PredefinedMethodParameter(identifier, "right")
@@ -504,9 +493,7 @@ namespace MCSharp.Linkage.Extensions {
 			{
 
 				CustomFunction function = new CustomFunction(identifier,
-					new PredefinedGenericParameter[] {
-
-					},
+					Array.Empty<PredefinedGenericParameter>(),
 					new PredefinedMethodParameter[] {
 						new PredefinedMethodParameter(identifier, "left"),
 						new PredefinedMethodParameter(identifier, "right")
@@ -526,9 +513,7 @@ namespace MCSharp.Linkage.Extensions {
 			{
 
 				CustomFunction function = new CustomFunction(identifier,
-					new PredefinedGenericParameter[] {
-
-					},
+					Array.Empty<PredefinedGenericParameter>(),
 					new PredefinedMethodParameter[] {
 						new PredefinedMethodParameter(identifier, "left"),
 						new PredefinedMethodParameter(identifier, "right")
@@ -548,9 +533,7 @@ namespace MCSharp.Linkage.Extensions {
 			{
 
 				CustomFunction function = new CustomFunction(identifier,
-					new PredefinedGenericParameter[] {
-
-					},
+					Array.Empty<PredefinedGenericParameter>(),
 					new PredefinedMethodParameter[] {
 						new PredefinedMethodParameter(identifier, "left"),
 						new PredefinedMethodParameter(identifier, "right")
@@ -570,9 +553,7 @@ namespace MCSharp.Linkage.Extensions {
 			{
 
 				CustomFunction function = new CustomFunction(identifier,
-					new PredefinedGenericParameter[] {
-
-					},
+					Array.Empty<PredefinedGenericParameter>(),
 					new PredefinedMethodParameter[] {
 						new PredefinedMethodParameter(identifier, "left"),
 						new PredefinedMethodParameter(identifier, "right")
@@ -592,9 +573,7 @@ namespace MCSharp.Linkage.Extensions {
 			{
 
 				CustomFunction function = new CustomFunction(identifier,
-					new PredefinedGenericParameter[] {
-
-					},
+					Array.Empty<PredefinedGenericParameter>(),
 					new PredefinedMethodParameter[] {
 						new PredefinedMethodParameter(identifier, "left"),
 						new PredefinedMethodParameter(identifier, "right")
@@ -614,9 +593,7 @@ namespace MCSharp.Linkage.Extensions {
 			{
 
 				CustomFunction function = new CustomFunction(identifier,
-					new PredefinedGenericParameter[] {
-
-					},
+					Array.Empty<PredefinedGenericParameter>(),
 					new PredefinedMethodParameter[] {
 						new PredefinedMethodParameter(identifier, "left"),
 						new PredefinedMethodParameter(identifier, "right")
@@ -636,9 +613,7 @@ namespace MCSharp.Linkage.Extensions {
 			{
 
 				CustomFunction function = new CustomFunction(identifier,
-					new PredefinedGenericParameter[] {
-
-					},
+					Array.Empty<PredefinedGenericParameter>(),
 					new PredefinedMethodParameter[] {
 						new PredefinedMethodParameter(identifier, "left"),
 						new PredefinedMethodParameter(identifier, "right")
@@ -658,9 +633,7 @@ namespace MCSharp.Linkage.Extensions {
 			{
 
 				CustomFunction function = new CustomFunction(identifier,
-					new PredefinedGenericParameter[] {
-
-					},
+					Array.Empty<PredefinedGenericParameter>(),
 					new PredefinedMethodParameter[] {
 						new PredefinedMethodParameter(identifier, "left"),
 						new PredefinedMethodParameter(identifier, "right")
@@ -680,9 +653,7 @@ namespace MCSharp.Linkage.Extensions {
 			{
 
 				CustomFunction function = new CustomFunction(identifier,
-					new PredefinedGenericParameter[] {
-
-					},
+					Array.Empty<PredefinedGenericParameter>(),
 					new PredefinedMethodParameter[] {
 						new PredefinedMethodParameter(identifier, "left"),
 						new PredefinedMethodParameter(identifier, "right")
@@ -702,9 +673,7 @@ namespace MCSharp.Linkage.Extensions {
 			{
 
 				CustomFunction function = new CustomFunction(identifier,
-					new PredefinedGenericParameter[] {
-
-					},
+					Array.Empty<PredefinedGenericParameter>(),
 					new PredefinedMethodParameter[] {
 						new PredefinedMethodParameter(identifier, "left"),
 						new PredefinedMethodParameter(identifier, "right")
@@ -725,9 +694,7 @@ namespace MCSharp.Linkage.Extensions {
 			{
 
 				CustomFunction function = new CustomFunction(identifier,
-					new PredefinedGenericParameter[] {
-
-					},
+					Array.Empty<PredefinedGenericParameter>(),
 					new PredefinedMethodParameter[] {
 						new PredefinedMethodParameter(identifier, "left"),
 						new PredefinedMethodParameter(identifier, "right")
@@ -748,9 +715,7 @@ namespace MCSharp.Linkage.Extensions {
 			{
 
 				CustomFunction function = new CustomFunction(identifier,
-					new PredefinedGenericParameter[] {
-
-					},
+					Array.Empty<PredefinedGenericParameter>(),
 					new PredefinedMethodParameter[] {
 						new PredefinedMethodParameter(identifier, "left"),
 						new PredefinedMethodParameter(identifier, "right")
@@ -771,9 +736,7 @@ namespace MCSharp.Linkage.Extensions {
 			{
 
 				CustomFunction function = new CustomFunction(identifier,
-					new PredefinedGenericParameter[] {
-
-					},
+					Array.Empty<PredefinedGenericParameter>(),
 					new PredefinedMethodParameter[] {
 						new PredefinedMethodParameter(identifier, "left"),
 						new PredefinedMethodParameter(identifier, "right")
@@ -794,9 +757,7 @@ namespace MCSharp.Linkage.Extensions {
 			{
 
 				CustomFunction function = new CustomFunction(identifier,
-					new PredefinedGenericParameter[] {
-
-					},
+					Array.Empty<PredefinedGenericParameter>(),
 					new PredefinedMethodParameter[] {
 						new PredefinedMethodParameter(identifier, "left"),
 						new PredefinedMethodParameter(identifier, "right")
@@ -817,9 +778,7 @@ namespace MCSharp.Linkage.Extensions {
 			{
 
 				CustomFunction function = new CustomFunction(identifier,
-					new PredefinedGenericParameter[] {
-
-					},
+					Array.Empty<PredefinedGenericParameter>(),
 					new PredefinedMethodParameter[] {
 						new PredefinedMethodParameter(identifier, "left"),
 						new PredefinedMethodParameter(identifier, "right")
@@ -880,20 +839,15 @@ namespace MCSharp.Linkage.Extensions {
 			{
 
 				CustomFunction function = new CustomFunction(identifier,
-					new PredefinedGenericParameter[] {
-
-					},
+					Array.Empty<PredefinedGenericParameter>(),
 					new PredefinedMethodParameter[] {
 						new PredefinedMethodParameter(identifier, "left"),
 						new PredefinedMethodParameter(identifier, "right")
 					},
 					(Compiler.CompileArguments location, IType[] generic, IInstance[] arguments, out IInstance result) => {
-						
 						// Get arguments.
-						PrimitiveInstance.IntegerInstance left = arguments[0] as PrimitiveInstance.IntegerInstance;
-						PrimitiveInstance.IntegerInstance.Constant leftConstant = left is null ? arguments[0] as PrimitiveInstance.IntegerInstance.Constant : null;
-						PrimitiveInstance.IntegerInstance right = arguments[1] as PrimitiveInstance.IntegerInstance;
-						PrimitiveInstance.IntegerInstance.Constant rightConstant = right is null ? arguments[1] as PrimitiveInstance.IntegerInstance.Constant : null;
+						PrimitiveInstance.IntegerInstance.Constant leftConstant = arguments[0] is not PrimitiveInstance.IntegerInstance left ? arguments[0] as PrimitiveInstance.IntegerInstance.Constant : null;
+						PrimitiveInstance.IntegerInstance.Constant rightConstant = arguments[1] is not PrimitiveInstance.IntegerInstance right ? arguments[1] as PrimitiveInstance.IntegerInstance.Constant : null;
 
 						throw new NotImplementedException();
 
@@ -911,7 +865,7 @@ namespace MCSharp.Linkage.Extensions {
 
 			Dictionary<IType, IConversion> casts = new Dictionary<IType, IConversion>();
 
-			void OnLoad(Compiler.CompileArguments location) {
+			ResultInfo OnLoad(Compiler.CompileArguments location) {
 
 				// Json (implicit)
 				{
@@ -922,9 +876,7 @@ namespace MCSharp.Linkage.Extensions {
 
 					// Create cast function.
 					CustomFunction function = new CustomFunction(JsonIdentifier,
-						new PredefinedGenericParameter [] {
-
-                        },
+						Array.Empty<PredefinedGenericParameter>(),
 						new PredefinedMethodParameter [] {
 							new PredefinedMethodParameter(IntIdentifier, "value")
                         },
@@ -932,22 +884,30 @@ namespace MCSharp.Linkage.Extensions {
 
 							// Get arguments.
 							PrimitiveInstance.IntegerInstance value = arguments[0] as PrimitiveInstance.IntegerInstance;
+							PrimitiveInstance.IntegerInstance.Constant constant = value is null ? arguments[0] as PrimitiveInstance.IntegerInstance.Constant : null;
 
-							// Make JSON text from integer.
-							RawText json = new RawText() {
-								Score = 
-									value is IConstantInstance<int> constant
-										// Use constant value.
-										? new ScoreData() {
-											Name = StorageSelector,
-											Value = constant.Value.ToString()
-										}
-										// Use dynamic value.
-										: new ScoreData() {
-											Name = StorageSelector,
-											Objective = value.Objective.Name
-										}
-							};
+							// Make JSON text from boolean.
+							RawText json;
+							if(constant != null) {
+
+								// Use constant value.
+								json = new RawText() {
+									Text = constant.Value.ToString()
+								};
+
+							} else {
+
+								// Use dynamic value.
+								json = new RawText() {
+									Score = new ScoreData() {
+										Name = StorageSelector,
+										Objective = value.Objective.Name
+									}
+								};
+
+							}
+
+							// Create JSON instance.
 							result = new PrimitiveInstance.JsonInstance(target, null, json);
 
 							// Return a success.
@@ -962,21 +922,23 @@ namespace MCSharp.Linkage.Extensions {
 
 				}
 
+				return ResultInfo.DefaultSuccess;
+
             }
 
-			onLoadActions.Add(OnLoad);
+			onLoad += OnLoad;
 
 			#endregion
-			
-			IType.InitializeInstanceDelegate init = (location, identifier) => {
+
+			IInstance Init(Compiler.CompileArguments location, string identifier) {
 
 				if(predefinedType is null) throw new Exception();
 				var objective = Objective.AddObjective(location.Writer, identifier, "dummy");
 				return new PrimitiveInstance.IntegerInstance(predefinedType, identifier, objective);
 
-			};
+			}
 
-			predefinedType = new PredefinedType(typeScope, modifiers, classType, identifier, members.ToArray(), constructors.ToArray(), new PredefinedType[] { }, init, operations, casts);
+			predefinedType = new PredefinedType(typeScope, modifiers, classType, identifier, members.ToArray(), constructors.ToArray(), Array.Empty<PredefinedType>(), Init, operations, casts);
 			foreach(PredefinedMember member in members) member.Declarer = predefinedType;
 			foreach(PredefinedConstructor constructor in constructors) constructor.Declarer = predefinedType;
 			return predefinedType;
@@ -986,12 +948,12 @@ namespace MCSharp.Linkage.Extensions {
 		/// <summary>
 		/// Creates the <see cref="PredefinedType"/> for the <see cref="PrimitiveInstance.BooleanInstance"/> type "string".
 		/// </summary>
-		private static PredefinedType CreatePredefinedBool(Scope rootScope, List<Action<Compiler.CompileArguments>> onLoadActions) {
+		private static PredefinedType CreatePredefinedBool(Scope rootScope, ref Compiler.OnLoadDelegate onLoad) {
 
 			Modifier modifiers = Modifier.Public;
 			ClassType classType = ClassType.Primitive;
 			string identifier = BoolIdentifier;
-			PredefinedType[] subtypes = new PredefinedType[] { };
+			PredefinedType[] subtypes = Array.Empty<PredefinedType>();
 			PredefinedType predefinedType = null;
 			Scope typeScope = new Scope(identifier, rootScope);
 
@@ -1024,7 +986,7 @@ namespace MCSharp.Linkage.Extensions {
 				Scope memberScope = new Scope(member_identifier, typeScope);
 
 				var getStatements = new IStatement[] { new PredefinedStatement("return objective;") };
-				InlineStatementFunction getDefinition = new InlineStatementFunction(new IGenericParameter[] { }, new IMethodParameter[] { }, getStatements, returnType);
+				InlineStatementFunction getDefinition = new InlineStatementFunction(Array.Empty<IGenericParameter>(), Array.Empty<IMethodParameter>(), getStatements, returnType);
 				PredefinedMemberDefinition definition = new PredefinedMemberDefinition.Property(getDefinition, null);
 
 				PredefinedMember member = new PredefinedMember(memberScope, null, member_modifiers, returnType, member_identifier, MemberType.Property, definition);
@@ -1052,9 +1014,7 @@ namespace MCSharp.Linkage.Extensions {
 			{
 
 				CustomFunction function = new CustomFunction(BoolIdentifier,
-					new PredefinedGenericParameter[] {
-
-					},
+					Array.Empty<PredefinedGenericParameter>(),
 					new PredefinedMethodParameter[] {
 						new PredefinedMethodParameter(BoolIdentifier, "left"),
 						new PredefinedMethodParameter(BoolIdentifier, "right")
@@ -1091,9 +1051,7 @@ namespace MCSharp.Linkage.Extensions {
 			{
 
 				CustomFunction function = new CustomFunction(BoolIdentifier,
-					new PredefinedGenericParameter[] {
-
-					},
+					Array.Empty<PredefinedGenericParameter>(),
 					new PredefinedMethodParameter[] {
 						new PredefinedMethodParameter(BoolIdentifier, "left"),
 						new PredefinedMethodParameter(BoolIdentifier, "right")
@@ -1145,9 +1103,7 @@ namespace MCSharp.Linkage.Extensions {
 			{
 
 				CustomFunction function = new CustomFunction(BoolIdentifier,
-					new PredefinedGenericParameter[] {
-
-					},
+					Array.Empty<PredefinedGenericParameter>(),
 					new PredefinedMethodParameter[] {
 						new PredefinedMethodParameter(BoolIdentifier, "left"),
 						new PredefinedMethodParameter(BoolIdentifier, "right")
@@ -1200,7 +1156,7 @@ namespace MCSharp.Linkage.Extensions {
 
 			Dictionary<IType, IConversion> casts = new Dictionary<IType, IConversion>();
 
-			void OnLoad(Compiler.CompileArguments location) {
+			ResultInfo OnLoad(Compiler.CompileArguments location) {
 
 				// Json (implicit)
 				{
@@ -1211,9 +1167,7 @@ namespace MCSharp.Linkage.Extensions {
 
 					// Create cast function.
 					CustomFunction function = new CustomFunction(JsonIdentifier,
-						new PredefinedGenericParameter [] {
-
-                        },
+						Array.Empty<PredefinedGenericParameter>(),
 						new PredefinedMethodParameter [] {
 							new PredefinedMethodParameter(BoolIdentifier, "value")
                         },
@@ -1244,7 +1198,7 @@ namespace MCSharp.Linkage.Extensions {
 
 							}
 
-							
+							// Create JSON instance.
 							result = new PrimitiveInstance.JsonInstance(target, null, json);
 
 							// Return a success.
@@ -1259,21 +1213,23 @@ namespace MCSharp.Linkage.Extensions {
 
 				}
 
+				return ResultInfo.DefaultSuccess;
+
             }
 
-			onLoadActions.Add(OnLoad);
+			onLoad += OnLoad;
 
 			#endregion
-			
-			IType.InitializeInstanceDelegate init = (location, identifier) => {
+
+			IInstance Init(Compiler.CompileArguments location, string identifier) {
 
 				if(predefinedType is null) throw new Exception();
 				var objective = Objective.AddObjective(location.Writer, identifier, "dummy");
 				return new PrimitiveInstance.BooleanInstance(predefinedType, identifier, objective);
 
-			};
+			}
 
-			predefinedType = new PredefinedType(typeScope, modifiers, classType, identifier, members.ToArray(), constructors.ToArray(), new PredefinedType[] { }, init, operations, casts);
+			predefinedType = new PredefinedType(typeScope, modifiers, classType, identifier, members.ToArray(), constructors.ToArray(), Array.Empty<PredefinedType>(), Init, operations, casts);
 			foreach(PredefinedMember member in members) member.Declarer = predefinedType;
 			foreach(PredefinedConstructor constructor in constructors) constructor.Declarer = predefinedType;
 			return predefinedType;
@@ -1283,12 +1239,12 @@ namespace MCSharp.Linkage.Extensions {
 		/// <summary>
 		/// Creates the <see cref="PredefinedType"/> for the <see cref="PrimitiveInstance.ObjectiveInstance"/> type "objective".
 		/// </summary>
-		private static PredefinedType CreatePredefinedObjective(Scope rootScope, List<Action<Compiler.CompileArguments>> onLoadActions) {
+		private static PredefinedType CreatePredefinedObjective(Scope rootScope, ref Compiler.OnLoadDelegate onLoad) {
 
 			Modifier modifiers = Modifier.Public;
 			ClassType classType = ClassType.Primitive;
 			string identifier = ObjectiveIdentifier;
-			PredefinedType[] subtypes = new PredefinedType[] { };
+			PredefinedType[] subtypes = Array.Empty<PredefinedType>();
 			PredefinedType predefinedType = null;
 			Scope typeScope = new Scope(identifier, rootScope);
 
@@ -1321,7 +1277,7 @@ namespace MCSharp.Linkage.Extensions {
 				Scope memberScope = new Scope(member_identifier, typeScope);
 
 				var getStatements = new IStatement[] { new PredefinedStatement("return name;") };
-				InlineStatementFunction getDefinition = new InlineStatementFunction(new IGenericParameter[] { }, new IMethodParameter[] { }, getStatements, returnType);
+				InlineStatementFunction getDefinition = new InlineStatementFunction(Array.Empty<IGenericParameter>(), Array.Empty<IMethodParameter>(), getStatements, returnType);
 				PredefinedMemberDefinition definition = new PredefinedMemberDefinition.Property(getDefinition, null);
 
 				PredefinedMember member = new PredefinedMember(memberScope, null, member_modifiers, returnType, member_identifier, MemberType.Property, definition);
@@ -1355,23 +1311,23 @@ namespace MCSharp.Linkage.Extensions {
 			
 			Dictionary<IType, IConversion> casts = new Dictionary<IType, IConversion>();
 
-			void OnLoad(Compiler.CompileArguments location) {
+			ResultInfo OnLoad(Compiler.CompileArguments location) {
 
+				return ResultInfo.DefaultSuccess;
 
+			}
 
-            }
-
-			onLoadActions.Add(OnLoad);
+			onLoad += OnLoad;
 
 			#endregion
 
-			IType.InitializeInstanceDelegate init = (location, identifier) => {
+			static IInstance Init(Compiler.CompileArguments location, string identifier) {
 
 				throw new NotImplementedException($"'{ObjectiveIdentifier}' initialization has not been implemented.");
 
-			};
+			}
 
-			predefinedType = new PredefinedType(typeScope, modifiers, classType, identifier, members.ToArray(), constructors.ToArray(), new PredefinedType[] { }, init, operations, casts);
+			predefinedType = new PredefinedType(typeScope, modifiers, classType, identifier, members.ToArray(), constructors.ToArray(), Array.Empty<PredefinedType>(), Init, operations, casts);
 			foreach(PredefinedMember member in members) member.Declarer = predefinedType;
 			foreach(PredefinedConstructor constructor in constructors) constructor.Declarer = predefinedType;
 			return predefinedType;
@@ -1381,12 +1337,12 @@ namespace MCSharp.Linkage.Extensions {
 		/// <summary>
 		/// Creates the <see cref="PredefinedType"/> for the <see cref="PrimitiveInstance.StringInstance"/> type "string".
 		/// </summary>
-		private static PredefinedType CreatePredefinedString(Scope rootScope, List<Action<Compiler.CompileArguments>> onLoadActions) {
+		private static PredefinedType CreatePredefinedString(Scope rootScope, ref Compiler.OnLoadDelegate onLoad) {
 
 			Modifier modifiers = Modifier.Public;
 			ClassType classType = ClassType.Primitive;
 			string identifier = StringIdentifier;
-			PredefinedType[] subtypes = new PredefinedType[] { };
+			PredefinedType[] subtypes = Array.Empty<PredefinedType>();
 			PredefinedType predefinedType = null;
 			Scope typeScope = new Scope(identifier, rootScope);
 
@@ -1418,9 +1374,7 @@ namespace MCSharp.Linkage.Extensions {
 			{
 
 				CustomFunction function = new CustomFunction(StringIdentifier,
-					new PredefinedGenericParameter[] {
-
-					},
+					Array.Empty<PredefinedGenericParameter>(),
 					new PredefinedMethodParameter[] {
 						new PredefinedMethodParameter(StringIdentifier, "left"),
 						new PredefinedMethodParameter(StringIdentifier, "right"),
@@ -1447,9 +1401,7 @@ namespace MCSharp.Linkage.Extensions {
 			{
 
 				CustomFunction function = new CustomFunction(StringIdentifier,
-					new PredefinedGenericParameter[] {
-
-					},
+					Array.Empty<PredefinedGenericParameter>(),
 					new PredefinedMethodParameter[] {
 						new PredefinedMethodParameter(StringIdentifier, "left"),
 						new PredefinedMethodParameter(StringIdentifier, "right"),
@@ -1477,7 +1429,7 @@ namespace MCSharp.Linkage.Extensions {
 
 			Dictionary<IType, IConversion> casts = new Dictionary<IType, IConversion>();
 
-			void OnLoad(Compiler.CompileArguments location) {
+			ResultInfo OnLoad(Compiler.CompileArguments location) {
 
                 // Json (implicit)
                 {
@@ -1488,9 +1440,7 @@ namespace MCSharp.Linkage.Extensions {
 
 					// Create cast function.
 					CustomFunction function = new CustomFunction(JsonIdentifier,
-						new PredefinedGenericParameter [] {
-
-                        },
+						Array.Empty<PredefinedGenericParameter>(),
 						new PredefinedMethodParameter [] {
 							new PredefinedMethodParameter(StringIdentifier, "value")
                         },
@@ -1526,9 +1476,7 @@ namespace MCSharp.Linkage.Extensions {
 
 					// Create cast function.
 					CustomFunction function = new CustomFunction(SelectorIdentifier,
-						new PredefinedGenericParameter [] {
-
-						},
+						Array.Empty<PredefinedGenericParameter>(),
 						new PredefinedMethodParameter [] {
 							new PredefinedMethodParameter(StringIdentifier, "value")
 						},
@@ -1553,20 +1501,22 @@ namespace MCSharp.Linkage.Extensions {
 
 				}
 
+				return ResultInfo.DefaultSuccess;
+
             }
 
-			onLoadActions.Add(OnLoad);
+			onLoad += OnLoad;
 
 			#endregion
 
-			IType.InitializeInstanceDelegate init = (location, identifier) => {
+			IInstance Init(Compiler.CompileArguments location, string identifier) {
 
 				if(predefinedType is null) throw new Exception();
 				return new PrimitiveInstance.StringInstance(predefinedType, identifier, null);
 
-			};
+			}
 
-			predefinedType = new PredefinedType(typeScope, modifiers, classType, identifier, members.ToArray(), constructors.ToArray(), new PredefinedType[] { }, init, operations, casts);
+			predefinedType = new PredefinedType(typeScope, modifiers, classType, identifier, members.ToArray(), constructors.ToArray(), Array.Empty<PredefinedType>(), Init, operations, casts);
 			foreach(PredefinedMember member in members) member.Declarer = predefinedType;
 			foreach(PredefinedConstructor constructor in constructors) constructor.Declarer = predefinedType;
 			return predefinedType;
@@ -1576,7 +1526,7 @@ namespace MCSharp.Linkage.Extensions {
 		/// <summary>
 		/// Creates the <see cref="PredefinedType"/> for the <see cref="PrimitiveInstance.SelectorInstance"/> type "Selector".
 		/// </summary>
-		private static PredefinedType CreatePredefinedSelector(Scope rootScope, List<Action<Compiler.CompileArguments>> onLoadActions) {
+		private static PredefinedType CreatePredefinedSelector(Scope rootScope, ref Compiler.OnLoadDelegate onLoad) {
 
 			Modifier modifiers = Modifier.Public;
 			ClassType classType = ClassType.Primitive;
@@ -1612,9 +1562,7 @@ namespace MCSharp.Linkage.Extensions {
 			{
 
 				CustomFunction function = new CustomFunction(SelectorIdentifier,
-					new PredefinedGenericParameter[] {
-
-					},
+					Array.Empty<PredefinedGenericParameter>(),
 					new PredefinedMethodParameter[] {
 						new PredefinedMethodParameter(SelectorIdentifier, "left"),
 						new PredefinedMethodParameter(SelectorIdentifier, "right"),
@@ -1642,23 +1590,23 @@ namespace MCSharp.Linkage.Extensions {
 
 			Dictionary<IType, IConversion> casts = new Dictionary<IType, IConversion>();
 
-			void OnLoad(Compiler.CompileArguments location) {
+			ResultInfo OnLoad(Compiler.CompileArguments location) {
 
-				
+				return ResultInfo.DefaultSuccess;
 
-            }
+			}
 
-			onLoadActions.Add(OnLoad);
+			onLoad += OnLoad;
 
 			#endregion
-			
-			IType.InitializeInstanceDelegate init = (location, identifier) => {
+
+			static IInstance Init(Compiler.CompileArguments location, string identifier) {
 
 				throw new NotImplementedException($"'{SelectorIdentifier}' initialization has not been implemented.");
 
-			};
+			}
 
-			predefinedType = new PredefinedType(typeScope, modifiers, classType, identifier, members.ToArray(), constructors.ToArray(), new PredefinedType[] { }, init, operations, casts);
+			predefinedType = new PredefinedType(typeScope, modifiers, classType, identifier, members.ToArray(), constructors.ToArray(), Array.Empty<PredefinedType>(), Init, operations, casts);
 			foreach(PredefinedMember member in members) member.Declarer = predefinedType;
 			foreach(PredefinedConstructor constructor in constructors) constructor.Declarer = predefinedType;
 			return predefinedType;
@@ -1668,7 +1616,7 @@ namespace MCSharp.Linkage.Extensions {
 		/// <summary>
 		/// Creates the <see cref="PredefinedType"/> for the type "Json".
 		/// </summary>
-		private static PredefinedType CreatePredefinedJson(Scope rootScope, List<Action<Compiler.CompileArguments>> onLoadActions) {
+		private static PredefinedType CreatePredefinedJson(Scope rootScope, ref Compiler.OnLoadDelegate onLoad) {
 
 			Modifier modifiers = Modifier.Public;
 			ClassType classType = ClassType.Primitive;
@@ -1708,9 +1656,7 @@ namespace MCSharp.Linkage.Extensions {
 				Scope memberScope = new Scope(member_identifier, typeScope);
 
 				CustomFunction function = new CustomFunction(JsonIdentifier,
-					new PredefinedGenericParameter[] {
-
-					},
+					Array.Empty<PredefinedGenericParameter>(),
 					new PredefinedMethodParameter[] {
 						new PredefinedMethodParameter(JsonIdentifier, "left"),
 						new PredefinedMethodParameter(JsonIdentifier, "right")
@@ -1737,24 +1683,24 @@ namespace MCSharp.Linkage.Extensions {
 
 			Dictionary<IType, IConversion> casts = new Dictionary<IType, IConversion>();
 
-			void OnLoad(Compiler.CompileArguments location) {
+			ResultInfo OnLoad(Compiler.CompileArguments location) {
 
-				
+				return ResultInfo.DefaultSuccess;
 
-            }
+			}
 
-			onLoadActions.Add(OnLoad);
+			onLoad += OnLoad;
 
 			#endregion
 
-			IType.InitializeInstanceDelegate init = (location, identifier) => {
-				
+			IInstance Init(Compiler.CompileArguments location, string identifier) {
+
 				if(predefinedType is null) throw new Exception();
 				return new PrimitiveInstance.JsonInstance(predefinedType, identifier, null);
 
-			};
+			}
 
-			predefinedType = new PredefinedType(typeScope, modifiers, classType, identifier, members.ToArray(), constructors.ToArray(), new PredefinedType[] { }, init, operations, casts);
+			predefinedType = new PredefinedType(typeScope, modifiers, classType, identifier, members.ToArray(), constructors.ToArray(), Array.Empty<PredefinedType>(), Init, operations, casts);
 			foreach(PredefinedMember member in members) member.Declarer = predefinedType;
 			foreach(PredefinedConstructor constructor in constructors) constructor.Declarer = predefinedType;
 			return predefinedType;
@@ -1764,7 +1710,7 @@ namespace MCSharp.Linkage.Extensions {
 		/// <summary>
 		/// Creates the <see cref="PredefinedType"/> for the type "Chat".
 		/// </summary>
-		private static PredefinedType CreatePredefinedChat(Scope rootScope, List<Action<Compiler.CompileArguments>> onLoadActions) {
+		private static PredefinedType CreatePredefinedChat(Scope rootScope, ref Compiler.OnLoadDelegate onLoad) {
 
 			Modifier modifiers = Modifier.Public | Modifier.Static;
 			ClassType classType = ClassType.Struct;
@@ -1785,9 +1731,7 @@ namespace MCSharp.Linkage.Extensions {
 				Scope memberScope = new Scope(member_identifier, typeScope);
 
 				CustomFunction function = new CustomFunction("void",
-					new PredefinedGenericParameter[] {
-
-					},
+					Array.Empty<PredefinedGenericParameter>(),
 					new PredefinedMethodParameter[] {
 						new PredefinedMethodParameter("string", "text")
 					},
@@ -1820,9 +1764,7 @@ namespace MCSharp.Linkage.Extensions {
 				Scope memberScope = new Scope(member_identifier, typeScope);
 
 				CustomFunction function = new CustomFunction("void",
-					new PredefinedGenericParameter[] {
-
-					},
+					Array.Empty<PredefinedGenericParameter>(),
 					new PredefinedMethodParameter[] {
 						new PredefinedMethodParameter(JsonIdentifier, "json")
 					},
@@ -1855,9 +1797,7 @@ namespace MCSharp.Linkage.Extensions {
 				Scope memberScope = new Scope(member_identifier, typeScope);
 
 				CustomFunction function = new CustomFunction("void",
-					new PredefinedGenericParameter[] {
-
-					},
+					Array.Empty<PredefinedGenericParameter>(),
 					new PredefinedMethodParameter[] {
 						new PredefinedMethodParameter(SelectorIdentifier, "selector"),
 						new PredefinedMethodParameter(JsonIdentifier, "json")
@@ -1909,23 +1849,23 @@ namespace MCSharp.Linkage.Extensions {
 
 			Dictionary<IType, IConversion> casts = new Dictionary<IType, IConversion>();
 
-			void OnLoad(Compiler.CompileArguments location) {
+			ResultInfo OnLoad(Compiler.CompileArguments location) {
 
-				
+				return ResultInfo.DefaultSuccess;
 
-            }
+			}
 
-			onLoadActions.Add(OnLoad);
+			onLoad += OnLoad;
 
 			#endregion
 
-			IType.InitializeInstanceDelegate init = (location, identifier) => {
+			static IInstance Init(Compiler.CompileArguments location, string identifier) {
 
 				throw new NotImplementedException($"'{ChatIdentifier}' initialization has not been implemented.");
 
-			};
+			}
 
-			predefinedType = new PredefinedType(typeScope, modifiers, classType, identifier, members.ToArray(), constructors.ToArray(), new PredefinedType[] { }, init, operations, casts);
+			predefinedType = new PredefinedType(typeScope, modifiers, classType, identifier, members.ToArray(), constructors.ToArray(), Array.Empty<PredefinedType>(), Init, operations, casts);
 			foreach(PredefinedMember member in members) member.Declarer = predefinedType;
 			foreach(PredefinedConstructor constructor in constructors) constructor.Declarer = predefinedType;
 			return predefinedType;
@@ -1935,7 +1875,7 @@ namespace MCSharp.Linkage.Extensions {
 		/// <summary>
 		/// Creates the <see cref="PredefinedType"/> for the type "World".
 		/// </summary>
-		public static PredefinedType CreatePredefinedWorld(Scope rootScope, List<Action<Compiler.CompileArguments>> onLoadActions) {
+		public static PredefinedType CreatePredefinedWorld(Scope rootScope, ref Compiler.OnLoadDelegate onLoad) {
 
 			Modifier modifiers = Modifier.Public | Modifier.Static;
 			ClassType classType = ClassType.Struct;
@@ -1956,9 +1896,7 @@ namespace MCSharp.Linkage.Extensions {
 				Scope memberScope = new Scope(member_identifier, typeScope);
 
 				CustomFunction function = new CustomFunction("void",
-					new PredefinedGenericParameter[] {
-
-					},
+					Array.Empty<PredefinedGenericParameter>(),
 					new PredefinedMethodParameter[] {
 						new PredefinedMethodParameter(StringIdentifier, "coordinates")
 					},
@@ -1991,9 +1929,7 @@ namespace MCSharp.Linkage.Extensions {
 				Scope memberScope = new Scope(member_identifier, typeScope);
 
 				CustomFunction function = new CustomFunction("void",
-					new PredefinedGenericParameter[] {
-
-					},
+					Array.Empty<PredefinedGenericParameter>(),
 					new PredefinedMethodParameter[] {
 						new PredefinedMethodParameter(SelectorIdentifier, "selector"),
 						new PredefinedMethodParameter(StringIdentifier, "coordinates")
@@ -2031,9 +1967,7 @@ namespace MCSharp.Linkage.Extensions {
 				Scope memberScope = new Scope(member_identifier, typeScope);
 
 				CustomFunction function = new CustomFunction("void",
-					new PredefinedGenericParameter[] {
-
-					},
+					Array.Empty<PredefinedGenericParameter>(),
 					new PredefinedMethodParameter[] {
 						new PredefinedMethodParameter(SelectorIdentifier, "selector"),
 						new PredefinedMethodParameter(StringIdentifier, "coordinates"),
@@ -2073,9 +2007,7 @@ namespace MCSharp.Linkage.Extensions {
 				Scope memberScope = new Scope(member_identifier, typeScope);
 
 				CustomFunction function = new CustomFunction("void",
-					new PredefinedGenericParameter[] {
-
-					},
+					Array.Empty<PredefinedGenericParameter>(),
 					new PredefinedMethodParameter[] {
 						new PredefinedMethodParameter(SelectorIdentifier, "selector"),
 						new PredefinedMethodParameter(StringIdentifier, "coordinates"),
@@ -2115,9 +2047,7 @@ namespace MCSharp.Linkage.Extensions {
 				Scope memberScope = new Scope(member_identifier, typeScope);
 
 				CustomFunction function = new CustomFunction("void",
-					new PredefinedGenericParameter[] {
-
-					},
+					Array.Empty<PredefinedGenericParameter>(),
 					new PredefinedMethodParameter[] {
 						new PredefinedMethodParameter(SelectorIdentifier, "selector1"),
 						new PredefinedMethodParameter(SelectorIdentifier, "selector2")
@@ -2155,9 +2085,7 @@ namespace MCSharp.Linkage.Extensions {
 				Scope memberScope = new Scope(member_identifier, typeScope);
 
 				CustomFunction function = new CustomFunction("void",
-					new PredefinedGenericParameter[] {
-
-					},
+					Array.Empty<PredefinedGenericParameter>(),
 					new PredefinedMethodParameter[] {
 						new PredefinedMethodParameter(StringIdentifier, "from"),
 						new PredefinedMethodParameter(StringIdentifier, "to"),
@@ -2197,9 +2125,7 @@ namespace MCSharp.Linkage.Extensions {
 				Scope memberScope = new Scope(member_identifier, typeScope);
 
 				CustomFunction function = new CustomFunction("void",
-					new PredefinedGenericParameter[] {
-
-					},
+					Array.Empty<PredefinedGenericParameter>(),
 					new PredefinedMethodParameter[] {
 						new PredefinedMethodParameter(StringIdentifier, "from"),
 						new PredefinedMethodParameter(StringIdentifier, "to"),
@@ -2264,13 +2190,13 @@ namespace MCSharp.Linkage.Extensions {
 
 			#endregion
 
-			IType.InitializeInstanceDelegate init = (location, identifier) => {
+			static IInstance Init(Compiler.CompileArguments location, string identifier) {
 
 				throw new NotImplementedException($"'{WorldIdentifier}' initialization has not been implemented.");
 
-			};
+			}
 
-			predefinedType = new PredefinedType(typeScope, modifiers, classType, identifier, members.ToArray(), constructors.ToArray(), new PredefinedType[] { }, init, operations, casts);
+			predefinedType = new PredefinedType(typeScope, modifiers, classType, identifier, members.ToArray(), constructors.ToArray(), Array.Empty<PredefinedType>(), Init, operations, casts);
 			foreach(PredefinedMember member in members) member.Declarer = predefinedType;
 			foreach(PredefinedConstructor constructor in constructors) constructor.Declarer = predefinedType;
 			return predefinedType;
@@ -2280,7 +2206,7 @@ namespace MCSharp.Linkage.Extensions {
 		/// <summary>
 		/// Creates the <see cref="PredefinedType"/>s for the type "Attribute".
 		/// </summary>
-		public static PredefinedType CreatePredefinedAttribute(Scope rootScope, List<Action<Compiler.CompileArguments>> onLoadActions) {
+		public static PredefinedType CreatePredefinedAttribute(Scope rootScope, ref Compiler.OnLoadDelegate onLoad) {
 
 			Modifier modifiers = Modifier.Public | Modifier.Abstract;
 			ClassType classType = ClassType.Struct;
@@ -2328,13 +2254,13 @@ namespace MCSharp.Linkage.Extensions {
 
 			#endregion
 
-			IType.InitializeInstanceDelegate init = (location, identifier) => {
+			static IInstance Init(Compiler.CompileArguments location, string identifier) {
 
 				throw new NotImplementedException($"'{AttributeIdentifier}' initialization has not been implemented.");
 
-			};
+			}
 
-			predefinedType = new PredefinedType(typeScope, modifiers, classType, identifier, members.ToArray(), constructors.ToArray(), new PredefinedType[] { }, init, operations, casts);
+			predefinedType = new PredefinedType(typeScope, modifiers, classType, identifier, members.ToArray(), constructors.ToArray(), Array.Empty<PredefinedType>(), Init, operations, casts);
 			foreach(PredefinedMember member in members) member.Declarer = predefinedType;
 			foreach(PredefinedConstructor constructor in constructors) constructor.Declarer = predefinedType;
 			return predefinedType;

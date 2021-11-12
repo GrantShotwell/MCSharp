@@ -1,6 +1,6 @@
 ﻿using Antlr4.Runtime.Tree;
 using MCSharp.Compilation;
-using MemberDefinitionContext = MCSharpParser.Member_definitionContext;
+using System;
 
 namespace MCSharp.Linkage.Script {
 
@@ -26,9 +26,9 @@ namespace MCSharp.Linkage.Script {
         /// <summary>
         /// The local identifier that represents the return type.
         /// </summary>
-        public ITerminalNode ReturnTypeIdentifier { get; }
+        public ITerminalNode TypeIdentifier { get; }
         /// <inheritdoc/>
-        string IMember.TypeIdentifier => ReturnTypeIdentifier.GetText();
+        string IMember.TypeIdentifier => TypeIdentifier.GetText();
         /// <summary>
         /// The local identifier that represents this member.
         /// </summary>
@@ -51,7 +51,7 @@ namespace MCSharp.Linkage.Script {
         /// <param name="context"></param>
         /// <param name="settings">Value passed to create <see cref="Minecraft.StandaloneStatementFunction"/>(s).</param>
         /// <param name="virtualMachine">Value passed to create <see cref="Minecraft.StandaloneStatementFunction"/>(s).</param>
-        public ScriptMember(Scope scope, ScriptType declarer, MemberDefinitionContext context, Settings settings, VirtualMachine virtualMachine) {
+        public ScriptMember(Scope scope, ScriptType declarer, MemberDefinitionContext context, Settings settings, VirtualMachine virtualMachine, ref Compiler.OnLoadDelegate onLoad) {
 
             Scope = scope;
             Scope.Holder = this;
@@ -62,12 +62,12 @@ namespace MCSharp.Linkage.Script {
             Modifiers = EnumLinker.LinkModifiers(context.modifier());
 
             ITerminalNode[] names = context.NAME();
-            ReturnTypeIdentifier = names[0];
+            TypeIdentifier = names[0];
             Identifier = names[1];
 
             MemberType = EnumLinker.LinkMemberType(context);
 
-            Definition = ScriptMemberDefinition.CreateMemberDefinitionLink(this, settings, virtualMachine);
+            Definition = ScriptMemberDefinition.CreateMemberDefinitionLink(this, settings, virtualMachine, ref onLoad);
 
         }
 

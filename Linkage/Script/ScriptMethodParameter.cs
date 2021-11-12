@@ -36,7 +36,7 @@ namespace MCSharp.Linkage.Script {
 		/// <returns>Returns an array of <see cref="ScriptMethodParameter"/></returns>
 		public static ScriptMethodParameter[] CreateArrayFromArray(MCSharpParser.Method_parameterContext[] contexts) {
 
-			if(contexts == null) return new ScriptMethodParameter[] { };
+			if(contexts == null) return System.Array.Empty<ScriptMethodParameter>();
 			var parameters = new ScriptMethodParameter[contexts.Length];
 
 			for(int i = 0; i < contexts.Length; i++) {

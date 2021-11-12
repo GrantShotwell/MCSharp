@@ -1,6 +1,7 @@
 ﻿using MCSharp.Compilation;
 using MCSharp.Compilation.Instancing;
 using MCSharp.Linkage.Minecraft;
+using MCSharp.Linkage.Predefined;
 using System;
 using System.Collections.Generic;
 
@@ -20,7 +21,7 @@ namespace MCSharp.Linkage.Script {
 		/// <returns></returns>
 		/// <exception cref="NotImplementedException"></exception>
 		/// <exception cref="Exception"></exception>
-		public static ScriptMemberDefinition CreateMemberDefinitionLink(ScriptMember member, Settings settings, VirtualMachine virtualMachine) {
+		public static ScriptMemberDefinition CreateMemberDefinitionLink(ScriptMember member, Settings settings, VirtualMachine virtualMachine, ref Compiler.OnLoadDelegate onLoad) {
 
 			switch(member.MemberType) {
 
@@ -30,7 +31,7 @@ namespace MCSharp.Linkage.Script {
 					MCSharpParser.Field_definitionContext definition = member.FullContext.field_definition();
 
 					// Get the 'initializer' definition. Null if undefined.
-					MCSharpParser.ExpressionContext initialize;
+					ExpressionContext initialize;
 					if(definition.ASSIGN() == null) initialize = null;
 					else {
 						initialize = definition.expression();
@@ -54,7 +55,7 @@ namespace MCSharp.Linkage.Script {
 					else {
 
 						// Get function writer.
-						var writer = new FunctionWriter(virtualMachine, settings, member.Declarer.Identifier.GetText(), member.Identifier.GetText());
+						var writer = new FunctionWriter(virtualMachine, settings, member.Declarer.Identifier.GetText(), member.Identifier.GetText() + "_get");
 
 						// Get the statement list for the function.
 						ScriptStatement[] statements;
@@ -70,7 +71,11 @@ namespace MCSharp.Linkage.Script {
 						}
 
 						// Construct the 'get' function.
-						getFunction = new StandaloneStatementFunction(writer, new Scope("get", member.Scope), new ScriptGenericParameter[] { }, new ScriptMethodParameter[] { }, statements, member.ReturnTypeIdentifier.GetText());
+						getFunction = new StandaloneStatementFunction(
+							writer, new Scope("get", member.Scope),
+							Array.Empty<ScriptGenericParameter>(),
+							Array.Empty<ScriptMethodParameter>(),
+							statements, member.TypeIdentifier.GetText(), ref onLoad);
 
 					}
 
@@ -82,7 +87,7 @@ namespace MCSharp.Linkage.Script {
 					else {
 
 						// Get funciton writer.
-						var writer = new FunctionWriter(virtualMachine, settings, member.Declarer.Identifier.GetText(), member.Identifier.GetText());
+						var writer = new FunctionWriter(virtualMachine, settings, member.Declarer.Identifier.GetText(), member.Identifier.GetText() + "_set");
 
 						// Get the statement list for the function.
 						ScriptStatement[] statements;
@@ -98,12 +103,16 @@ namespace MCSharp.Linkage.Script {
 						}
 
 						// Construct the 'set' function.
-						setFunction = new StandaloneStatementFunction(writer, new Scope("set", member.Scope), new ScriptGenericParameter[] { }, new ScriptMethodParameter[] { }, statements, member.ReturnTypeIdentifier.GetText());
+						setFunction = new StandaloneStatementFunction(
+							writer, new Scope("set", member.Scope),
+							Array.Empty<ScriptGenericParameter>(),
+							new IMethodParameter[] { new PredefinedMethodParameter(member.TypeIdentifier.GetText(), "value") },
+							statements, member.TypeIdentifier.GetText(), ref onLoad);
 
 					}
 
 					// Construct and return the property.
-					return new Property(setFunction, getFunction);
+					return new Property(getFunction, setFunction);
 
 				}
 
@@ -128,7 +137,10 @@ namespace MCSharp.Linkage.Script {
 					}
 
 					// Construct the function.
-					var function = new StandaloneStatementFunction(writer, new Scope(null, member.Scope), generics, parameters, statements, member.ReturnTypeIdentifier.GetText());
+					var function = new StandaloneStatementFunction(
+						writer, new Scope(null, member.Scope),
+						generics, parameters,
+						statements, member.TypeIdentifier.GetText(), ref onLoad);
 
 					// Construct and return the method.
 					return new Method(function);
@@ -165,6 +177,7 @@ namespace MCSharp.Linkage.Script {
 			/// <inheritdoc/>
 			public override void Dispose() {
 				// Nothing to dispose of.
+				GC.SuppressFinalize(this);
 			}
 
 		}
@@ -196,6 +209,7 @@ namespace MCSharp.Linkage.Script {
 			public override void Dispose() {
 				Getter?.Dispose();
 				Setter?.Dispose();
+				GC.SuppressFinalize(this);
 			}
 
 		}
@@ -221,6 +235,7 @@ namespace MCSharp.Linkage.Script {
 			/// <inheritdoc/>
 			public override void Dispose() {
 				Invoker.Dispose();
+				GC.SuppressFinalize(this);
 			}
 
 		}

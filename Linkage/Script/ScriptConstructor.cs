@@ -1,7 +1,6 @@
 ﻿using MCSharp.Compilation;
 using MCSharp.Linkage.Minecraft;
 using System;
-using ConstructorDefinitionContext = MCSharpParser.Constructor_definitionContext;
 
 namespace MCSharp.Linkage.Script {
 
@@ -37,7 +36,7 @@ namespace MCSharp.Linkage.Script {
 		/// <param name="context">The parser context used to create the constructor.</param>
 		/// <param name="settings">Value passed to create <see cref="StandaloneStatementFunction"/>(s).</param>
 		/// <param name="virtualMachine">Value passed to create <see cref="StandaloneStatementFunction"/>(s).</param>
-		public ScriptConstructor(Scope scope, ScriptType declarer, ConstructorDefinitionContext context, Settings settings, VirtualMachine virtualMachine) {
+		public ScriptConstructor(Scope scope, ScriptType declarer, ConstructorDefinitionContext context, Settings settings, VirtualMachine virtualMachine, ref Compiler.OnLoadDelegate onLoad) {
 
 			Scope = scope;
 			Scope.Holder = this;
@@ -56,7 +55,7 @@ namespace MCSharp.Linkage.Script {
 				statements = ScriptStatement.CreateArrayFromArray(context.code_block().statement());
 			}
 
-			Invoker = new StandaloneStatementFunction(writer, this, new ScriptGenericParameter[] { }, parameters, statements, Declarer.Identifier.GetText());
+			Invoker = new StandaloneStatementFunction(writer, this, Array.Empty<ScriptGenericParameter>(), parameters, statements, Declarer.Identifier.GetText(), ref onLoad);
 
 		}
 

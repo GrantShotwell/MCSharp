@@ -72,7 +72,7 @@ namespace MCSharp.Linkage.Minecraft {
 				IInstance argument = arguments[i];
 				IType parameterType = compile.Compiler.DefinedTypes[MethodParameters[i].TypeIdentifier];
 				if(argument.Type == parameterType) continue;
-				argument.Type.Conversions[parameterType].Function.Invoke(compile, new IType[] { }, new IInstance[] { argument }, out arguments[i]);
+				argument.Type.Conversions[parameterType].Function.Invoke(compile, Array.Empty<IType>(), new IInstance[] { argument }, out arguments[i]);
 			}
 
 			// Invoke the function.

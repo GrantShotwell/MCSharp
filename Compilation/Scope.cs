@@ -1,6 +1,7 @@
 ﻿using Antlr4.Runtime;
 using Antlr4.Runtime.Tree;
 using MCSharp.Compilation.Instancing;
+using MCSharp.Linkage;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -105,7 +106,7 @@ namespace MCSharp.Compilation {
 			while(current != null) {
 				IReadOnlyDictionary<string, IInstance> instances = current.Instances;
 				if(instances.ContainsKey(identifier)) return instances[identifier];
-				else current = current.Parent;
+				current = current.Parent;
 			}
 
 			return null;
@@ -154,12 +155,33 @@ namespace MCSharp.Compilation {
 		/// <returns>Returns the <see cref="Scope"/> found.</returns>
 		public Scope GetFirstNamedParent() {
 
+			// Iterate upwards until a named parent is found.
 			Scope current = Parent;
 			while(current != null) {
 				if(current.Name != null) return current;
-				else current = current.Parent;
+				current = current.Parent;
 			}
 
+			// No named parent found.
+			return null;
+
+		}
+
+		/// <summary>
+		/// Finds the closest <see cref="IScopeHolder"/> to this <see cref="Scope"/> that is an <see cref="IInstance"/> or <see cref="IType"/>.
+		/// </summary>
+		/// <returns>Returns the <see cref="IScopeHolder"/> found. Will always be one of the two interfaces or <see	langword="null"/>.</returns>
+		public IScopeHolder GetInstanceOrTypeHolder() {
+
+			// Iterate upwards until an instance or type holder is found.
+			Scope current = this;
+			while(current != null) {
+				if(current.holder is IInstance) return current.holder;
+				else if(current.holder is IType) return current.holder;
+				current = current.Parent;
+			}
+
+			// No holder found.
 			return null;
 
 		}

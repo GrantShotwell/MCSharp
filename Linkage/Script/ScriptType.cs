@@ -8,9 +8,6 @@ using MCSharp.Linkage.Predefined;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using ConstructorDefinitionContext = MCSharpParser.Constructor_definitionContext;
-using MemberDefinitionContext = MCSharpParser.Member_definitionContext;
-using TypeDefinitionContext = MCSharpParser.Type_definitionContext;
 
 namespace MCSharp.Linkage.Script {
 
@@ -62,6 +59,9 @@ namespace MCSharp.Linkage.Script {
 		/// <inheritdoc/>
 		public IDictionary<IType, IConversion> Conversions { get; }
 
+		/// <inheritdoc/>
+		public IReadOnlyDictionary<IField, IInstance> StaticFieldInstances { get; }
+
 		/// <summary>
 		/// 
 		/// </summary>
@@ -77,7 +77,7 @@ namespace MCSharp.Linkage.Script {
 		/// <param name="settings">Value passed to create <see cref="StandaloneStatementFunction"/>(s).</param>
 		/// <param name="virtualMachine">Value passed to create <see cref="StandaloneStatementFunction"/>(s).</param>
 		public ScriptType(TypeDefinitionContext typeContext, MemberDefinitionContext[] memberContexts, ConstructorDefinitionContext[] constructorContexts, Settings settings, VirtualMachine virtualMachine, Scope scope,
-		out Action<Compiler> postFirstPass, out Action<Compiler.CompileArguments> onLoad) {
+		ref Compiler.PostFirstPassDelegate postFirstPass, ref Compiler.OnLoadDelegate onLoad) {
 
 			Scope = scope;
 			Scope.Holder = this;
@@ -86,20 +86,12 @@ namespace MCSharp.Linkage.Script {
 			ClassType = EnumLinker.LinkClassType(typeContext.class_type());
 			Identifier = typeContext.NAME();
 
-			// Create a list of actions for post-first-pass.
-			var postFirstPassActions = new List<Action<Compiler>>();
-			postFirstPass = (location) => { foreach (var action in postFirstPassActions) action(location); };
-
-			// Create a list of actions for on-load.
-			var onLoadActions = new List<Action<Compiler.CompileArguments>>();
-			onLoad = (location) => { foreach (var action in onLoadActions) action(location); };
-
 			// Get base types.
 			List<IType> baseTypes = new List<IType>();
 			// If the type is a class, add the object type.
 			if(ClassType == ClassType.Class) {
 				// We need to wait until the second pass, so all types are defined.
-				postFirstPassActions.Add((compiler) => { baseTypes.Add(compiler.DefinedTypes[MCSharpLinkerExtension.ObjectIdentifier]); });
+				postFirstPass += (compiler) => { baseTypes.Add(compiler.DefinedTypes[MCSharpLinkerExtension.ObjectIdentifier]); };
 			}
 			// TODO: Add base types.
 			BaseTypes = baseTypes;
@@ -111,10 +103,24 @@ namespace MCSharp.Linkage.Script {
 
 			// Get members (excluding constructors).
 			ScriptMember[] members = new ScriptMember[memberContexts.Length];
+			Dictionary<IField, IInstance> staticFieldInstances = new Dictionary<IField, IInstance>();
+			StaticFieldInstances = staticFieldInstances;
 			for(int i = 0; i < memberContexts.Length; i++) {
+
+				// Create the member.
 				var context = memberContexts[i];
 				var memberScope = new Scope(context.NAME()[1].GetText(), Scope);
-				members[i] = new ScriptMember(memberScope, this, context, settings, virtualMachine);
+				var member = members[i] = new ScriptMember(memberScope, this, context, settings, virtualMachine, ref onLoad);
+
+				// If the member is a static field, add it to the static field instances and initialize it on load.
+				if(member.Modifiers.HasFlag(Modifier.Static) && member.Definition is IField field) {
+					onLoad += (location) => {
+						ResultInfo result = location.Compiler.CompileExpression(location, field.Initializer.Context, out IInstance value);
+						staticFieldInstances.Add(field, value);
+						return result;
+					};
+				}
+
 			}
 			Members = members;
 
@@ -123,7 +129,7 @@ namespace MCSharp.Linkage.Script {
 			for(int i = 0; i < constructorContexts.Length; i++) {
 				var context = constructorContexts[i];
 				var memberScope = new Scope(context.NAME().GetText(), Scope);
-				constructors[i] = new ScriptConstructor(memberScope, this, context, settings, virtualMachine);
+				constructors[i] = new ScriptConstructor(memberScope, this, context, settings, virtualMachine, ref onLoad);
 			}
 			Constructors = constructors;
 
@@ -146,7 +152,7 @@ namespace MCSharp.Linkage.Script {
 								var field = member.Definition as IField;
 
 								// Create the objectives for the field on load.
-								onLoadActions.Add((location) => {
+								onLoad += (location) => {
 
 									// Get the compiler from the location.
 									var compiler = location.Compiler;
@@ -159,7 +165,7 @@ namespace MCSharp.Linkage.Script {
 
 									// Add the objectives to the field's objectives array.
 									location.Writer.WriteComments(
-										$"Create objectives for field '{fieldType.Identifier} {member.Identifier}' for class type '{this.Identifier}'.");
+										$"Create objectives for field '{fieldType.Identifier} {member.Identifier}' for class type '{Identifier}'.");
 									for(int i = 0; i < objectivesArray.Length; i++) {
 										objectivesArray[i] = Objective.AddObjective(location.Writer, null, "dummy");
 									}
@@ -167,7 +173,9 @@ namespace MCSharp.Linkage.Script {
 									// Add the objectives to the dictionary.
 									objectives.Add(field, objectivesArray);
 
-								});
+									return ResultInfo.DefaultSuccess;
+
+								};
 
 								// Initialize the field during initialization.
 								initInstanceActions.Add((typeLocation, initLocation) => {
@@ -235,7 +243,7 @@ namespace MCSharp.Linkage.Script {
 
 			// Get casts.
 			var casts = new Dictionary<IType, IConversion>();
-			onLoadActions.Add((location) => {
+			onLoad += (location) => {
 
 				// Make implicit casts to all base types.
 				foreach(IType baseType in this.EnumerateBaseTypeTree()) {
@@ -246,9 +254,7 @@ namespace MCSharp.Linkage.Script {
 
 					// Create cast function.
 					CustomFunction function = new CustomFunction(target.Identifier,
-						new PredefinedGenericParameter [] {
-
-                        },
+						Array.Empty<PredefinedGenericParameter>(),
 						new PredefinedMethodParameter [] {
 							new PredefinedMethodParameter(reference.Identifier, "value")
                         },
@@ -285,7 +291,9 @@ namespace MCSharp.Linkage.Script {
 
 				}
 
-			});
+				return ResultInfo.DefaultSuccess;
+
+			};
 
 			// TODO
 			SubTypes = new List<ScriptType>();

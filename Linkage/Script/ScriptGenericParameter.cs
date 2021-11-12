@@ -21,7 +21,7 @@ namespace MCSharp.Linkage.Script {
 		/// <returns>Returns an array of <see cref="ScriptGenericParameter"/></returns>
 		public static ScriptGenericParameter[] CreateArrayFromArray(MCSharpParser.Generic_parameterContext[] contexts) {
 
-			if(contexts == null) return new ScriptGenericParameter[] { };
+			if(contexts == null) return System.Array.Empty<ScriptGenericParameter>();
 			var parameters = new ScriptGenericParameter[contexts.Length];
 
 			for(int i = 0; i < contexts.Length; i++) {

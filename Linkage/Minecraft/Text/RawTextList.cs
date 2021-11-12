@@ -33,7 +33,7 @@ namespace MCSharp.Linkage.Minecraft.Text {
 		}
 		public string GetJson() {
 			RawText[] array = List.ToArray();
-			string json = JsonSerializer.Serialize<RawText[]>(array, RawText.SerializerOptions);
+			string json = JsonSerializer.Serialize(array, RawText.SerializerOptions);
 			return json;
 		}
 

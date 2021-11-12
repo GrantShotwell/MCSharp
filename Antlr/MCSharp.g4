@@ -99,8 +99,8 @@ field_definition
 	;
 property_definition
 	: LAMBDA expression
-	| OC ( ( attribute_tag* modifier* property_get_definition ) ( attribute_tag* modifier* property_set_definition )? ) 
-	   | ( ( attribute_tag* modifier* property_set_definition ) ( attribute_tag* modifier* property_get_definition )? ) CC
+	| OC ( ( ( attribute_tag* modifier* property_get_definition ) ( attribute_tag* modifier* property_set_definition )? ) 
+	     | ( ( attribute_tag* modifier* property_set_definition ) ( attribute_tag* modifier* property_get_definition )? ) ) CC
 	;
 property_get_definition
 	: GET END
@@ -407,6 +407,7 @@ RANGE_INCLUSIVE: '..';
 RANGE_EXCLUSIVE: '..^';
 IS: 'is';
 AS: 'as';
+NOT: 'not';
 IN: 'in';
 OUT: 'out';
 LAMBDA: '=>';

@@ -47,6 +47,8 @@ namespace MCSharp.Linkage.Minecraft {
 		/// </summary>
 		public Scope Scope => ScopeHolder?.Scope ?? scope;
 
+		private Compiler.OnLoadDelegate OnLoadDelegate { get; }
+
 
 		/// <summary>
 		/// Creates a new <see cref="StandaloneStatementFunction"/> with a scope of a <see cref="IScopeHolder"/>.
@@ -58,13 +60,14 @@ namespace MCSharp.Linkage.Minecraft {
 		/// <param name="statements">The <see cref="IStatement"/>s of this <see cref="IFunction"/>.</param>
 		/// <param name="returnType">The local identifier of the return type for this <see cref="IFunction"/>.</param>
 		/// <exception cref="ArgumentNullException">Thrown when any argument is <see langword="null"/></exception>
-		public StandaloneStatementFunction(FunctionWriter writer, IScopeHolder holder, IGenericParameter[] genericParameters, IMethodParameter[] methodParameters, IStatement[] statements, string returnType) {
+		public StandaloneStatementFunction(FunctionWriter writer, IScopeHolder holder, IGenericParameter[] genericParameters, IMethodParameter[] methodParameters, IStatement[] statements, string returnType, ref Compiler.OnLoadDelegate onLoad) {
 
 			Writer = writer ?? throw new ArgumentNullException(nameof(writer));
 			GenericParameters = genericParameters ?? throw new ArgumentNullException(nameof(genericParameters));
 			MethodParameters = methodParameters ?? throw new ArgumentNullException(nameof(methodParameters));
 			Statements = statements ?? throw new ArgumentNullException(nameof(statements));
 			ReturnTypeIdentifier = returnType ?? throw new ArgumentNullException(nameof(returnType));
+			OnLoadDelegate = onLoad += OnLoad;
 			
 			ScopeHolder = holder ?? throw new ArgumentNullException(nameof(holder));
 
@@ -80,18 +83,28 @@ namespace MCSharp.Linkage.Minecraft {
 		/// <param name="statements">The <see cref="IStatement"/>s of this <see cref="IFunction"/>.</param>
 		/// <param name="returnType">The local identifier of the return type for this <see cref="IFunction"/>.</param>
 		/// <exception cref="ArgumentNullException">Thrown when any argument is <see langword="null"/></exception>
-		public StandaloneStatementFunction(FunctionWriter writer, Scope scope, IGenericParameter[] genericParameters, IMethodParameter[] methodParameters, IStatement[] statements, string returnType) {
+		public StandaloneStatementFunction(FunctionWriter writer, Scope scope, IGenericParameter[] genericParameters, IMethodParameter[] methodParameters, IStatement[] statements, string returnType, ref Compiler.OnLoadDelegate onLoad) {
 
 			Writer = writer ?? throw new ArgumentNullException(nameof(writer));
 			GenericParameters = genericParameters ?? throw new ArgumentNullException(nameof(genericParameters));
 			MethodParameters = methodParameters ?? throw new ArgumentNullException(nameof(methodParameters));
 			Statements = statements ?? throw new ArgumentNullException(nameof(statements));
 			ReturnTypeIdentifier = returnType ?? throw new ArgumentNullException(nameof(returnType));
+			OnLoadDelegate = onLoad += OnLoad;
 			
 			this.scope = scope ?? throw new ArgumentNullException(nameof(scope));
 
 		}
 
+
+		private ResultInfo OnLoad(Compiler.CompileArguments location) {
+			if(MethodParameters.Count > 0) {
+				location.Writer.WriteComments(
+					$"Create parameters for '{Writer.GamePath}'.");
+				MethodParameters.MakeOrGetInstances(new Compiler.CompileArguments(location.Compiler, location.Function, Scope, location.Predefined));
+			}
+			return ResultInfo.DefaultSuccess;
+		}
 
 		/// <summary>
 		/// Creates a new <see cref="StandaloneStatementFunction"/> located in a subdirectory of this <see cref="StandaloneStatementFunction"/>.
@@ -110,7 +123,8 @@ namespace MCSharp.Linkage.Minecraft {
 
 			if(name == null) name = NextChildName();
 			FunctionWriter writer = new FunctionWriter(Writer.VirtualMachine, settings, $"{Writer.LocalDirectory}\\{Writer.Name}", name);
-			StandaloneStatementFunction child = new StandaloneStatementFunction(writer, new Scope(null, Scope), GenericParameters.ToArray(), MethodParameters.ToArray(), statements, ReturnTypeIdentifier);
+			Compiler.OnLoadDelegate onLoad = (location) => default;
+			StandaloneStatementFunction child = new StandaloneStatementFunction(writer, new Scope(null, Scope), GenericParameters.ToArray(), MethodParameters.ToArray(), statements, ReturnTypeIdentifier, ref onLoad);
 			ChildFunctions.Add(child);
 			return child;
 
@@ -189,12 +203,31 @@ namespace MCSharp.Linkage.Minecraft {
 
 				// Mark the function as compiled before compiling the statements.
 				Compiled = true;
-				location1.Compiler.CompileStatements(this, Scope, Statements);
+				ResultInfo compileResult = location1.Compiler.CompileStatements(this, Scope, Statements);
+				if(compileResult.Failure) {
+					result = null;
+					return compileResult;
+				}
 
+			}
+
+			// Cast the arguments to the correct type.
+			for(int i = 0; i < arguments.Length; i++) {
+				IInstance argument = arguments[i];
+				IType parameterType = location.Compiler.DefinedTypes[MethodParameters[i].TypeIdentifier];
+				if(argument.Type == parameterType) continue;
+				argument.Type.Conversions[parameterType].Function.Invoke(location, Array.Empty<IType>(), new IInstance[] { argument }, out arguments[i]);
 			}
 
 			// Set the result to the return instance.
 			result = ReturnInstance;
+
+			// Assign the arguments to the parameters.
+			for(int i = 0; i < arguments.Length; i++) {
+				// TODO: This is the wrong location for creating the parameters. Do it on load.
+				MethodParameters.MakeOrGetInstances(location);
+				location.Compiler.CompileSimpleOperation(location, Operation.Assign, MethodParameters[i].Instance, arguments[i], out _);
+			}
 
 			// Invoke the function in the datapack and return a success.
 			location.Writer.WriteCommand($"function {Writer.GamePath}");
@@ -215,6 +248,8 @@ namespace MCSharp.Linkage.Minecraft {
 			// Dispose of the child functions.
 			foreach(StandaloneStatementFunction child in ChildFunctions)
 				child.Dispose();
+
+			GC.SuppressFinalize(this);
 
 		}
 

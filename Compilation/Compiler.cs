@@ -1,8 +1,63 @@
-﻿using Antlr4.Runtime;
+﻿global using AdditiveExpressionContext = MCSharpParser.Additive_expressionContext;
+global using AddressofExpressionContext = MCSharpParser.Addressof_expressionContext;
+global using AndExpressionContext = MCSharpParser.And_expressionContext;
+global using ArrayCreationExpressionContext = MCSharpParser.Array_creation_expressionContext;
+global using AssignmentExpressionContext = MCSharpParser.Assignment_expressionContext;
+global using CastExpressionContext = MCSharpParser.Cast_expressionContext;
+global using CodeBlockContext = MCSharpParser.Code_blockContext;
+global using ConditionalAndExpressionContext = MCSharpParser.Conditional_and_expressionContext;
+global using ConditionalExpressionContext = MCSharpParser.Conditional_expressionContext;
+global using ConditionalOrExpressionContext = MCSharpParser.Conditional_or_expressionContext;
+global using ConstructorDefinitionContext = MCSharpParser.Constructor_definitionContext;
+global using DoStatementContext = MCSharpParser.Do_statementContext;
+global using EqualityExpressionContext = MCSharpParser.Equality_expressionContext;
+global using ExclusiveOrExpressionContext = MCSharpParser.Exclusive_or_expressionContext;
+global using ExpressionContext = MCSharpParser.ExpressionContext;
+global using ForeachStatementContext = MCSharpParser.Foreach_statementContext;
+global using ForStatementContext = MCSharpParser.For_statementContext;
+global using IfStatementContext = MCSharpParser.If_statementContext;
+global using InclusiveOrExpressionContext = MCSharpParser.Inclusive_or_expressionContext;
+global using InitializationExpressionContext = MCSharpParser.Initialization_expressionContext;
+global using KeywordExpressionContext = MCSharpParser.Keyword_expressionContext;
+global using LambdaExpressionContext = MCSharpParser.Lambda_expressionContext;
+global using LanguageFunctionContext = MCSharpParser.Language_functionContext;
+global using MemberDefinitionContext = MCSharpParser.Member_definitionContext;
+global using MultiplicativeExpressionContext = MCSharpParser.Multiplicative_expressionContext;
+global using NonAssignmentExpressionContext = MCSharpParser.Non_assignment_expressionContext;
+global using NullCoalescingExpressionContext = MCSharpParser.Null_coalescing_expressionContext;
+global using PointerIndirectionExpressionContext = MCSharpParser.Pointer_indirection_expressionContext;
+global using PostStepExpressionContext = MCSharpParser.Post_step_expressionContext;
+global using PreStepExpressionContext = MCSharpParser.Pre_step_expressionContext;
+global using PrimaryExpressionContext = MCSharpParser.Primary_expressionContext;
+global using PrimaryNoArrayCreationExpressionContext = MCSharpParser.Primary_no_array_creation_expressionContext;
+global using RangeExpressionContext = MCSharpParser.Range_expressionContext;
+global using RelationalExpressionContext = MCSharpParser.Relational_expressionContext;
+global using RelationOrTypeCheckContext = MCSharpParser.Relation_or_type_checkContext;
+global using ReturnStatementContext = MCSharpParser.Return_statementContext;
+global using ShiftExpressionContext = MCSharpParser.Shift_expressionContext;
+global using StatementContext = MCSharpParser.StatementContext;
+global using ThrowStatementContext = MCSharpParser.Throw_statementContext;
+global using TryStatementContext = MCSharpParser.Try_statementContext;
+global using TypeDefinitionContext = MCSharpParser.Type_definitionContext;
+global using UnaryExpressionContext = MCSharpParser.Unary_expressionContext;
+global using WhileStatementContext = MCSharpParser.While_statementContext;
+global using WithExpressionContext = MCSharpParser.With_expressionContext;
+global using GenericArgumentsContext = MCSharpParser.Generic_argumentsContext;
+global using GenericParameterContext = MCSharpParser.Generic_parameterContext;
+global using GenericParametersContext = MCSharpParser.Generic_parametersContext;
+global using GenericParameterListContext = MCSharpParser.Generic_parameter_listContext;
+global using MethodArgumentsContext = MCSharpParser.Method_argumentsContext;
+global using MethodParameterContext = MCSharpParser.Method_parameterContext;
+global using MethodParametersContext = MCSharpParser.Method_parametersContext;
+global using MethodParameterListContext = MCSharpParser.Method_parameter_listContext;
+global using IndexerArgumentsContext = MCSharpParser.Indexer_argumentsContext;
+global using IndexerParametersContext = MCSharpParser.Indexer_parametersContext;
+using Antlr4.Runtime;
 using Antlr4.Runtime.Misc;
 using Antlr4.Runtime.Tree;
 using MCSharp.Compilation.Instancing;
 using MCSharp.Linkage;
+using MCSharp.Linkage.Extensions;
 using MCSharp.Linkage.Minecraft;
 using MCSharp.Linkage.Predefined;
 using MCSharp.Linkage.Script;
@@ -12,51 +67,6 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
-using ConstructorDefinitionContext = MCSharpParser.Constructor_definitionContext;
-using MemberDefinitionContext = MCSharpParser.Member_definitionContext;
-using TypeDefinitionContext = MCSharpParser.Type_definitionContext;
-using StatementContext = MCSharpParser.StatementContext;
-using CodeBlockContext = MCSharpParser.Code_blockContext;
-using LanguageFunctionContext = MCSharpParser.Language_functionContext;
-using IfStatementContext = MCSharpParser.If_statementContext;
-using ForStatementContext = MCSharpParser.For_statementContext;
-using ForeachStatementContext = MCSharpParser.Foreach_statementContext;
-using WhileStatementContext = MCSharpParser.While_statementContext;
-using DoStatementContext = MCSharpParser.Do_statementContext;
-using ReturnStatementContext = MCSharpParser.Return_statementContext;
-using ThrowStatementContext = MCSharpParser.Throw_statementContext;
-using TryStatementContext = MCSharpParser.Try_statementContext;
-using InitializationExpressionContext = MCSharpParser.Initialization_expressionContext;
-using ExpressionContext = MCSharpParser.ExpressionContext;
-using NonAssignmentExpressionContext = MCSharpParser.Non_assignment_expressionContext;
-using ConditionalExpressionContext = MCSharpParser.Conditional_expressionContext;
-using LambdaExpressionContext = MCSharpParser.Lambda_expressionContext;
-using NullCoalescingExpressionContext = MCSharpParser.Null_coalescing_expressionContext;
-using ConditionalOrExpressionContext = MCSharpParser.Conditional_or_expressionContext;
-using ConditionalAndExpressionContext = MCSharpParser.Conditional_and_expressionContext;
-using InclusiveOrExpressionContext = MCSharpParser.Inclusive_or_expressionContext;
-using ExclusiveOrExpressionContext = MCSharpParser.Exclusive_or_expressionContext;
-using AndExpressionContext = MCSharpParser.And_expressionContext;
-using EqualityExpressionContext = MCSharpParser.Equality_expressionContext;
-using RelationalExpressionContext = MCSharpParser.Relational_expressionContext;
-using RelationOrTypeCheckContext = MCSharpParser.Relation_or_type_checkContext;
-using ShiftExpressionContext = MCSharpParser.Shift_expressionContext;
-using AdditiveExpressionContext = MCSharpParser.Additive_expressionContext;
-using MultiplicativeExpressionContext = MCSharpParser.Multiplicative_expressionContext;
-using WithExpressionContext = MCSharpParser.With_expressionContext;
-using RangeExpressionContext = MCSharpParser.Range_expressionContext;
-using PreStepExpressionContext = MCSharpParser.Pre_step_expressionContext;
-using PostStepExpressionContext = MCSharpParser.Post_step_expressionContext;
-using UnaryExpressionContext = MCSharpParser.Unary_expressionContext;
-using CastExpressionContext = MCSharpParser.Cast_expressionContext;
-using PointerIndirectionExpressionContext = MCSharpParser.Pointer_indirection_expressionContext;
-using AddressofExpressionContext = MCSharpParser.Addressof_expressionContext;
-using AssignmentExpressionContext = MCSharpParser.Assignment_expressionContext;
-using PrimaryExpressionContext = MCSharpParser.Primary_expressionContext;
-using ArrayCreationExpressionContext = MCSharpParser.Array_creation_expressionContext;
-using PrimaryNoArrayCreationExpressionContext = MCSharpParser.Primary_no_array_creation_expressionContext;
-using KeywordExpressionContext = MCSharpParser.Keyword_expressionContext;
-using MCSharp.Linkage.Extensions;
 
 namespace MCSharp.Compilation {
 
@@ -96,12 +106,12 @@ namespace MCSharp.Compilation {
 		#region Data
 
 		/// <summary>
-		/// 
+		/// A collection of all <see cref="IType"/>s defined for this <see cref="Compiler"/>, accessible by their <see cref="IType.Identifier"/>.
 		/// </summary>
 		public IDictionary<string, IType> DefinedTypes { get; } = new Dictionary<string, IType>();
 
 		/// <summary>
-		/// 
+		/// A collection of all <see cref="LinkerExtension"/>s that are applied when <see cref="Compile"/> is run.
 		/// </summary>
 		public ICollection<LinkerExtension> LinkerExtensions { get; } = new LinkedList<LinkerExtension>();
 
@@ -118,6 +128,19 @@ namespace MCSharp.Compilation {
 
 		#endregion
 
+		#region Events
+
+		public delegate void PostFirstPassDelegate(Compiler compiler);
+		public event PostFirstPassDelegate PostFirstPass;
+		
+		public delegate ResultInfo OnLoadDelegate(CompileArguments location);
+		public event OnLoadDelegate OnLoad;
+
+		public delegate ResultInfo OnTickDelegate(CompileArguments location);
+		public event OnTickDelegate OnTick;
+
+		#endregion
+
 		#region Compilation
 
 		/// <summary>
@@ -125,15 +148,14 @@ namespace MCSharp.Compilation {
 		/// </summary>
 		/// <returns>The result of the compilation.</returns>
 		public ResultInfo Compile() {
-			
-			// Prepare a list of things to do after the first pass.
-			List<Action> postFirstPass = new List<Action>();
-			// Prepare a list of things to do on load.
-			List<Action<CompileArguments>> onLoadActions = new List<Action<CompileArguments>>();
-			// Prepare a list of things to do on tick.
-			List<Action<CompileArguments>> onTickActions = new List<Action<CompileArguments>>();
+
 			// Make the root scope.
 			Scope rootScope = new Scope(null, null);
+
+			// Create events.
+			PostFirstPass = (compiler) => { };
+			OnLoad = (location) => ResultInfo.DefaultSuccess;
+			OnTick = (location) => ResultInfo.DefaultSuccess;
 
 			// Find, parse, and first pass walk (types, members) all script files.
 			ResultInfo FirstPassWalk() {
@@ -169,11 +191,6 @@ namespace MCSharp.Compilation {
 					var walker = new ScriptClassWalker(this, rootScope);
 					ParseTreeWalker.Default.Walk(walker, tree);
 
-					// Add the post-first-pass action.
-					postFirstPass.Add(() => walker.PostFirstPass());
-					// Add the on-load action.
-					onLoadActions.Add((location) => walker.OnLoad(location));
-
 				}
 
 				return ResultInfo.DefaultSuccess;
@@ -203,9 +220,7 @@ namespace MCSharp.Compilation {
 			void ApplyLinkerExtensions() {
 				foreach(LinkerExtension extension in LinkerExtensions) {
 
-					extension.CreatePredefinedTypes(rootScope, out Action<CompileArguments> onLoad, out Action<CompileArguments> onTick);
-					onLoadActions.Add(onLoad);
-					onTickActions.Add(onTick);
+					extension.CreatePredefinedTypes(rootScope, ref OnLoad, ref OnTick);
 
 				}
 			}
@@ -235,7 +250,7 @@ namespace MCSharp.Compilation {
 				if(firstpassResult.Failure) return firstpassResult;
 
 				// Run post-first-pass actions.
-				foreach(Action action in postFirstPass) action();
+				PostFirstPass.Invoke(this);
 
 			}
 
@@ -252,14 +267,30 @@ namespace MCSharp.Compilation {
 					if(!load && !tick) continue;
 					if(member.MemberType != MemberType.Method) continue;
 
-					Action<CompileArguments> trigger = (location) => {
-						foreach(var action in load ? onLoadActions : onTickActions)
-							action.Invoke(location);
+					List<ResultInfo> failures = new List<ResultInfo>();
+
+					void OnTrigger(CompileArguments location) {
+
+						if(load) {
+							foreach(OnLoadDelegate onLoad in OnLoad.GetInvocationList()) {
+								ResultInfo result = onLoad(location);
+								if(result.Failure) failures.Add(result);
+							}
+						} else {
+							foreach(OnTickDelegate onTick in OnTick.GetInvocationList()) {
+								ResultInfo result = onTick(location);
+								if(result.Failure) failures.Add(result);
+							}
+						}
+
 						location.Writer.AddBufferedLines(1);
-					};
-					ResultInfo result = CompileStandaloneMethod(type.Scope, member, trigger);
-					if(result.Success) continue;
-					else return result;
+
+					}
+
+					ResultInfo result = CompileStandaloneMethod(type.Scope, member, OnTrigger);
+					if(failures.Count > 0) return failures.First();
+					else if(result.Failure) return result;
+					else continue;
 
 				}
 
@@ -446,7 +477,7 @@ namespace MCSharp.Compilation {
 					ResultInfo conditionResult1 = CompileExpression(locationOuter, condition, out IInstance conditionValue1);
 					if(conditionResult1.Failure) return conditionResult1;
 
-					if(!(conditionValue1 is PrimitiveInstance.BooleanInstance conditionValue1Bool)) {
+					if(conditionValue1 is not PrimitiveInstance.BooleanInstance conditionValue1Bool) {
 
 						throw new NotImplementedException("Casting has not been implemented.");
 
@@ -464,7 +495,7 @@ namespace MCSharp.Compilation {
 					ResultInfo conditionResult2 = CompileExpression(locationInner, condition, out IInstance conditionValue2);
 					if(conditionResult2.Failure) return conditionResult2;
 
-					if(!(conditionValue2 is PrimitiveInstance.BooleanInstance conditionValue2Bool)) {
+					if(conditionValue2 is not PrimitiveInstance.BooleanInstance conditionValue2Bool) {
 
 						throw new NotImplementedException("Casting has not been implemented.");
 
@@ -500,7 +531,7 @@ namespace MCSharp.Compilation {
 					ResultInfo conditionResult1 = CompileExpression(locationOuter, condition, out IInstance conditionValue1);
 					if(conditionResult1.Failure) return conditionResult1;
 
-					if(!(conditionValue1 is PrimitiveInstance.BooleanInstance conditionValue1Bool)) {
+					if(conditionValue1 is not PrimitiveInstance.BooleanInstance conditionValue1Bool) {
 
 						throw new NotImplementedException("Casting has not been implemented.");
 
@@ -515,7 +546,7 @@ namespace MCSharp.Compilation {
 					ResultInfo conditionResult2 = CompileExpression(locationInner, condition, out IInstance conditionValue2);
 					if(conditionResult2.Failure) return conditionResult2;
 
-					if(!(conditionValue2 is PrimitiveInstance.BooleanInstance conditionValue2Bool)) {
+					if(conditionValue2 is not PrimitiveInstance.BooleanInstance conditionValue2Bool) {
 
 						throw new NotImplementedException("Casting has not been implemented.");
 
@@ -546,7 +577,7 @@ namespace MCSharp.Compilation {
 					ResultInfo conditionResult = CompileExpression(locationInner, condition, out IInstance conditionValue2);
 					if(conditionResult.Failure) return conditionResult;
 
-					if(!(conditionValue2 is PrimitiveInstance.BooleanInstance conditionValue2Bool)) {
+					if(conditionValue2 is not PrimitiveInstance.BooleanInstance conditionValue2Bool) {
 
 						throw new NotImplementedException("Casting has not been implemented.");
 
@@ -592,7 +623,7 @@ namespace MCSharp.Compilation {
 									if(cast == null) {
 										return new ResultInfo(false, location.GetLocation(return_expression) + $"Cannot cast '{returnValue.Type.Identifier}' to '{returnType.Identifier}'.");
 									} else {
-										var castResult = cast.Function.Invoke(location, new IType[] { }, new IInstance[] { returnValue }, out returnValue);
+										var castResult = cast.Function.Invoke(location, Array.Empty<IType>(), new IInstance[] { returnValue }, out returnValue);
 										if(castResult.Failure) return location.GetLocation(return_expression) + castResult;
 									}
 
@@ -617,8 +648,36 @@ namespace MCSharp.Compilation {
 
 							// Find return type.
 							var property = member.Definition as IProperty;
-							// TODO: Unable to determine if 'return_statement' is from the 'setter' or 'getter'.
-							throw new NotImplementedException("'return' statements in properties have not been implemented.");
+							IType type = location.Compiler.DefinedTypes[member.TypeIdentifier];
+							ExpressionContext return_expression = return_statement.expression();
+
+							if(return_expression != null) {
+
+								ResultInfo expressionResult = CompileExpression(location, return_expression, out IInstance returnValue);
+								if(expressionResult.Failure) return expressionResult;
+
+								if(type != returnValue.Type) {
+
+									// Cast return value as desired type.
+									var cast = type.Conversions[returnValue.Type];
+									if(cast == null) {
+										return new ResultInfo(false, location.GetLocation(return_expression) + $"Cannot cast '{returnValue.Type.Identifier}' to '{type.Identifier}'.");
+									} else {
+										var castResult = cast.Function.Invoke(location, Array.Empty<IType>(), new IInstance[] { returnValue }, out returnValue);
+										if(castResult.Failure) return location.GetLocation(return_expression) + castResult;
+									}
+
+								}
+
+								// Return value.
+								var functionReturnValue = location.Function.ReturnInstance;
+								if(functionReturnValue == null) {
+									return new ResultInfo(false, location.GetLocation(return_expression) + "Cannot return from a void function.");
+								} else {
+									location.Compiler.CompileSimpleOperation(location, Operation.Assign, functionReturnValue, returnValue, out _);
+								}
+
+							}
 
 						} else {
 
@@ -634,6 +693,7 @@ namespace MCSharp.Compilation {
 
 					}
 
+					// Return success.
 					return ResultInfo.DefaultSuccess;
 
 				}
@@ -822,11 +882,11 @@ namespace MCSharp.Compilation {
 				bool convert2 = !parameterType2.IsAssignableFrom(type2);
 
 				// Convert the operands if needed.
-				if(convert1) type1.Conversions[parameterType1].Function.Invoke(location, new IType[] { }, new IInstance[] { operand1 }, out operand1);
-				if(convert2) type2.Conversions[parameterType2].Function.Invoke(location, new IType[] { }, new IInstance[] { operand2 }, out operand2);
+				if(convert1) type1.Conversions[parameterType1].Function.Invoke(location, Array.Empty<IType>(), new IInstance[] { operand1 }, out operand1);
+				if(convert2) type2.Conversions[parameterType2].Function.Invoke(location, Array.Empty<IType>(), new IInstance[] { operand2 }, out operand2);
 
 				// Invoke the operation.
-				ResultInfo functionResult = operation.Function.Invoke(location, new IType[] { }, new IInstance[] { operand1, operand2 }, out result);
+				ResultInfo functionResult = operation.Function.Invoke(location, Array.Empty<IType>(), new IInstance[] { operand1, operand2 }, out result);
 				if(functionResult.Failure) return functionResult;
 
 				return ResultInfo.DefaultSuccess;
@@ -1018,8 +1078,7 @@ namespace MCSharp.Compilation {
 			if(null_coalescing_expression_second != null) {
 
 				value = null;
-
-				ResultInfo null_coalescing_second_result = CompileNullCoalescingExpression(location, null_coalescing_expression_second, out IInstance null_coalescing_second_value);
+				ResultInfo null_coalescing_second_result = CompileNullCoalescingExpression(location, null_coalescing_expression_second, out _);
 				if(null_coalescing_second_result.Failure) return null_coalescing_second_result;
 
 				throw new NotImplementedException("Null-coalescing expressions have not been implemented.");
@@ -1649,8 +1708,7 @@ namespace MCSharp.Compilation {
 			if(subunary_expression != null) {
 
 				value = null;
-
-				ResultInfo result = CompileUnaryExpression(location, subunary_expression, out IInstance unary_value);
+				ResultInfo result = CompileUnaryExpression(location, subunary_expression, out _);
 				if(result.Failure) return result;
 
 				throw new NotImplementedException("Unary expressions have not been implemented.");
@@ -1763,7 +1821,7 @@ namespace MCSharp.Compilation {
 			value = null;
 
 			UnaryExpressionContext unary_expression = addressof_expression.unary_expression();
-			ResultInfo unary_result = CompileUnaryExpression(location, unary_expression, out IInstance unary_value);
+			ResultInfo unary_result = CompileUnaryExpression(location, unary_expression, out _);
 			if(unary_result.Failure) return unary_result;
 
 			throw new NotImplementedException("Addressof expressions have not been implemented.");
@@ -1786,14 +1844,6 @@ namespace MCSharp.Compilation {
 			if(assignment_expression is null)
 				throw new ArgumentNullException(nameof(assignment_expression));
 			#endregion
-
-			// Get the left-hand side of the assignment.
-			UnaryExpressionContext unary_expression = assignment_expression.unary_expression();
-			ResultInfo unary_result = CompileUnaryExpression(location, unary_expression, out IInstance unary_value);
-			if(unary_result.Failure) {
-				value = null;
-				return unary_result;
-			}
 
 			// Get the right-hand side of the assignment.
 			ExpressionContext expression = assignment_expression.expression();
@@ -1819,12 +1869,100 @@ namespace MCSharp.Compilation {
 			else if(assignment_operator.ASSIGN_LEFT() != null) op = Operation.AssignShiftLeft;
 			else op = Operation.AssignShiftRight;
 
-			// Perform the assignment.
-			ResultInfo simple_operation_result = CompileSimpleOperation(location, op, unary_value, expression_value, out value);
-			if(simple_operation_result.Failure) return location.GetLocation(assignment_expression) + simple_operation_result;
+			// Get the left-hand side of the assignment.
+			// Anything other than a variable, property, or indexer is invalid.
+			UnaryExpressionContext unary_expression = assignment_expression.unary_expression();
+			{
+				ResultInfo notAssignable = new ResultInfo(success: false, $"{location.GetLocation(unary_expression)}The left-hand side of an assignment must be a variable, property, or indexer.");
 
-			// Return success.
-			return ResultInfo.DefaultSuccess;
+				PrimaryExpressionContext primary_expression = unary_expression.primary_expression();
+				if(primary_expression == null) {
+					value = null;
+					return notAssignable;
+				}
+
+				PrimaryNoArrayCreationExpressionContext primary_no_array_creation_expression = primary_expression.primary_no_array_creation_expression();
+				if(primary_no_array_creation_expression == null) {
+					value = null;
+					return notAssignable;
+				}
+
+				MCSharpParser.Short_identifierContext short_identifier = primary_no_array_creation_expression.short_identifier();
+				MCSharpParser.Member_accessContext member_access = primary_no_array_creation_expression.member_access();
+				if(short_identifier != null) {
+
+					// (1) Try local variables.
+					IInstance variable = location.Scope.FindFirstInstanceByName(short_identifier.GetText());
+					if(variable != null) {
+
+						// Run the assignment operation.
+						ResultInfo result = location.Compiler.CompileSimpleOperation(location, op, variable, expression_value, out value);
+						if(result.Failure) return location.GetLocation(assignment_expression) + result;
+
+						// Return success.
+						return ResultInfo.DefaultSuccess;
+
+					}
+
+					// (2) Try implicit "this" call for members.
+					// Since this is a short identifier, there is no access chain to evaluate and it.
+					else {
+
+						// Get the holder of the location.
+						IScopeHolder holder = location.Scope.GetInstanceOrTypeHolder();
+						if(holder == null) {
+							value = null;
+							return new ResultInfo(success: false, $"{location.GetLocation(unary_expression)}Unknown identifier '{short_identifier.GetText()}'.");
+						}
+						
+						// Find and run the property's setter.
+						if(holder is IType type) {
+							
+							foreach(IMember member in type.Members) {
+								if(member.Definition is not IProperty property) continue;
+								else if(member.Identifier == short_identifier.GetText()) {
+									
+									// Get the setter.
+									IFunction setter = property.Setter;
+
+									// Invoke the setter.
+									ResultInfo result = setter.Invoke(location, Array.Empty<IType>(), new IInstance[] { expression_value }, out value);
+									if(result.Failure) return location.GetLocation(assignment_expression) + result;
+
+									// Return success.
+									return ResultInfo.DefaultSuccess;
+
+								}
+							}
+
+							// Return failure.
+							value = null;
+							return new ResultInfo(success: false, $"{location.GetLocation(unary_expression)}Unknown identifier '{short_identifier.GetText()}'.");
+
+						} else {
+							
+							IInstance _ = holder as IInstance;
+
+							throw new NotImplementedException();
+
+						}
+
+					}
+
+				} else if(member_access != null) {
+
+					// Get the assignable object.
+					value = null;
+
+					// Return success.
+					return ResultInfo.DefaultSuccess;
+
+				} else {
+					value = null;
+					return notAssignable;
+				}
+
+			}
 
 		}
 
@@ -1918,9 +2056,11 @@ namespace MCSharp.Compilation {
 			MCSharpParser.LiteralContext literal = primary_no_array_creation_expression.literal();
 			if(literal != null) {
 
+				// Compile the literal.
 				ResultInfo result = CompileLiteral(location, literal, out value);
 				if(result.Failure) return result;
 
+				// Return success.
 				return ResultInfo.DefaultSuccess;
 
 			}
@@ -1929,20 +2069,57 @@ namespace MCSharp.Compilation {
 			if(identifier != null) {
 
 				string name = identifier.NAME().GetText();
+				ResultInfo badResult = new ResultInfo(success: false, $"{location.GetLocation(primary_no_array_creation_expression)}Unknown identifier '{name}'.");
 
+				// (1) Look for a local variable.
 				value = location.Scope.FindFirstInstanceByName(name);
-				if(value == null) return new ResultInfo(false, $"{location.GetLocation(identifier)}Instance '{name}' does not exist yet in this scope.");
+				if(value != null) {
 
-				return ResultInfo.DefaultSuccess;
+					// Return success.
+					return ResultInfo.DefaultSuccess;
+
+				}
+
+				// (2) Look for property or field using an implicit "this".
+				IScopeHolder @this = location.Scope.GetInstanceOrTypeHolder();
+				if(@this is IType type) {
+
+					// Find the static member by name.
+					IMember member = type.FindPropertyOrField(name);
+					if(member == null) return badResult;
+
+					// Invoke the member.
+					ResultInfo invokeResult = type.InvokePropertyOrFieldFromContext(location, identifier.NAME(), member, out value);
+					if(invokeResult.Failure) return invokeResult;
+
+					// Return success.
+					return ResultInfo.DefaultSuccess;
+
+				} else if(@this is IInstance instance) {
+
+					// Find the member by name.
+					IMember member = instance.Type.FindPropertyOrField(name);
+					if(member == null) return badResult;
+
+					// Invoke the member.
+					ResultInfo invokeResult = instance.InvokePropertyOrFieldFromContext(location, identifier.NAME(), member, out value);
+					if(invokeResult.Failure) return invokeResult;
+
+					// Return success.
+					return ResultInfo.DefaultSuccess;
+
+				}
 
 			}
 
 			ExpressionContext expression = primary_no_array_creation_expression.expression();
 			if(expression != null) {
 
+				// Compile the expression.
 				ResultInfo result = CompileExpression(location, expression, out value);
 				if(result.Failure) return result;
 
+				// Return success.
 				return ResultInfo.DefaultSuccess;
 
 			}
@@ -1950,9 +2127,11 @@ namespace MCSharp.Compilation {
 			MCSharpParser.Member_accessContext member_access = primary_no_array_creation_expression.member_access();
 			if(member_access != null) {
 
+				// Compile the member access.
 				ResultInfo result = CompileMemberAccess(location, member_access, out value);
 				if(result.Failure) return result;
 
+				// Return success.
 				return ResultInfo.DefaultSuccess;
 
 			}
@@ -1967,14 +2146,87 @@ namespace MCSharp.Compilation {
 			KeywordExpressionContext keyword_expression = primary_no_array_creation_expression.keyword_expression();
 			if(keyword_expression != null) {
 
+				// Compile the keyword expression.
 				ResultInfo result = CompileKeywordExpression(location, keyword_expression, out value);
 				if(result.Failure) return result;
 
+				// Return success.
 				return ResultInfo.DefaultSuccess;
 
 			}
 
 			throw new Exception("Primary no-array-creation expression could not be determined.");
+
+		}
+
+		public static ResultInfo GetGenericArguments(CompileArguments location, GenericArgumentsContext argumentContexts, out IType[] types) {
+
+			// Create arrays.
+			GenericParameterContext[] contexts = argumentContexts?.generic_parameter_list()?.generic_parameter() ?? Array.Empty<GenericParameterContext>();
+			types = new IType[contexts.Length];
+
+			// Fetch the types via name.
+			for(int i = 0; i < contexts.Length; i++) {
+
+				// Get the name.
+				ITerminalNode node = contexts[i].NAME();
+				string name = node.GetText();
+
+				// Check if the type exists.
+				if(location.Compiler.DefinedTypes.ContainsKey(name) == false) {
+					return new ResultInfo(false, $"{location.GetLocation(node)}Type '{name}' does not exist.");
+				}
+
+				// Get the type.
+				IType type = location.Compiler.DefinedTypes[name];
+				types[i] = type;
+
+			}
+
+			// Return success.
+			return ResultInfo.DefaultSuccess;
+
+		}
+
+		public static ResultInfo GetMethodArguments(CompileArguments location, MethodArgumentsContext argumentContexts, out IType[] types, out IInstance[] instances) {
+
+			// Create arrays.
+			MCSharpParser.ArgumentContext[] contexts = argumentContexts.argument_list()?.argument() ?? Array.Empty<MCSharpParser.ArgumentContext>();
+			types = new IType[contexts.Length];
+			instances = new IInstance[contexts.Length];
+
+			// Fetch the types via name.
+			for(int i = 0; i < contexts.Length; i++) {
+
+				// Get the context.
+				MCSharpParser.ArgumentContext context = contexts[i];
+				var expression = context.expression();
+				var modifier = context.parameter_modifier();
+
+				if(expression != null) {
+				
+					// Compile the argument.
+					ResultInfo result = location.Compiler.CompileExpression(location, context.expression(), out IInstance instance);
+					if(result.Failure) return result;
+
+					// Set the type and instance.
+					types[i] = instance.Type;
+					instances[i] = instance;
+
+				} else if(modifier != null) {
+
+					throw new NotImplementedException("Arguments with modifiers have not been implemented.");
+
+				} else {
+
+					throw new Exception("Argument could not be determined.");
+
+				}
+
+			}
+
+			// Return success.
+			return ResultInfo.DefaultSuccess;
 
 		}
 
@@ -1992,155 +2244,37 @@ namespace MCSharp.Compilation {
 
 			MCSharpParser.Member_access_prefixContext[] member_access_prefixes = member_access.member_access_prefix();
 			MCSharpParser.Short_identifierContext member_identifier = member_access.short_identifier();
-			MCSharpParser.Generic_argumentsContext generic_arguments = member_access.generic_arguments();
-			MCSharpParser.Method_argumentsContext method_arguments = member_access.method_arguments();
-			MCSharpParser.Indexer_argumentsContext indexer_arguments = member_access.indexer_arguments();
+			GenericArgumentsContext generic_arguments = member_access.generic_arguments();
+			MethodArgumentsContext method_arguments = member_access.method_arguments();
+			IndexerArgumentsContext indexer_arguments = member_access.indexer_arguments();
 
 			(IInstance Instance, IType Type) holder = (null, null);
 
 			// Local method for accessing a member of an instance (holder).
 			// Captured variables: this, member_access.
 			ResultInfo AccessFromInstance(CompileArguments location, IInstance holder, ITerminalNode identifier, out IInstance value,
-				MCSharpParser.Generic_argumentsContext generic_arguments, MCSharpParser.Method_argumentsContext method_arguments, MCSharpParser.Indexer_argumentsContext indexer_arguments) {
+			GenericArgumentsContext generic_arguments, MethodArgumentsContext method_arguments, IndexerArgumentsContext indexer_arguments) {
 
-				// If there are method arguments, then this is a method call.
 				if(method_arguments != null) {
 
-					// Get generic argument types.
-					MCSharpParser.Generic_parameterContext[] genericContexts = generic_arguments?.generic_parameter_list()?.generic_parameter() ?? new MCSharpParser.Generic_parameterContext[0];
-					IType[] genericTypes = new IType[genericContexts.Length];
-					for(int i = 0; i < genericContexts.Length; i++) {
-						ITerminalNode typeNode = genericContexts[i].NAME();
-						IType type = location.Compiler.DefinedTypes[typeNode.GetText()];
-						genericTypes[i] = type;
-					}
+					// Since there are method arguments, this is a method call.
 
-					// Get method argument types.
-					MCSharpParser.ArgumentContext[] argumentContexts = method_arguments.argument_list()?.argument() ?? new MCSharpParser.ArgumentContext[0];
-					IType[] argumentTypes = new IType[argumentContexts.Length];
-					for(int i = 0; i < argumentContexts.Length; i++) {
-						ITerminalNode typeNode = argumentContexts[i].NAME()[0];
-						IType type = location.Compiler.DefinedTypes[typeNode.GetText()];
-						argumentTypes[i] = type;
-					}
-
-					// Get the method by best.
-					IMethod method = holder.Type.FindBestMethod(location.Compiler, genericTypes, argumentTypes, identifier.GetText()).Definition as IMethod;
-					if(method == null) {
-						value = null;
-
-						// If a method with that name exists, give an error about no matching overflow.
-						// Otherwise, give an error about no method with that name existing.
-
-						bool exists = false;
-						foreach(IMember m in holder.Type.Members) {
-							if(m.Identifier == identifier.GetText()) {
-								exists = true;
-								break;
-							}
-						}
-
-						if(exists) {
-							string[] identifiers = new string[argumentTypes.Length];
-							for(int i = 0; i < argumentTypes.Length; i++) identifiers[i] = argumentTypes[i].Identifier;
-							return new ResultInfo(false, $"{location.GetLocation(identifier)}No matching overload for method '{identifier.GetText()}' in type '{holder.Identifier}' " +
-								$"with arguments: ({string.Join(", ", identifiers)}).");
-						} else {
-							return new ResultInfo(false, $"{location.GetLocation(identifier)}Method '{identifier.GetText()}' does not exist in type '{holder.Identifier}'.");
-						}
-
-					}
-
-					// Get method argument instances.
-					IInstance[] arguments = new IInstance[argumentTypes.Length];
-					for(int i = 0; i < argumentTypes.Length; i++) {
-						ResultInfo argument_result = CompileExpression(location, argumentContexts[i].expression(), out IInstance argument);
-						if(argument_result.Failure)  {
-							value = null;
-							return argument_result;
-						}
-						arguments[i] = argument;
-					}
-
-					// Invoke method.
-					ResultInfo result = method.Invoker.Invoke(location, genericTypes, arguments, out value);
-					if(result.Failure) return location.GetLocation(member_access) + result;
-
-					return ResultInfo.DefaultSuccess;
+					// Try to invoke the method.
+					return holder.InvokeBestMethod(location, identifier, generic_arguments, method_arguments, out value);
 
 				} else {
 
-					// Get the member by name.
-					// TODO: Check inherited types.
-					IMember member = null;
-					foreach(IMember m in holder.Type.Members) {
-						if(m.Identifier == identifier.GetText()) {
-							member = m;
-							break;
-						}
-					}
+					// Since there are no arguments, this is a property or field access.
 
+					// Get the member by name.
+					IMember member = holder.Type.FindPropertyOrField(identifier.GetText());
 					if(member == null) {
 						value = null;
 						return new ResultInfo(false, $"{location.GetLocation(identifier)}Member '{identifier.GetText()}' does not exist in type '{holder.Type.Identifier}'.");
 					}
 
-					IMemberDefinition definition = member.Definition;
-					switch(definition) {
-
-						case IField field: {
-
-							// Struct, Class, and Predefined all have different ways of storing fields.
-							switch(holder) {
-
-								// Get IInstance value from struct field dictionary.
-								case StructInstance structInstance: {
-									value = structInstance.FieldInstances[field];
-									return ResultInfo.DefaultSuccess;
-								}
-
-								// Create IInstance value from object reference.
-								// Simple objects do not have fields so we can assume it is a class type.
-								case ClassInstance classInstance: {
-									value = location.Compiler.DefinedTypes[member.TypeIdentifier].InitializeInstance(location, null);
-									Objective[] block = classInstance.FieldObjectives[field];
-									string selector = classInstance.GetSelector(location);
-									value.LoadFromBlock(location, selector, block);
-									return ResultInfo.DefaultSuccess;
-								}
-
-								// PrimitiveInstance
-								case PrimitiveInstance primitiveInstance: {
-									value = null;
-									return new ResultInfo(false, $"{location.GetLocation(identifier)}Accessing fields of primitive types is not supported.");
-								}
-
-								default: throw new Exception($"Unsupported type of {nameof(IInstance)}: '{holder.GetType().FullName}'.");
-
-							}
-
-						}
-
-						case IProperty property: {
-
-							// Get getter.
-							var getter = property.Getter;
-							if(getter == null) {
-								value = null;
-								return new ResultInfo(false, location.GetLocation(identifier)+"This property is not get-able.");
-							}
-
-							// Invoke 'get' method.
-							ResultInfo result = property.Getter.Invoke(location, new IType[] { }, new IInstance[] { }, out value);
-							if(result.Failure) return location.GetLocation(identifier) + result;
-
-							return ResultInfo.DefaultSuccess;
-
-						}
-
-						default: throw new Exception($"Unsupported type of {nameof(IMemberDefinition)}: '{definition.GetType().FullName}'.");
-
-					}
+					// Try to invoke the property/field.
+					return holder.InvokePropertyOrFieldFromContext(location, identifier, member, out value);
 
 				}
 
@@ -2149,137 +2283,28 @@ namespace MCSharp.Compilation {
 			// Local method for accessing a member of a type (holder).
 			// Captured variables: this, member_access.
 			ResultInfo AccessFromStaticType(CompileArguments location, IType holder, ITerminalNode identifier, out IInstance value,
-				MCSharpParser.Generic_argumentsContext generic_arguments, MCSharpParser.Method_argumentsContext method_arguments, MCSharpParser.Indexer_argumentsContext indexer_arguments) {
+			GenericArgumentsContext generic_arguments, MethodArgumentsContext method_arguments, IndexerArgumentsContext indexer_arguments) {
 
-				// If there are method arguments, then this is a method call.
 				if(method_arguments != null) {
 
-					// Get generic argument types.
-					MCSharpParser.Generic_parameterContext[] genericContexts = generic_arguments?.generic_parameter_list()?.generic_parameter() ?? new MCSharpParser.Generic_parameterContext[0];
-					IType[] genericTypes = new IType[genericContexts.Length];
-					for(int i = 0; i < genericContexts.Length; i++) {
+					// Since there are method arguments, this is a method call.
 
-						// Get generic type from name and defined types.
-						ITerminalNode typeNode = genericContexts[i].NAME();
-						IType type = location.Compiler.DefinedTypes[typeNode.GetText()];
-
-						// Save generic type to array.
-						genericTypes[i] = type;
-
-					}
-
-					// Get method argument instances and types.
-					MCSharpParser.ArgumentContext[] argumentContexts = method_arguments.argument_list()?.argument() ?? new MCSharpParser.ArgumentContext[0];
-					IType[] argumentTypes = new IType[argumentContexts.Length];
-					IInstance[] argumentInstances = new IInstance[argumentContexts.Length];
-					for(int i = 0; i < argumentContexts.Length; i++) {
-
-						// Compile argument expression.
-						ResultInfo argumentResult = CompileExpression(location, argumentContexts[i].expression(), out IInstance instance);
-						if(argumentResult.Failure) {
-							value = null;
-							return argumentResult;
-						}
-
-						// Save argument instance and type to arrays.
-						argumentInstances[i] = instance;
-						argumentTypes[i] = instance.Type;
-
-					}
-
-					// Get the method by best.
-					IMethod method = holder.FindBestMethod(location.Compiler, genericTypes, argumentTypes, identifier.GetText())?.Definition as IMethod;
-					if(method == null) {
-						value = null;
-
-						// If a method with that name exists, give an error about no matching overflow.
-						// Otherwise, give an error about no method with that name existing.
-
-						bool exists = false;
-						foreach(IMember m in holder.Members) {
-							if(m.Identifier == identifier.GetText()) {
-								exists = true;
-								break;
-							}
-						}
-
-						if(exists) {
-							string[] identifiers = new string[argumentTypes.Length];
-							for(int i = 0; i < argumentTypes.Length; i++) identifiers[i] = argumentTypes[i].Identifier;
-							return new ResultInfo(false, $"{location.GetLocation(identifier)}No matching overload for method '{identifier.GetText()}' in type '{holder.Identifier}' " +
-								$"with arguments: ({string.Join(", ", identifiers)}).");
-						} else {
-							return new ResultInfo(false, $"{location.GetLocation(identifier)}Method '{identifier.GetText()}' does not exist in type '{holder.Identifier}'.");
-						}
-
-					}
-
-					// Invoke method.
-					ResultInfo result = method.Invoker.Invoke(location, genericTypes, argumentInstances, out value);
-					if(result.Failure) return location.GetLocation(member_access) + result;
-
-					return ResultInfo.DefaultSuccess;
+					// Try to invoke the method.
+					return holder.InvokeBestMethodFromContext(location, identifier, generic_arguments, method_arguments, out value);
 
 				} else {
 
-					// Get the member by name.
-					// TODO: Check inherited types.
-					IMember member = null;
-					foreach(IMember m in holder.Members) {
-						if(m.Identifier == identifier.GetText()) {
-							member = m;
-							break;
-						}
-					}
+					// Since there are no arguments, this is a property or field access.
 
+					// Get the member by name.
+					IMember member = holder.FindPropertyOrField(identifier.GetText());
 					if(member == null) {
 						value = null;
 						return new ResultInfo(false, $"{location.GetLocation(identifier)}Member '{identifier.GetText()}' does not exist in type '{holder.Identifier}'.");
 					}
 
-					IMemberDefinition definition = member.Definition;
-					switch(definition) {
-
-						case IField field: {
-
-							// Struct, Class, and Predefined all have different ways of storing fields.
-							switch(holder) {
-
-								// Get IInstance value from StructInstance.FieldInstances.
-								case StructInstance structHolder: {
-									value = structHolder.FieldInstances[field];
-									return ResultInfo.DefaultSuccess;
-								}
-
-								// TODO: ClassInstance
-
-								// TODO: PredefinedInstance
-
-								default: throw new Exception($"Unsupported type of {nameof(IInstance)}: '{holder.GetType().FullName}'.");
-							}
-
-						}
-
-						case IProperty property: {
-
-							// Get getter.
-							var getter = property.Getter;
-							if(getter == null) {
-								value = null;
-								return new ResultInfo(false, location.GetLocation(identifier) + "This property is not get-able.");
-							}
-
-							// Invoke 'get' method.
-							ResultInfo result = property.Getter.Invoke(location, new IType[] { }, new IInstance[] { }, out value);
-							if(result.Failure) return location.GetLocation(identifier) + result;
-
-							return ResultInfo.DefaultSuccess;
-
-						}
-
-						default: throw new Exception($"Unsupported type of {nameof(IMemberDefinition)}: '{definition.GetType().FullName}'.");
-
-					}
+					// Try to invoke the property/field.
+					return holder.InvokePropertyOrFieldFromContext(location, identifier, member, out value);
 
 				}
 
@@ -2288,7 +2313,7 @@ namespace MCSharp.Compilation {
 			// Local method for accessing through "this" keyword.
 			// Captured variables: this, member_access.
 			ResultInfo AccessFromThis(CompileArguments location, Scope scope, ITerminalNode identifier, out (IInstance instance, IType type) holder,
-				MCSharpParser.Generic_argumentsContext generic_arguments, MCSharpParser.Method_argumentsContext method_arguments, MCSharpParser.Indexer_argumentsContext indexer_arguments) {
+			GenericArgumentsContext generic_arguments, MethodArgumentsContext method_arguments, IndexerArgumentsContext indexer_arguments) {
 
 				// Access "this".
 				if(scope == null) scope = location.Scope;
@@ -2325,7 +2350,7 @@ namespace MCSharp.Compilation {
 			// Local method for accessing through "base" keyword.
 			// Captured variables: this, member_access.
 			ResultInfo AccessFromBase(CompileArguments location, Scope scope, ITerminalNode identifier, out (IInstance instance, IType type) holder,
-				MCSharpParser.Generic_argumentsContext generic_arguments, MCSharpParser.Method_argumentsContext method_arguments, MCSharpParser.Indexer_argumentsContext indexer_arguments) {
+			GenericArgumentsContext generic_arguments, MethodArgumentsContext method_arguments, IndexerArgumentsContext indexer_arguments) {
 
 				throw new NotImplementedException(location.GetLocation(identifier)+"Accessing 'base' has not been implemented.");
 
@@ -2375,9 +2400,9 @@ namespace MCSharp.Compilation {
 						// Accessing starts at something found by a short identifier, possibly with arguments.
 
 						// Get argument contexts.
-						MCSharpParser.Generic_argumentsContext prefix_generic_arguments = prefix.generic_arguments();
-						MCSharpParser.Method_argumentsContext prefix_method_arguments = prefix.method_arguments();
-						MCSharpParser.Indexer_argumentsContext prefix_indexer_arguments = prefix.indexer_arguments();
+						GenericArgumentsContext prefix_generic_arguments = prefix.generic_arguments();
+						MethodArgumentsContext prefix_method_arguments = prefix.method_arguments();
+						IndexerArgumentsContext prefix_indexer_arguments = prefix.indexer_arguments();
 
 						// Get identifier node and string.
 						ITerminalNode identifier = prefix_short_identifier.NAME();
@@ -2489,9 +2514,9 @@ namespace MCSharp.Compilation {
 
 					if((prefix_short_identifier = prefix.short_identifier()) != null) {
 
-						MCSharpParser.Generic_argumentsContext prefix_generic_arguments = prefix.generic_arguments();
-						MCSharpParser.Method_argumentsContext prefix_method_arguments = prefix.method_arguments();
-						MCSharpParser.Indexer_argumentsContext prefix_indexer_arguments = prefix.indexer_arguments();
+						GenericArgumentsContext prefix_generic_arguments = prefix.generic_arguments();
+						MethodArgumentsContext prefix_method_arguments = prefix.method_arguments();
+						IndexerArgumentsContext prefix_indexer_arguments = prefix.indexer_arguments();
 
 						ITerminalNode identifier = prefix_short_identifier.NAME();
 						string name = identifier.GetText();
@@ -2688,14 +2713,14 @@ namespace MCSharp.Compilation {
 		/// </code>
 		/// </summary>
 		/// <param name="keyword_expression">The expression to compile.</param>
-		/// <inheritdoc cref="CompileExpression(CompileArguments, MCSharpParser.ExpressionContext, out IInstance)"/>
+		/// <inheritdoc cref="CompileExpression(CompileArguments, ExpressionContext, out IInstance)"/>
 		public ResultInfo CompileKeywordExpression(CompileArguments location, KeywordExpressionContext keyword_expression, out IInstance value) {
 
 			MCSharpParser.New_keyword_expressionContext new_keyword_expression = keyword_expression.new_keyword_expression();
 			if(new_keyword_expression != null) {
 
 				// NEW NAME ( ( method_arguments object_or_collection_initializer? ) | ( object_or_collection_initializer ) )
-				MCSharpParser.Method_argumentsContext method_arguments = new_keyword_expression.method_arguments();
+				MethodArgumentsContext method_arguments = new_keyword_expression.method_arguments();
 				MCSharpParser.Object_or_collection_initializerContext object_or_collection_initializer = new_keyword_expression.object_or_collection_initializer();
 				if(method_arguments != null || object_or_collection_initializer != null) {
 
@@ -2722,12 +2747,11 @@ namespace MCSharp.Compilation {
 						IInstance[] methodArguments;
 						{
 							MCSharpParser.Argument_listContext argument_list = method_arguments.argument_list();
-							MCSharpParser.ArgumentContext[] arguments_context = argument_list?.argument() ?? new MCSharpParser.ArgumentContext[] { };
+							MCSharpParser.ArgumentContext[] arguments_context = argument_list?.argument() ?? Array.Empty<MCSharpParser.ArgumentContext>();
 							methodArguments = new IInstance[arguments_context.Length];
 							for(int i = 0; i < arguments_context.Length; i++) {
 								MCSharpParser.ArgumentContext argument_context = arguments_context[i];
-								IInstance argument;
-								ResultInfo argument_result = CompileExpression(location, argument_context.expression(), out argument);
+								ResultInfo argument_result = CompileExpression(location, argument_context.expression(), out IInstance argument);
 								if(argument_result.Failure) {
 									value = null;
 									return argument_result;
@@ -2737,7 +2761,7 @@ namespace MCSharp.Compilation {
 						}
 						
 						// Get generic arguments.
-						var genericArguments = new IType[] { };
+						var genericArguments = Array.Empty<IType>();
 
 						// Get constructor.
 						var constructor = type.FindBestConstructor(location.Compiler, genericArguments, methodArguments);
@@ -2745,7 +2769,7 @@ namespace MCSharp.Compilation {
 						// Invoke constructor.
 						location.Writer.WriteComments(
 							$"Invoke constructor: {type.Identifier}");
-						ResultInfo result = constructor.Invoker.Invoke(location, new IType[] { }, methodArguments, out value);
+						ResultInfo result = constructor.Invoker.Invoke(location, Array.Empty<IType>(), methodArguments, out value);
 						if(result.Failure) return location.GetLocation(new_keyword_expression) + result;
 
 						return ResultInfo.DefaultSuccess;
@@ -2910,6 +2934,8 @@ namespace MCSharp.Compilation {
 			// TODO: Remove this reliance on static.
 			Objective.ClearAnonymousNames();
 
+			GC.SuppressFinalize(this);
+
 		}
 
 		#region Subtypes
@@ -3008,8 +3034,6 @@ namespace MCSharp.Compilation {
 
 			Compiler Compiler { get; }
 			Scope RootScope { get; }
-			event Action<Compiler> postFirstPass;
-			event Action<CompileArguments> onLoad;
 
 			private TypeDefinitionContext CurrentTypeContext { get; set; }
 			private ICollection<MemberDefinitionContext> CurrentMemberContexts { get; set; } = new LinkedList<MemberDefinitionContext>();
@@ -3051,23 +3075,11 @@ namespace MCSharp.Compilation {
 				var scriptType = new ScriptType(
 					CurrentTypeContext, CurrentMemberContexts.ToArray(), CurrentConstructorContexts.ToArray(),
 					Compiler.Settings, Compiler.VirtualMachine, typeScope,
-					out Action<Compiler> postFirstPass, out Action<CompileArguments> onLoad
+					ref Compiler.PostFirstPass, ref Compiler.OnLoad
 				);
 
-				this.postFirstPass += postFirstPass;
-				this.onLoad += onLoad;
 				Compiler.DefinedTypes.Add(scriptType.Identifier.GetText(), scriptType);
 
-			}
-
-			/// <inheritdoc/>
-			public void PostFirstPass() {
-				postFirstPass.Invoke(Compiler);
-			}
-
-			/// <inheritdoc/>
-			public void OnLoad(CompileArguments location) {
-				onLoad.Invoke(location);
 			}
 
 		}

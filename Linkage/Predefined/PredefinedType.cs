@@ -56,6 +56,9 @@ namespace MCSharp.Linkage.Predefined {
 		/// <inheritdoc/>
 		public IDictionary<IType, IConversion> Conversions { get; }
 
+		/// <inheritdoc/>
+		public IReadOnlyDictionary<IField, IInstance> StaticFieldInstances { get; }
+
 
 		/// <summary>
 		/// Creates a new predefined type definition.

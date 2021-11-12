@@ -2697,12 +2697,12 @@
         </member>
         <member name="P:MCSharp.Compilation.Compiler.DefinedTypes">
             <summary>
-            
+            A collection of all <see cref="T:MCSharp.Linkage.IType"/>s defined for this <see cref="T:MCSharp.Compilation.Compiler"/>, accessible by their <see cref="P:MCSharp.Linkage.IType.Identifier"/>.
             </summary>
         </member>
         <member name="P:MCSharp.Compilation.Compiler.LinkerExtensions">
             <summary>
-            
+            A collection of all <see cref="T:MCSharp.Linkage.Extensions.LinkerExtension"/>s that are applied when <see cref="M:MCSharp.Compilation.Compiler.Compile"/> is run.
             </summary>
         </member>
         <member name="M:MCSharp.Compilation.Compiler.GetLinkerExtension``1">
@@ -3261,12 +3261,6 @@
             <inheritdoc/>
         </member>
         <member name="M:MCSharp.Compilation.Compiler.ScriptClassWalker.ExitType_definition(MCSharpParser.Type_definitionContext)">
-            <inheritdoc/>
-        </member>
-        <member name="M:MCSharp.Compilation.Compiler.ScriptClassWalker.PostFirstPass">
-            <inheritdoc/>
-        </member>
-        <member name="M:MCSharp.Compilation.Compiler.ScriptClassWalker.OnLoad(MCSharp.Compilation.Compiler.CompileArguments)">
             <inheritdoc/>
         </member>
         <member name="T:MCSharp.Compilation.Compiler.ScriptErrorListener">
@@ -3954,6 +3948,12 @@
             </summary>
             <returns>Returns the <see cref="T:MCSharp.Compilation.Scope"/> found.</returns>
         </member>
+        <member name="M:MCSharp.Compilation.Scope.GetInstanceOrTypeHolder">
+            <summary>
+            Finds the closest <see cref="T:MCSharp.Compilation.IScopeHolder"/> to this <see cref="T:MCSharp.Compilation.Scope"/> that is an <see cref="T:MCSharp.Compilation.Instancing.IInstance"/> or <see cref="T:MCSharp.Linkage.IType"/>.
+            </summary>
+            <returns>Returns the <see cref="T:MCSharp.Compilation.IScopeHolder"/> found. Will always be one of the two interfaces or <see	langword="null"/>.</returns>
+        </member>
         <member name="T:MCSharp.Compilation.VirtualMachine">
             <summary>
             Represents a virtual machine.
@@ -4036,7 +4036,7 @@
             </summary>
             <param name="compiler">The <see cref="T:MCSharp.Compilation.Compiler"/> this extension will add to.</param>
         </member>
-        <member name="M:MCSharp.Linkage.Extensions.LinkerExtension.CreatePredefinedTypes(MCSharp.Compilation.Scope,System.Action{MCSharp.Compilation.Compiler.CompileArguments}@,System.Action{MCSharp.Compilation.Compiler.CompileArguments}@)">
+        <member name="M:MCSharp.Linkage.Extensions.LinkerExtension.CreatePredefinedTypes(MCSharp.Compilation.Scope,MCSharp.Compilation.Compiler.OnLoadDelegate@,MCSharp.Compilation.Compiler.OnTickDelegate@)">
             <summary>
             Create <see cref="T:MCSharp.Linkage.Predefined.PredefinedType"/>(s) and add them to <see cref="P:MCSharp.Compilation.Compiler.DefinedTypes"/>.
             </summary>
@@ -4090,55 +4090,55 @@
         <member name="M:MCSharp.Linkage.Extensions.MCSharpLinkerExtension.#ctor(MCSharp.Compilation.Compiler)">
             <inheritdoc/>
         </member>
-        <member name="M:MCSharp.Linkage.Extensions.MCSharpLinkerExtension.CreatePredefinedTypes(MCSharp.Compilation.Scope,System.Action{MCSharp.Compilation.Compiler.CompileArguments}@,System.Action{MCSharp.Compilation.Compiler.CompileArguments}@)">
+        <member name="M:MCSharp.Linkage.Extensions.MCSharpLinkerExtension.CreatePredefinedTypes(MCSharp.Compilation.Scope,MCSharp.Compilation.Compiler.OnLoadDelegate@,MCSharp.Compilation.Compiler.OnTickDelegate@)">
             <inheritdoc/>
         </member>
-        <member name="M:MCSharp.Linkage.Extensions.MCSharpLinkerExtension.CreatePredefinedObject(MCSharp.Compilation.Scope,System.Collections.Generic.List{System.Action{MCSharp.Compilation.Compiler.CompileArguments}})">
+        <member name="M:MCSharp.Linkage.Extensions.MCSharpLinkerExtension.CreatePredefinedObject(MCSharp.Compilation.Scope,MCSharp.Compilation.Compiler.OnLoadDelegate@)">
             <summary>
             Creates the <see cref="T:MCSharp.Linkage.Predefined.PredefinedType"/> for the <see cref="T:MCSharp.Compilation.Instancing.ObjectInstance"/> type "object".
             </summary>
         </member>
-        <member name="M:MCSharp.Linkage.Extensions.MCSharpLinkerExtension.CreatePredefinedInt(MCSharp.Compilation.Scope,System.Collections.Generic.List{System.Action{MCSharp.Compilation.Compiler.CompileArguments}})">
+        <member name="M:MCSharp.Linkage.Extensions.MCSharpLinkerExtension.CreatePredefinedInt(MCSharp.Compilation.Scope,MCSharp.Compilation.Compiler.OnLoadDelegate@)">
             <summary>
             Creates the <see cref="T:MCSharp.Linkage.Predefined.PredefinedType"/> for the <see cref="T:MCSharp.Compilation.Instancing.PrimitiveInstance.IntegerInstance"/> type "int".
             </summary>
         </member>
-        <member name="M:MCSharp.Linkage.Extensions.MCSharpLinkerExtension.CreatePredefinedBool(MCSharp.Compilation.Scope,System.Collections.Generic.List{System.Action{MCSharp.Compilation.Compiler.CompileArguments}})">
+        <member name="M:MCSharp.Linkage.Extensions.MCSharpLinkerExtension.CreatePredefinedBool(MCSharp.Compilation.Scope,MCSharp.Compilation.Compiler.OnLoadDelegate@)">
             <summary>
             Creates the <see cref="T:MCSharp.Linkage.Predefined.PredefinedType"/> for the <see cref="T:MCSharp.Compilation.Instancing.PrimitiveInstance.BooleanInstance"/> type "string".
             </summary>
         </member>
-        <member name="M:MCSharp.Linkage.Extensions.MCSharpLinkerExtension.CreatePredefinedObjective(MCSharp.Compilation.Scope,System.Collections.Generic.List{System.Action{MCSharp.Compilation.Compiler.CompileArguments}})">
+        <member name="M:MCSharp.Linkage.Extensions.MCSharpLinkerExtension.CreatePredefinedObjective(MCSharp.Compilation.Scope,MCSharp.Compilation.Compiler.OnLoadDelegate@)">
             <summary>
             Creates the <see cref="T:MCSharp.Linkage.Predefined.PredefinedType"/> for the <see cref="T:MCSharp.Compilation.Instancing.PrimitiveInstance.ObjectiveInstance"/> type "objective".
             </summary>
         </member>
-        <member name="M:MCSharp.Linkage.Extensions.MCSharpLinkerExtension.CreatePredefinedString(MCSharp.Compilation.Scope,System.Collections.Generic.List{System.Action{MCSharp.Compilation.Compiler.CompileArguments}})">
+        <member name="M:MCSharp.Linkage.Extensions.MCSharpLinkerExtension.CreatePredefinedString(MCSharp.Compilation.Scope,MCSharp.Compilation.Compiler.OnLoadDelegate@)">
             <summary>
             Creates the <see cref="T:MCSharp.Linkage.Predefined.PredefinedType"/> for the <see cref="T:MCSharp.Compilation.Instancing.PrimitiveInstance.StringInstance"/> type "string".
             </summary>
         </member>
-        <member name="M:MCSharp.Linkage.Extensions.MCSharpLinkerExtension.CreatePredefinedSelector(MCSharp.Compilation.Scope,System.Collections.Generic.List{System.Action{MCSharp.Compilation.Compiler.CompileArguments}})">
+        <member name="M:MCSharp.Linkage.Extensions.MCSharpLinkerExtension.CreatePredefinedSelector(MCSharp.Compilation.Scope,MCSharp.Compilation.Compiler.OnLoadDelegate@)">
             <summary>
             Creates the <see cref="T:MCSharp.Linkage.Predefined.PredefinedType"/> for the <see cref="T:MCSharp.Compilation.Instancing.PrimitiveInstance.SelectorInstance"/> type "Selector".
             </summary>
         </member>
-        <member name="M:MCSharp.Linkage.Extensions.MCSharpLinkerExtension.CreatePredefinedJson(MCSharp.Compilation.Scope,System.Collections.Generic.List{System.Action{MCSharp.Compilation.Compiler.CompileArguments}})">
+        <member name="M:MCSharp.Linkage.Extensions.MCSharpLinkerExtension.CreatePredefinedJson(MCSharp.Compilation.Scope,MCSharp.Compilation.Compiler.OnLoadDelegate@)">
             <summary>
             Creates the <see cref="T:MCSharp.Linkage.Predefined.PredefinedType"/> for the type "Json".
             </summary>
         </member>
-        <member name="M:MCSharp.Linkage.Extensions.MCSharpLinkerExtension.CreatePredefinedChat(MCSharp.Compilation.Scope,System.Collections.Generic.List{System.Action{MCSharp.Compilation.Compiler.CompileArguments}})">
+        <member name="M:MCSharp.Linkage.Extensions.MCSharpLinkerExtension.CreatePredefinedChat(MCSharp.Compilation.Scope,MCSharp.Compilation.Compiler.OnLoadDelegate@)">
             <summary>
             Creates the <see cref="T:MCSharp.Linkage.Predefined.PredefinedType"/> for the type "Chat".
             </summary>
         </member>
-        <member name="M:MCSharp.Linkage.Extensions.MCSharpLinkerExtension.CreatePredefinedWorld(MCSharp.Compilation.Scope,System.Collections.Generic.List{System.Action{MCSharp.Compilation.Compiler.CompileArguments}})">
+        <member name="M:MCSharp.Linkage.Extensions.MCSharpLinkerExtension.CreatePredefinedWorld(MCSharp.Compilation.Scope,MCSharp.Compilation.Compiler.OnLoadDelegate@)">
             <summary>
             Creates the <see cref="T:MCSharp.Linkage.Predefined.PredefinedType"/> for the type "World".
             </summary>
         </member>
-        <member name="M:MCSharp.Linkage.Extensions.MCSharpLinkerExtension.CreatePredefinedAttribute(MCSharp.Compilation.Scope,System.Collections.Generic.List{System.Action{MCSharp.Compilation.Compiler.CompileArguments}})">
+        <member name="M:MCSharp.Linkage.Extensions.MCSharpLinkerExtension.CreatePredefinedAttribute(MCSharp.Compilation.Scope,MCSharp.Compilation.Compiler.OnLoadDelegate@)">
             <summary>
             Creates the <see cref="T:MCSharp.Linkage.Predefined.PredefinedType"/>s for the type "Attribute".
             </summary>
@@ -4364,6 +4364,11 @@
             
             </summary>
         </member>
+        <member name="P:MCSharp.Linkage.IType.StaticFieldInstances">
+             <summary>
+            
+             </summary>
+        </member>
         <member name="T:MCSharp.Linkage.IType.InitializeInstanceDelegate">
             <summary>
             
@@ -4468,8 +4473,16 @@
             <param name="compiler"></param>
             <param name="genericArguments"></param>
             <param name="methodArguments"></param>
-            <param name="methodName"></param>
+            <param name="name"></param>
             <returns></returns>
+        </member>
+        <member name="M:MCSharp.Linkage.ITypeExtensions.FindPropertyOrField(MCSharp.Linkage.IType,System.String)">
+             <summary>
+            
+             </summary>
+             <param name="type"></param>
+             <param name="name"></param>
+             <returns></returns>
         </member>
         <member name="M:MCSharp.Linkage.ITypeExtensions.IsAssignableFrom(MCSharp.Linkage.IType,MCSharp.Linkage.IType)">
             <summary>
@@ -4707,7 +4720,7 @@
             The <see cref="T:MCSharp.Compilation.Scope"/> this <see cref="T:MCSharp.Linkage.Minecraft.IFunction"/> is in.
             </summary>
         </member>
-        <member name="M:MCSharp.Linkage.Minecraft.StandaloneStatementFunction.#ctor(MCSharp.Compilation.FunctionWriter,MCSharp.Compilation.IScopeHolder,MCSharp.Linkage.IGenericParameter[],MCSharp.Linkage.IMethodParameter[],MCSharp.Linkage.IStatement[],System.String)">
+        <member name="M:MCSharp.Linkage.Minecraft.StandaloneStatementFunction.#ctor(MCSharp.Compilation.FunctionWriter,MCSharp.Compilation.IScopeHolder,MCSharp.Linkage.IGenericParameter[],MCSharp.Linkage.IMethodParameter[],MCSharp.Linkage.IStatement[],System.String,MCSharp.Compilation.Compiler.OnLoadDelegate@)">
             <summary>
             Creates a new <see cref="T:MCSharp.Linkage.Minecraft.StandaloneStatementFunction"/> with a scope of a <see cref="T:MCSharp.Compilation.IScopeHolder"/>.
             </summary>
@@ -4719,7 +4732,7 @@
             <param name="returnType">The local identifier of the return type for this <see cref="T:MCSharp.Linkage.Minecraft.IFunction"/>.</param>
             <exception cref="T:System.ArgumentNullException">Thrown when any argument is <see langword="null"/></exception>
         </member>
-        <member name="M:MCSharp.Linkage.Minecraft.StandaloneStatementFunction.#ctor(MCSharp.Compilation.FunctionWriter,MCSharp.Compilation.Scope,MCSharp.Linkage.IGenericParameter[],MCSharp.Linkage.IMethodParameter[],MCSharp.Linkage.IStatement[],System.String)">
+        <member name="M:MCSharp.Linkage.Minecraft.StandaloneStatementFunction.#ctor(MCSharp.Compilation.FunctionWriter,MCSharp.Compilation.Scope,MCSharp.Linkage.IGenericParameter[],MCSharp.Linkage.IMethodParameter[],MCSharp.Linkage.IStatement[],System.String,MCSharp.Compilation.Compiler.OnLoadDelegate@)">
             <summary>
             Creates a new <see cref="T:MCSharp.Linkage.Minecraft.StandaloneStatementFunction"/> with a custom <see cref="T:MCSharp.Compilation.Scope"/>.
             </summary>
@@ -5157,6 +5170,9 @@
         <member name="P:MCSharp.Linkage.Predefined.PredefinedType.Conversions">
             <inheritdoc/>
         </member>
+        <member name="P:MCSharp.Linkage.Predefined.PredefinedType.StaticFieldInstances">
+            <inheritdoc/>
+        </member>
         <member name="M:MCSharp.Linkage.Predefined.PredefinedType.#ctor(MCSharp.Compilation.Scope,MCSharp.Linkage.Modifier,MCSharp.Linkage.ClassType,System.String,MCSharp.Linkage.Predefined.PredefinedMember[],MCSharp.Linkage.Predefined.PredefinedConstructor[],MCSharp.Linkage.Predefined.PredefinedType[],MCSharp.Linkage.IType.InitializeInstanceDelegate,MCSharp.Collections.IHashSetDictionary{MCSharp.Linkage.Operation,MCSharp.Linkage.IOperation},System.Collections.Generic.IDictionary{MCSharp.Linkage.IType,MCSharp.Linkage.IConversion})">
             <summary>
             Creates a new predefined type definition.
@@ -5197,7 +5213,7 @@
         <member name="P:MCSharp.Linkage.Script.ScriptConstructor.Scope">
             <inheritdoc/>
         </member>
-        <member name="M:MCSharp.Linkage.Script.ScriptConstructor.#ctor(MCSharp.Compilation.Scope,MCSharp.Linkage.Script.ScriptType,MCSharpParser.Constructor_definitionContext,MCSharp.Compilation.Settings,MCSharp.Compilation.VirtualMachine)">
+        <member name="M:MCSharp.Linkage.Script.ScriptConstructor.#ctor(MCSharp.Compilation.Scope,MCSharp.Linkage.Script.ScriptType,MCSharpParser.Constructor_definitionContext,MCSharp.Compilation.Settings,MCSharp.Compilation.VirtualMachine,MCSharp.Compilation.Compiler.OnLoadDelegate@)">
             <summary>
             Creates a new constructor that has been defined by script.
             </summary>
@@ -5247,7 +5263,7 @@
         <member name="P:MCSharp.Linkage.Script.ScriptMember.Modifiers">
             <inheritdoc/>
         </member>
-        <member name="P:MCSharp.Linkage.Script.ScriptMember.ReturnTypeIdentifier">
+        <member name="P:MCSharp.Linkage.Script.ScriptMember.TypeIdentifier">
             <summary>
             The local identifier that represents the return type.
             </summary>
@@ -5274,7 +5290,7 @@
         <member name="P:MCSharp.Linkage.Script.ScriptMember.MCSharp#Linkage#IMember#Definition">
             <inheritdoc/>
         </member>
-        <member name="M:MCSharp.Linkage.Script.ScriptMember.#ctor(MCSharp.Compilation.Scope,MCSharp.Linkage.Script.ScriptType,MCSharpParser.Member_definitionContext,MCSharp.Compilation.Settings,MCSharp.Compilation.VirtualMachine)">
+        <member name="M:MCSharp.Linkage.Script.ScriptMember.#ctor(MCSharp.Compilation.Scope,MCSharp.Linkage.Script.ScriptType,MCSharpParser.Member_definitionContext,MCSharp.Compilation.Settings,MCSharp.Compilation.VirtualMachine,MCSharp.Compilation.Compiler.OnLoadDelegate@)">
             <summary>
             Creates a new member defined by script.
             </summary>
@@ -5288,7 +5304,7 @@
             Represents a <see cref="T:MCSharp.Linkage.IMemberDefinition"/> defined in script.
             </summary>
         </member>
-        <member name="M:MCSharp.Linkage.Script.ScriptMemberDefinition.CreateMemberDefinitionLink(MCSharp.Linkage.Script.ScriptMember,MCSharp.Compilation.Settings,MCSharp.Compilation.VirtualMachine)">
+        <member name="M:MCSharp.Linkage.Script.ScriptMemberDefinition.CreateMemberDefinitionLink(MCSharp.Linkage.Script.ScriptMember,MCSharp.Compilation.Settings,MCSharp.Compilation.VirtualMachine,MCSharp.Compilation.Compiler.OnLoadDelegate@)">
             <summary>
             
             </summary>
@@ -5434,12 +5450,15 @@
         <member name="P:MCSharp.Linkage.Script.ScriptType.Conversions">
             <inheritdoc/>
         </member>
+        <member name="P:MCSharp.Linkage.Script.ScriptType.StaticFieldInstances">
+            <inheritdoc/>
+        </member>
         <member name="P:MCSharp.Linkage.Script.ScriptType.InitInstance">
             <summary>
             
             </summary>
         </member>
-        <member name="M:MCSharp.Linkage.Script.ScriptType.#ctor(MCSharpParser.Type_definitionContext,MCSharpParser.Member_definitionContext[],MCSharpParser.Constructor_definitionContext[],MCSharp.Compilation.Settings,MCSharp.Compilation.VirtualMachine,MCSharp.Compilation.Scope,System.Action{MCSharp.Compilation.Compiler}@,System.Action{MCSharp.Compilation.Compiler.CompileArguments}@)">
+        <member name="M:MCSharp.Linkage.Script.ScriptType.#ctor(MCSharpParser.Type_definitionContext,MCSharpParser.Member_definitionContext[],MCSharpParser.Constructor_definitionContext[],MCSharp.Compilation.Settings,MCSharp.Compilation.VirtualMachine,MCSharp.Compilation.Scope,MCSharp.Compilation.Compiler.PostFirstPassDelegate@,MCSharp.Compilation.Compiler.OnLoadDelegate@)">
             <summary>
             Creates a new type definition defined by script.
             </summary>
