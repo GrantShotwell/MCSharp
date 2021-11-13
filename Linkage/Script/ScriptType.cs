@@ -116,7 +116,7 @@ namespace MCSharp.Linkage.Script {
 				if(member.Modifiers.HasFlag(Modifier.Static) && member.Definition is IField field) {
 					onLoad += (location) => {
 						ResultInfo result = location.Compiler.CompileExpression(location, field.Initializer.Context, out IInstance value);
-						staticFieldInstances.Add(field, value);
+						staticFieldInstances.Add(field, value.Copy(location, member.Identifier.GetText()));
 						return result;
 					};
 				}

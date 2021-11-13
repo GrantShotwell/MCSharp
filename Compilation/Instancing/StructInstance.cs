@@ -55,20 +55,11 @@ namespace MCSharp.Compilation.Instancing {
 			var typeLocation = new Compiler.CompileArguments(location.Compiler, location.Function, Scope, location.Predefined);
 			foreach(IMember member in type.Members) {
 
-				switch(member.MemberType) {
-
-					case MemberType.Field: {
-						var field = member.Definition as IField;
-						typeLocation.Compiler.CompileExpression(typeLocation, field.Initializer.Context, out IInstance value);
-						fieldInstances.Add(field, value.Copy(typeLocation, member.Identifier));
-						break;
-					}
-
-					case MemberType.Property: {
-						// TODO?
-						break;
-					}
-
+				if(member.Definition is IField field) {
+					
+					typeLocation.Compiler.CompileExpression(typeLocation, field.Initializer.Context, out IInstance value);
+					fieldInstances.Add(field, value.Copy(typeLocation, member.Identifier));
+					
 				}
 
 			}

@@ -255,48 +255,62 @@ namespace MCSharp.Compilation {
 			}
 
 
-			// Compile 'Program.Load()' and 'Program.Tick()'.
+			// Compile 'Program.Load()' then 'Program.Tick()'.
+			IMember programLoad = null, programTick = null;
+			IType programType = null;
 			foreach(IType type in DefinedTypes.Values) {
 
 				if(type.Identifier != Settings.Datapack.ProgramClassName) continue;
+				else programType = type;
 
 				foreach(IMember member in type.Members) {
-
-					bool load = member.Identifier == Settings.Datapack.ProgramLoadName;
-					bool tick = member.Identifier == Settings.Datapack.ProgramTickName;
-					if(!load && !tick) continue;
 					if(member.MemberType != MemberType.Method) continue;
-
-					List<ResultInfo> failures = new List<ResultInfo>();
-
-					void OnTrigger(CompileArguments location) {
-
-						if(load) {
-							foreach(OnLoadDelegate onLoad in OnLoad.GetInvocationList()) {
-								ResultInfo result = onLoad(location);
-								if(result.Failure) failures.Add(result);
-							}
-						} else {
-							foreach(OnTickDelegate onTick in OnTick.GetInvocationList()) {
-								ResultInfo result = onTick(location);
-								if(result.Failure) failures.Add(result);
-							}
-						}
-
-						location.Writer.AddBufferedLines(1);
-
-					}
-
-					ResultInfo result = CompileStandaloneMethod(type.Scope, member, OnTrigger);
-					if(failures.Count > 0) return failures.First();
-					else if(result.Failure) return result;
-					else continue;
-
+					if(member.Identifier == Settings.Datapack.ProgramLoadName) programLoad = member;
+					if(member.Identifier == Settings.Datapack.ProgramTickName) programTick = member;
 				}
 
 			}
 
+			// Local function for compiling a method.
+			ResultInfo CM(IMember member) {
 
+				IType type = programType;
+				List<ResultInfo> failures = new List<ResultInfo>();
+
+				void OnTrigger(CompileArguments location) {
+
+					if(member.Identifier == Settings.Datapack.ProgramLoadName) {
+						foreach(OnLoadDelegate onLoad in OnLoad.GetInvocationList()) {
+							ResultInfo result = onLoad(location);
+							if(result.Failure) failures.Add(result);
+						}
+					} else {
+						foreach(OnTickDelegate onTick in OnTick.GetInvocationList()) {
+							ResultInfo result = onTick(location);
+							if(result.Failure) failures.Add(result);
+						}
+					}
+
+					location.Writer.AddBufferedLines(1);
+
+				}
+
+				ResultInfo result = CompileStandaloneMethod(type.Scope, member, OnTrigger);
+				if(failures.Count > 0) return failures.First();
+				else if(result.Failure) return result;
+
+				return ResultInfo.DefaultSuccess;
+
+			}
+
+			// Compile 'Program.Load()'.
+			ResultInfo loadResult = CM(programLoad);
+			if(loadResult.Failure) return loadResult;
+			// Compile 'Program.Tick()'.
+			ResultInfo tickResult = CM(programTick);
+			if(tickResult.Failure) return tickResult;
+
+			// Return success.
 			return ResultInfo.DefaultSuccess;
 
 		}
@@ -1891,9 +1905,10 @@ namespace MCSharp.Compilation {
 				MCSharpParser.Member_accessContext member_access = primary_no_array_creation_expression.member_access();
 				if(short_identifier != null) {
 
-					// (1) Try local variables.
 					IInstance variable = location.Scope.FindFirstInstanceByName(short_identifier.GetText());
 					if(variable != null) {
+
+						// Set a local variable.
 
 						// Run the assignment operation.
 						ResultInfo result = location.Compiler.CompileSimpleOperation(location, op, variable, expression_value, out value);
@@ -1902,49 +1917,63 @@ namespace MCSharp.Compilation {
 						// Return success.
 						return ResultInfo.DefaultSuccess;
 
-					}
+					} else {
 
-					// (2) Try implicit "this" call for members.
-					// Since this is a short identifier, there is no access chain to evaluate and it.
-					else {
+						// Implicit "this" call for members.
+						// Since this is a short identifier, there is no access chain to evaluate and it.
 
 						// Get the holder of the location.
 						IScopeHolder holder = location.Scope.GetInstanceOrTypeHolder();
-						if(holder == null) {
-							value = null;
-							return new ResultInfo(success: false, $"{location.GetLocation(unary_expression)}Unknown identifier '{short_identifier.GetText()}'.");
-						}
 						
-						// Find and run the property's setter.
+						// Find the accessed member.
 						if(holder is IType type) {
-							
-							foreach(IMember member in type.Members) {
-								if(member.Definition is not IProperty property) continue;
-								else if(member.Identifier == short_identifier.GetText()) {
-									
-									// Get the setter.
-									IFunction setter = property.Setter;
 
-									// Invoke the setter.
-									ResultInfo result = setter.Invoke(location, Array.Empty<IType>(), new IInstance[] { expression_value }, out value);
-									if(result.Failure) return location.GetLocation(assignment_expression) + result;
+							// Set a static member.
 
-									// Return success.
-									return ResultInfo.DefaultSuccess;
+							// Get the member.
+							IMember member = type.FindPropertyOrField(short_identifier.GetText());
 
-								}
+							if(member.Definition is IProperty property) {
+
+								// Find and run the property's setter.
+								
+								// Get the setter.
+								IFunction setter = property.Setter;
+
+								// Invoke the setter.
+								ResultInfo result = setter.Invoke(location, Array.Empty<IType>(), new IInstance[] { expression_value }, out value);
+								if(result.Failure) return location.GetLocation(assignment_expression) + result;
+
+								// Return success.
+								return ResultInfo.DefaultSuccess;
+
+							} else if(member.Definition is IField field) {
+
+								// Set the static field instance.
+
+								// Get the instance.
+								IInstance instance = type.StaticFieldInstances[field];
+
+								// Run the assignment operation.
+								ResultInfo result = location.Compiler.CompileSimpleOperation(location, op, instance, expression_value, out value);
+
+								// Return success.
+								return ResultInfo.DefaultSuccess;
+
+							} else {
+								value = null;
+								return new ResultInfo(success: false, $"{location.GetLocation(unary_expression)}Unknown identifier '{short_identifier.GetText()}'.");
 							}
 
-							// Return failure.
-							value = null;
-							return new ResultInfo(success: false, $"{location.GetLocation(unary_expression)}Unknown identifier '{short_identifier.GetText()}'.");
+						} else if(holder is IInstance instance) {
 
-						} else {
-							
-							IInstance _ = holder as IInstance;
+							// Set a non-static member.
 
 							throw new NotImplementedException();
 
+						} else {
+							value = null;
+							return new ResultInfo(success: false, $"{location.GetLocation(unary_expression)}Unknown identifier '{short_identifier.GetText()}'.");
 						}
 
 					}
