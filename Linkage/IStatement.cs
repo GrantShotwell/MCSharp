@@ -1,16 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿namespace MCSharp.Linkage;
 
-namespace MCSharp.Linkage {
+/// <summary>
+/// Represents a statement in code.
+/// </summary>
+public interface IStatement {
 
-	/// <summary>
-	/// Represents a statement in code.
-	/// </summary>
-	public interface IStatement {
-
-		public MCSharpParser.StatementContext Context { get; }
-
-	}
+	public MCSharpParser.StatementContext Context { get; }
 
 }

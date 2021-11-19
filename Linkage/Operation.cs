@@ -1,97 +1,91 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿namespace MCSharp.Linkage;
 
-namespace MCSharp.Linkage {
+public enum Operation {
 
-	public enum Operation {
+	// Assign
+	Assign,
+	AssignAddition,
+	AssignSubtraction,
+	AssignMultiplication,
+	AssignDivision,
+	AssignModulo,
+	AssignAccess,
+	AssignBitwiseAND,
+	AssignBitwiseOR,
+	AssignBitwiseXOR,
+	AssignShiftLeft,
+	AssignShiftRight,
+	InitializationAssign,
 
-		// Assign
-		Assign,
-		AssignAddition,
-		AssignSubtraction,
-		AssignMultiplication,
-		AssignDivision,
-		AssignModulo,
-		AssignAccess,
-		AssignBitwiseAND,
-		AssignBitwiseOR,
-		AssignBitwiseXOR,
-		AssignShiftLeft,
-		AssignShiftRight,
-		InitializationAssign,
+	// Conditional Expression
+	Conditional,
 
-		// Conditional Expression
-		Conditional,
+	// Null-Coalescing Expression
+	NullCoalescing,
 
-		// Null-Coalescing Expression
-		NullCoalescing,
+	// Boolean OR Expression
+	BooleanOR,
 
-		// Boolean OR Expression
-		BooleanOR,
+	// Boolean AND Expression
+	BooleanAND,
 
-		// Boolean AND Expression
-		BooleanAND,
+	// Bitwise OR Expression
+	BitwiseOR,
 
-		// Bitwise OR Expression
-		BitwiseOR,
+	// Bitwise XOR Expression
+	BitwiseXOR,
 
-		// Bitwise XOR Expression
-		BitwiseXOR,
+	// Bitwise AND Expression
+	BitwiseAND,
 
-		// Bitwise AND Expression
-		BitwiseAND,
+	// Equality Expression
+	Equality,
+	Inequality,
 
-		// Equality Expression
-		Equality,
-		Inequality,
+	// Relational Expression
+	LessThan,
+	LessThanOrEqual,
+	GreaterThan,
+	GreaterThanOrEqual,
 
-		// Relational Expression
-		LessThan,
-		LessThanOrEqual,
-		GreaterThan,
-		GreaterThanOrEqual,
+	// Type Check Expression
+	TypeCheck,
 
-		// Type Check Expression
-		TypeCheck,
+	// Shift Expression
+	ShiftLeft,
+	ShiftRight,
 
-		// Shift Expression
-		ShiftLeft,
-		ShiftRight,
+	// Additive Expression
+	Addition,
+	Subtraction,
 
-		// Additive Expression
-		Addition,
-		Subtraction,
+	// Multiplicative Expression
+	Multiplication,
+	Division,
+	Modulo,
 
-		// Multiplicative Expression
-		Multiplication,
-		Division,
-		Modulo,
+	// Range Expression
+	Range,
 
-		// Range Expression
-		Range,
+	// Unary Expression
+	Positive,
+	Negative,
+	BooleanNOT,
+	BitwiseNOT,
 
-		// Unary Expression
-		Positive,
-		Negative,
-		BooleanNOT,
-		BitwiseNOT,
+	// Pre-Step Expression
+	PreStep,
 
-		// Pre-Step Expression
-		PreStep,
+	// Cast Expression
+	Cast,
 
-		// Cast Expression
-		Cast,
+	// Pointer Indirection Expression
+	PointerIndirection,
 
-		// Pointer Indirection Expression
-		PointerIndirection,
+	// Addressof Expression
+	Addressof,
 
-		// Addressof Expression
-		Addressof,
-
-		// Post-Step Expression
-		PostStep,
-
-	}
+	// Post-Step Expression
+	PostStep,
 
 }

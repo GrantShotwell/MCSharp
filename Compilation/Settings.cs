@@ -1,17 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿namespace MCSharp.Compilation;
 
-namespace MCSharp.Compilation {
+public struct Settings {
 
-	public struct Settings {
+	public Datapack Datapack { get; }
 
-		public Datapack Datapack { get; }
-
-		public Settings(Datapack datapack) {
-			Datapack = datapack;
-		}
-
+	public Settings(Datapack datapack) {
+		Datapack = datapack;
 	}
 
 }

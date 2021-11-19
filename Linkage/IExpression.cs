@@ -1,16 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿namespace MCSharp.Linkage;
 
-namespace MCSharp.Linkage {
+/// <summary>
+/// Represents an expression in code.
+/// </summary>
+public interface IExpression {
 
-	/// <summary>
-	/// Represents an expression in code.
-	/// </summary>
-	public interface IExpression {
-
-		public MCSharpParser.ExpressionContext Context { get; }
-
-	}
+	public MCSharpParser.ExpressionContext Context { get; }
 
 }

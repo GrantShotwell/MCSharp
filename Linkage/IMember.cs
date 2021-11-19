@@ -1,45 +1,40 @@
-﻿using Antlr4.Runtime.Tree;
-using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System;
 
-namespace MCSharp.Linkage {
+namespace MCSharp.Linkage;
+
+/// <summary>
+/// Represents a member, except constructors, for some type.
+/// </summary>
+public interface IMember : Compilation.IScopeHolder, IDisposable {
 
 	/// <summary>
-	/// Represents a member, except constructors, for some type.
+	/// The type that has defined this member.
 	/// </summary>
-	public interface IMember : Compilation.IScopeHolder, IDisposable {
+	public IType Declarer { get; }
 
-		/// <summary>
-		/// The type that has defined this member.
-		/// </summary>
-		public IType Declarer { get; }
+	/// <summary>
+	/// The modifiers that affect this member.
+	/// </summary>
+	public Modifier Modifiers { get; }
 
-		/// <summary>
-		/// The modifiers that affect this member.
-		/// </summary>
-		public Modifier Modifiers { get; }
+	/// <summary>
+	/// The local identifier that represents the return type.
+	/// </summary>
+	public string TypeIdentifier { get; }
 
-		/// <summary>
-		/// The local identifier that represents the return type.
-		/// </summary>
-		public string TypeIdentifier { get; }
+	/// <summary>
+	/// The local identifier the represents this member.
+	/// </summary>
+	public string Identifier { get; }
 
-		/// <summary>
-		/// The local identifier the represents this member.
-		/// </summary>
-		public string Identifier { get; }
+	/// <summary>
+	/// Specifies if the <see cref="Definition"/> is a <see cref="IField"/>, <see cref="IProperty"/>, or <see cref="IMethod"/>.
+	/// </summary>
+	public MemberType MemberType { get; }
 
-		/// <summary>
-		/// Specifies if the <see cref="Definition"/> is a <see cref="IField"/>, <see cref="IProperty"/>, or <see cref="IMethod"/>.
-		/// </summary>
-		public MemberType MemberType { get; }
-
-		/// <summary>
-		/// The <see cref="IMemberDefinition"/> of this <see cref="IMember"/>.
-		/// </summary>
-		public IMemberDefinition Definition { get; }
-
-	}
+	/// <summary>
+	/// The <see cref="IMemberDefinition"/> of this <see cref="IMember"/>.
+	/// </summary>
+	public IMemberDefinition Definition { get; }
 
 }
