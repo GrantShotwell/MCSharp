@@ -55,13 +55,18 @@ public class ScriptConstructor : IConstructor, IScopeHolder {
 			statements = ScriptStatement.CreateArrayFromArray(context.code_block().statement());
 		}
 
-		Invoker = new StandaloneStatementFunction(writer, this, Array.Empty<ScriptGenericParameter>(), parameters, statements, Declarer.Identifier.GetText(), ref onLoad);
+		Invoker = new StandaloneStatementFunction(writer, this, Array.Empty<ScriptGenericParameter>(), parameters, statements,
+			returnType: Declarer.Identifier.GetText(), thisType: Declarer.Identifier.GetText(), ctor: true, ref onLoad);
 
 	}
 
 	/// <inheritdoc/>
 	public void Dispose() {
+
 		Invoker.Dispose();
+
+		GC.SuppressFinalize(this);
+
 	}
 
 }

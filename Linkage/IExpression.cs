@@ -5,6 +5,6 @@
 /// </summary>
 public interface IExpression {
 
-	public MCSharpParser.ExpressionContext Context { get; }
+	public ExpressionContext Context { get; }
 
 }

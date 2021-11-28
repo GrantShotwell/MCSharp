@@ -31,7 +31,7 @@ public class PredefinedConversion : IConversion {
 		ReferenceType = referenceType ?? throw new ArgumentNullException(nameof(referenceType));
 		TargetType = targetType ?? throw new ArgumentNullException(nameof(targetType));
 		Function = function ?? throw new ArgumentNullException(nameof(function));
-		Explicit = @implicit;
+		Explicit = !@implicit;
 	}
 
 }

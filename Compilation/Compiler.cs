@@ -583,7 +583,7 @@ public class Compiler : IDisposable {
 								if(cast == null) {
 									return new ResultInfo(false, location.GetLocation(return_expression) + $"Cannot cast '{returnValue.Type.Identifier}' to '{returnType.Identifier}'.");
 								} else {
-									var castResult = cast.Function.Invoke(location, Array.Empty<IType>(), new IInstance[] { returnValue }, out returnValue);
+									var castResult = cast.Function.InvokeStatic(location, Array.Empty<IType>(), new IInstance[] { returnValue }, out returnValue);
 									if(castResult.Failure) return location.GetLocation(return_expression) + castResult;
 								}
 
@@ -607,7 +607,7 @@ public class Compiler : IDisposable {
 					} else if(memberType == MemberType.Property) {
 
 						// Find return type.
-						var property = member.Definition as IProperty;
+						_ = member.Definition as IProperty;
 						IType type = location.Compiler.DefinedTypes[member.TypeIdentifier];
 						ExpressionContext return_expression = return_statement.expression();
 
@@ -623,7 +623,7 @@ public class Compiler : IDisposable {
 								if(cast == null) {
 									return new ResultInfo(false, location.GetLocation(return_expression) + $"Cannot cast '{returnValue.Type.Identifier}' to '{type.Identifier}'.");
 								} else {
-									var castResult = cast.Function.Invoke(location, Array.Empty<IType>(), new IInstance[] { returnValue }, out returnValue);
+									var castResult = cast.Function.InvokeStatic(location, Array.Empty<IType>(), new IInstance[] { returnValue }, out returnValue);
 									if(castResult.Failure) return location.GetLocation(return_expression) + castResult;
 								}
 
@@ -721,6 +721,9 @@ public class Compiler : IDisposable {
 			return new ResultInfo(false, location.GetLocation(initialization_expression) + $"Cannot initialize static type '{type.Identifier}'.");
 		}
 
+		location.Writer.WriteComments(
+			$"Initialize '{type.Identifier} {identifier.GetText()}'.",
+			indentBefore: true);
 		value = type.InitializeInstance(location, identifier.GetText());
 
 		ExpressionContext expression = initialization_expression.expression();
@@ -842,11 +845,11 @@ public class Compiler : IDisposable {
 			bool convert2 = !parameterType2.IsAssignableFrom(type2);
 
 			// Convert the operands if needed.
-			if(convert1) type1.Conversions[parameterType1].Function.Invoke(location, Array.Empty<IType>(), new IInstance[] { operand1 }, out operand1);
-			if(convert2) type2.Conversions[parameterType2].Function.Invoke(location, Array.Empty<IType>(), new IInstance[] { operand2 }, out operand2);
+			if(convert1) type1.Conversions[parameterType1].Function.InvokeStatic(location, Array.Empty<IType>(), new IInstance[] { operand1 }, out operand1);
+			if(convert2) type2.Conversions[parameterType2].Function.InvokeStatic(location, Array.Empty<IType>(), new IInstance[] { operand2 }, out operand2);
 
 			// Invoke the operation.
-			ResultInfo functionResult = operation.Function.Invoke(location, Array.Empty<IType>(), new IInstance[] { operand1, operand2 }, out result);
+			ResultInfo functionResult = operation.Function.InvokeStatic(location, Array.Empty<IType>(), new IInstance[] { operand1, operand2 }, out result);
 			if(functionResult.Failure) return functionResult;
 
 			return ResultInfo.DefaultSuccess;
@@ -1832,111 +1835,234 @@ public class Compiler : IDisposable {
 		// Get the left-hand side of the assignment.
 		// Anything other than a variable, property, or indexer is invalid.
 		UnaryExpressionContext unary_expression = assignment_expression.unary_expression();
-		{
-			ResultInfo notAssignable = new ResultInfo(success: false, $"{location.GetLocation(unary_expression)}The left-hand side of an assignment must be a variable, property, or indexer.");
+		ResultInfo notAssignable = location.GetLocation(unary_expression) + new ResultInfo(success: false, $"The left-hand side of an assignment must be a variable, property, or indexer.");
 
-			PrimaryExpressionContext primary_expression = unary_expression.primary_expression();
-			if(primary_expression == null) {
-				value = null;
-				return notAssignable;
-			}
+		PrimaryExpressionContext primary_expression = unary_expression.primary_expression();
+		if(primary_expression == null) {
+			value = null;
+			return notAssignable;
+		}
 
-			PrimaryNoArrayCreationExpressionContext primary_no_array_creation_expression = primary_expression.primary_no_array_creation_expression();
-			if(primary_no_array_creation_expression == null) {
-				value = null;
-				return notAssignable;
-			}
+		PrimaryNoArrayCreationExpressionContext primary_no_array_creation_expression = primary_expression.primary_no_array_creation_expression();
+		if(primary_no_array_creation_expression == null) {
+			value = null;
+			return notAssignable;
+		}
 
-			MCSharpParser.Short_identifierContext short_identifier = primary_no_array_creation_expression.short_identifier();
-			MCSharpParser.Member_accessContext member_access = primary_no_array_creation_expression.member_access();
-			if(short_identifier != null) {
+		ResultInfo AssignMember(CompileArguments location, IInstance context, IMember member, Operation op, IInstance expression_value, out IInstance value, ResultInfo badIdentifier) {
 
-				IInstance variable = location.Scope.FindFirstInstanceByName(short_identifier.GetText());
-				if(variable != null) {
+			// Get the member.
+			if(member.Modifiers.HasFlag(Modifier.Static)) {
 
-					// Set a local variable.
+				// Set a static member.
+
+				if(member.Definition is IProperty property) {
+
+					// Find and run the property's setter.
+
+					// Get the setter.
+					IFunction setter = property.Setter;
+
+					// Invoke the setter.
+					ResultInfo result = setter.InvokeStatic(location, Array.Empty<IType>(), new IInstance[] { expression_value }, out value);
+					if(result.Failure) return location.GetLocation(assignment_expression) + result;
+
+					// Return success.
+					return ResultInfo.DefaultSuccess;
+
+				} else if(member.Definition is IField field) {
+
+					// Set the static field instance.
+
+					// Get the instance of the field.
+					IInstance instance = member.Declarer.StaticFieldInstances[field];
 
 					// Run the assignment operation.
-					ResultInfo result = CompileSimpleOperation(location, op, variable, expression_value, out value);
+					ResultInfo result = CompileSimpleOperation(location, op, instance, expression_value, out value);
 					if(result.Failure) return location.GetLocation(assignment_expression) + result;
 
 					// Return success.
 					return ResultInfo.DefaultSuccess;
 
 				} else {
+					value = null;
+					return badIdentifier;
+				}
 
-					// Implicit "this" call for members.
-					// Since this is a short identifier, there is no access chain to evaluate and it.
+			} else {
 
-					// Get the holder of the location.
-					IScopeHolder holder = location.Scope.GetInstanceOrTypeHolder();
+				// Set a non-static member.
 
-					// Find the accessed member.
-					if(holder is IType type) {
+				// Get the instance context if it hasn't been passed.
+				if(context is null) {
 
-						// Set a static member.
+					IScopeHolder _holder = location.Scope.GetFirstNamedParentOrThis().Holder;
+					IFunction invoker;
+					if(_holder is IConstructor _constructor) invoker = _constructor.Invoker;
+					else if(_holder is IMember _member)
+						if(_member.Definition is IProperty) throw new NotImplementedException();
+						else if(_member.Definition is IMethod _method) invoker = _method.Invoker;
+						else throw new Exception();
+					else throw new Exception();
 
-						// Get the member.
-						IMember member = type.FindPropertyOrField(short_identifier.GetText());
-
-						if(member.Definition is IProperty property) {
-
-							// Find and run the property's setter.
-
-							// Get the setter.
-							IFunction setter = property.Setter;
-
-							// Invoke the setter.
-							ResultInfo result = setter.Invoke(location, Array.Empty<IType>(), new IInstance[] { expression_value }, out value);
-							if(result.Failure) return location.GetLocation(assignment_expression) + result;
-
-							// Return success.
-							return ResultInfo.DefaultSuccess;
-
-						} else if(member.Definition is IField field) {
-
-							// Set the static field instance.
-
-							// Get the instance.
-							IInstance instance = type.StaticFieldInstances[field];
-
-							// Run the assignment operation.
-							ResultInfo result = CompileSimpleOperation(location, op, instance, expression_value, out value);
-
-							// Return success.
-							return ResultInfo.DefaultSuccess;
-
-						} else {
-							value = null;
-							return new ResultInfo(success: false, $"{location.GetLocation(unary_expression)}Unknown identifier '{short_identifier.GetText()}'.");
-						}
-
-					} else if(holder is IInstance instance) {
-
-						// Set a non-static member.
-
-						throw new NotImplementedException();
-
-					} else {
+					context = invoker.ThisInstance;
+					if(context is null) {
 						value = null;
-						return new ResultInfo(success: false, $"{location.GetLocation(unary_expression)}Unknown identifier '{short_identifier.GetText()}'.");
+						return new ResultInfo(success: false, "Cannot access non-static members from a static scope.");
 					}
 
 				}
 
-			} else if(member_access != null) {
+				if(member.Definition is IProperty property) {
 
-				// Get the assignable object.
-				value = null;
+					// Find and run the property's setter.
+
+					// Get the setter.
+					IFunction setter = property.Setter;
+
+					// Invoke the setter.
+					ResultInfo result = setter.InvokeNonStatic(location, context, Array.Empty<IType>(), new IInstance[] { expression_value }, out value);
+					if(result.Failure) return location.GetLocation(assignment_expression) + result;
+
+					// Return success.
+					return ResultInfo.DefaultSuccess;
+
+				} else if(member.Definition is IField field) {
+
+					if(context is ClassInstance classInstance) {
+
+						// Get the block for the field.
+						Objective[] block = classInstance.FieldObjectives[field];
+
+						// Create a temp value from the field block.
+						IInstance temp = location.Compiler.DefinedTypes[member.TypeIdentifier].InitializeInstance(location, null);
+						temp.LoadFromBlock(location, classInstance.GetSelector(location), block);
+
+						// Run the assignment operation.
+						ResultInfo result = CompileSimpleOperation(location, op, temp, expression_value, out value);
+						if(result.Failure) return location.GetLocation(assignment_expression) + result;
+
+						// Store the result in the field block.
+						value.SaveToBlock(location, classInstance.GetSelector(location), block);
+
+						// Return success.
+						return ResultInfo.DefaultSuccess;
+
+					} else if(context is StructInstance structInstance) {
+
+						// Get the field instance.
+						IInstance instance = structInstance.FieldInstances[field];
+
+						// Run the assignment operation.
+						ResultInfo result = CompileSimpleOperation(location, op, instance, expression_value, out value);
+						if(result.Failure) return location.GetLocation(assignment_expression) + result;
+
+						// Return success.
+						return ResultInfo.DefaultSuccess;
+
+					} else if(context is PrimitiveInstance) {
+
+						throw new NotImplementedException();
+
+					} else {
+						throw new Exception($"Unexpected context type '{context.GetType().Name}'.");
+					}
+
+				} else {
+					value = null;
+					return badIdentifier;
+				}
+
+			}
+
+		}
+
+		ShortIdentifierContext short_identifier = primary_no_array_creation_expression.short_identifier();
+		MemberAccessContext member_access = primary_no_array_creation_expression.member_access();
+		if(short_identifier != null) {
+
+			IInstance variable = location.Scope.FindFirstInstanceByName(short_identifier.GetText());
+			if(variable != null) {
+
+				// Set a local variable.
+
+				// Run the assignment operation.
+				ResultInfo result = CompileSimpleOperation(location, op, variable, expression_value, out value);
+				if(result.Failure) return location.GetLocation(assignment_expression) + result;
 
 				// Return success.
 				return ResultInfo.DefaultSuccess;
 
 			} else {
-				value = null;
-				return notAssignable;
+
+				ResultInfo badIdentifier = location.GetLocation(short_identifier) + new ResultInfo(success: false, $"Unknown identifier '{short_identifier.GetText()}'.");
+
+				// Implicit "this" call for members.
+				// Since this is a short identifier, there is no access chain to evaluate it.
+
+				// Get the holder of the location.
+				IScopeHolder holder = location.Scope.GetInstanceOrTypeHolder();
+
+				// Find the accessed member.
+				if(holder is IType type) {
+
+					// Set a static or non-static member.
+
+					IMember member = type.FindPropertyOrField(short_identifier.GetText());
+					if(member is null) {
+						value = null;
+						return badIdentifier;
+					}
+
+					ResultInfo assignResult = AssignMember(location, context: null, member, op, expression_value, out value, badIdentifier);
+					if(assignResult.Failure) return location.GetLocation(short_identifier) + assignResult;
+
+					return ResultInfo.DefaultSuccess;
+
+				} else if(holder is IInstance) {
+
+					// Set a non-static member.
+
+					throw new NotImplementedException();
+
+				} else {
+					value = null;
+					return badIdentifier;
+				}
+
 			}
 
+		} else if(member_access != null) {
+
+			ResultInfo badIdentifier = location.GetLocation(member_access.short_identifier()) + new ResultInfo(success: false, $"Unknown identifier '{member_access.short_identifier().GetText()}'.");
+
+			// Evaluate member access chain.
+			ResultInfo accessResult = CompileMemberAccess(
+				location, member_access,
+				out (IInstance Instance, IType Type) holder, out IMember member,
+				out IType[] _, out IType[] _, out IInstance[] _
+			);
+			if(accessResult.Failure) {
+				value = null;
+				return accessResult;
+			}
+
+			// Find the accessed member.
+			if(holder.Type is not null) {
+
+				// Set a static member.
+				return AssignMember(location, context: null, member, op, expression_value, out value, badIdentifier);
+
+			} else {
+
+				// Set a non-static member.
+				return AssignMember(location, holder.Instance, member, op, expression_value, out value, badIdentifier);
+
+			}
+
+		} else {
+			value = null;
+			return notAssignable;
 		}
 
 	}
@@ -2028,7 +2154,7 @@ public class Compiler : IDisposable {
 			throw new ArgumentNullException(nameof(primary_no_array_creation_expression));
 		#endregion
 
-		MCSharpParser.LiteralContext literal = primary_no_array_creation_expression.literal();
+		LiteralContext literal = primary_no_array_creation_expression.literal();
 		if(literal != null) {
 
 			// Compile the literal.
@@ -2056,8 +2182,12 @@ public class Compiler : IDisposable {
 			}
 
 			// (2) Look for property or field using an implicit "this".
-			IScopeHolder @this = location.Scope.GetInstanceOrTypeHolder();
-			if(@this is IType type) {
+			ResultInfo thisResult = AccessThis(location, scope: null, out (IInstance Instance, IType Type) holder);
+			if(thisResult.Failure) return location.GetLocation(identifier) + badResult;
+
+			if(holder.Type is not null) {
+
+				IType type = holder.Type;
 
 				// Find the static member by name.
 				IMember member = type.FindPropertyOrField(name);
@@ -2070,7 +2200,9 @@ public class Compiler : IDisposable {
 				// Return success.
 				return ResultInfo.DefaultSuccess;
 
-			} else if(@this is IInstance instance) {
+			} else {
+
+				IInstance instance = holder.Instance;
 
 				// Find the member by name.
 				IMember member = instance.Type.FindPropertyOrField(name);
@@ -2166,7 +2298,7 @@ public class Compiler : IDisposable {
 	public static ResultInfo GetMethodArguments(CompileArguments location, MethodArgumentsContext argumentContexts, out IType[] types, out IInstance[] instances) {
 
 		// Create arrays.
-		MCSharpParser.ArgumentContext[] contexts = argumentContexts.argument_list()?.argument() ?? Array.Empty<MCSharpParser.ArgumentContext>();
+		ArgumentContext[] contexts = argumentContexts.argument_list()?.argument() ?? Array.Empty<ArgumentContext>();
 		types = new IType[contexts.Length];
 		instances = new IInstance[contexts.Length];
 
@@ -2174,7 +2306,7 @@ public class Compiler : IDisposable {
 		for(int i = 0; i < contexts.Length; i++) {
 
 			// Get the context.
-			MCSharpParser.ArgumentContext context = contexts[i];
+			ArgumentContext context = contexts[i];
 			var expression = context.expression();
 			var modifier = context.parameter_modifier();
 
@@ -2205,17 +2337,11 @@ public class Compiler : IDisposable {
 
 	}
 
-	/// <summary>
-	/// Compiles a member access expression:
-	/// <code>
-	/// member_access
-	///   : member_access_prefix* short_identifier generic_arguments? ( method_arguments | indexer_arguments )?
-	///   ;
-	/// </code>
-	/// </summary>
-	/// <param name="member_access">The expression to compile.</param>
-	/// <inheritdoc cref="CompileExpression(CompileArguments, ExpressionContext, out IInstance)"/>
-	public static ResultInfo CompileMemberAccess(CompileArguments location, MCSharpParser.Member_accessContext member_access, out IInstance value) {
+	public static ResultInfo CompileMemberAccess(
+		CompileArguments location, MemberAccessContext member_access,
+		out (IInstance Instance, IType Type) holder, out IMember member,
+		out IType[] genericTypes, out IType[] argumentTypes, out IInstance[] argumentInstances
+	) {
 
 		MCSharpParser.Member_access_prefixContext[] member_access_prefixes = member_access.member_access_prefix();
 		MCSharpParser.Short_identifierContext member_identifier = member_access.short_identifier();
@@ -2223,113 +2349,11 @@ public class Compiler : IDisposable {
 		MethodArgumentsContext method_arguments = member_access.method_arguments();
 		IndexerArgumentsContext indexer_arguments = member_access.indexer_arguments();
 
-		(IInstance Instance, IType Type) holder = (null, null);
+		location.Writer.WriteComments(
+			member_access.GetText(),
+			indentBefore: true);
 
-		// Local method for accessing a member of an instance (holder).
-		// Captured variables: this, member_access.
-		ResultInfo AccessFromInstance(CompileArguments location, IInstance holder, ITerminalNode identifier, out IInstance value,
-		GenericArgumentsContext generic_arguments, MethodArgumentsContext method_arguments, IndexerArgumentsContext indexer_arguments) {
-
-			if(method_arguments != null) {
-
-				// Since there are method arguments, this is a method call.
-
-				// Try to invoke the method.
-				return holder.InvokeBestMethod(location, identifier, generic_arguments, method_arguments, out value);
-
-			} else {
-
-				// Since there are no arguments, this is a property or field access.
-
-				// Get the member by name.
-				IMember member = holder.Type.FindPropertyOrField(identifier.GetText());
-				if(member == null) {
-					value = null;
-					return new ResultInfo(false, $"{location.GetLocation(identifier)}Member '{identifier.GetText()}' does not exist in type '{holder.Type.Identifier}'.");
-				}
-
-				// Try to invoke the property/field.
-				return holder.InvokePropertyOrFieldFromContext(location, identifier, member, out value);
-
-			}
-
-		}
-
-		// Local method for accessing a member of a type (holder).
-		// Captured variables: this, member_access.
-		ResultInfo AccessFromStaticType(CompileArguments location, IType holder, ITerminalNode identifier, out IInstance value,
-		GenericArgumentsContext generic_arguments, MethodArgumentsContext method_arguments, IndexerArgumentsContext indexer_arguments) {
-
-			if(method_arguments != null) {
-
-				// Since there are method arguments, this is a method call.
-
-				// Try to invoke the method.
-				return holder.InvokeBestMethodFromContext(location, identifier, generic_arguments, method_arguments, out value);
-
-			} else {
-
-				// Since there are no arguments, this is a property or field access.
-
-				// Get the member by name.
-				IMember member = holder.FindPropertyOrField(identifier.GetText());
-				if(member == null) {
-					value = null;
-					return new ResultInfo(false, $"{location.GetLocation(identifier)}Member '{identifier.GetText()}' does not exist in type '{holder.Identifier}'.");
-				}
-
-				// Try to invoke the property/field.
-				return holder.InvokePropertyOrFieldFromContext(location, identifier, member, out value);
-
-			}
-
-		}
-
-		// Local method for accessing through "this" keyword.
-		// Captured variables: this, member_access.
-		ResultInfo AccessFromThis(CompileArguments location, Scope scope, ITerminalNode identifier, out (IInstance instance, IType type) holder,
-		GenericArgumentsContext generic_arguments, MethodArgumentsContext method_arguments, IndexerArgumentsContext indexer_arguments) {
-
-			// Access "this".
-			if(scope == null) scope = location.Scope;
-			IScopeHolder scopeHolder = scope.Holder;
-
-			if(scopeHolder == null) {
-
-				// "this" does not exist.
-				holder = (null, null);
-				return new ResultInfo(success: false, location.GetLocation(identifier) + "Accessing 'this' is not possible here.");
-
-			} else if(scopeHolder is IInstance instance) {
-
-				// "this" is an instance.
-				holder = (instance, null);
-				return ResultInfo.DefaultSuccess;
-
-			} else if(scopeHolder is IType type) {
-
-				// "this" is a type.
-				var staticResult = AccessFromStaticType(location, type, identifier, out IInstance instanceHolder, generic_arguments, method_arguments, indexer_arguments);
-				holder = (instanceHolder, null);
-				return staticResult;
-
-			} else {
-
-				// "this" is a member of a type.
-				return AccessFromThis(location, scope.Parent, identifier, out holder, generic_arguments, method_arguments, indexer_arguments);
-
-			}
-
-		}
-
-		// Local method for accessing through "base" keyword.
-		// Captured variables: this, member_access.
-		ResultInfo AccessFromBase(CompileArguments location, Scope scope, ITerminalNode identifier, out (IInstance instance, IType type) holder,
-		GenericArgumentsContext generic_arguments, MethodArgumentsContext method_arguments, IndexerArgumentsContext indexer_arguments) {
-
-			throw new NotImplementedException(location.GetLocation(identifier) + "Accessing 'base' has not been implemented.");
-
-		}
+		holder = (null, null);
 
 		// Get the instance to access from.
 
@@ -2342,7 +2366,7 @@ public class Compiler : IDisposable {
 
 				// Start of chain (set holder).
 				ArrayCreationExpressionContext prefix_array_creation_expression;
-				MCSharpParser.LiteralContext prefix_literal;
+				LiteralContext prefix_literal;
 				MCSharpParser.Short_identifierContext prefix_short_identifier;
 				ExpressionContext prefix_expression;
 				PostStepExpressionContext prefix_post_step_expression;
@@ -2353,7 +2377,10 @@ public class Compiler : IDisposable {
 					// Accessing starts at a new array.
 					ResultInfo prefixResult = CompileArrayCreationExpression(location, prefix_array_creation_expression, out IInstance instanceHolder);
 					if(prefixResult.Failure) {
-						value = null;
+						member = null;
+						genericTypes = null;
+						argumentTypes = null;
+						argumentInstances = null;
 						return location.GetLocation(prefix_array_creation_expression) + prefixResult;
 					}
 
@@ -2364,7 +2391,10 @@ public class Compiler : IDisposable {
 					// Accessing starts at a new instance created by a literal.
 					ResultInfo prefixResult = CompileLiteral(location, prefix_literal, out IInstance instanceHolder);
 					if(prefixResult.Failure) {
-						value = null;
+						member = null;
+						genericTypes = null;
+						argumentTypes = null;
+						argumentInstances = null;
 						return location.GetLocation(prefix_literal) + prefixResult;
 					}
 
@@ -2387,25 +2417,25 @@ public class Compiler : IDisposable {
 
 					if(name == "this") {
 
-						// (1) Accessing through "this".
-						var thisResult = AccessFromThis(location, scope: null, identifier, out holder, prefix_generic_arguments, prefix_method_arguments, prefix_indexer_arguments);
+						// (1) Starting access with "this".
+						ResultInfo thisResult = AccessThis(location, scope: null, out holder);
 						if(thisResult.Failure) {
-							value = null;
-							return thisResult;
+							member = null;
+							genericTypes = null;
+							argumentTypes = null;
+							argumentInstances = null;
+							return location.GetLocation(identifier) + new ResultInfo(success: false, "Keyword 'this' is not applicable here.");
 						}
 
 					} else if(name == "base") {
 
-						// (2) Accessing through "base".
-						var baseResult = AccessFromBase(location, scope: null, identifier, out holder, prefix_generic_arguments, prefix_method_arguments, prefix_indexer_arguments);
-						if(baseResult.Failure) {
-							value = null;
-							return baseResult;
-						}
+						// (2) Starting access with "base". Similar to "this".
+
+						throw new NotImplementedException("Explicit 'base' calls have not been implemented");
 
 					} else {
 
-						// (3) Accessing through a member of a type.
+						// (3) Starting access with a member of a type.
 						var instanceHolder = location.Scope.FindFirstInstanceByName(name);
 
 						if(instanceHolder != null) {
@@ -2414,7 +2444,7 @@ public class Compiler : IDisposable {
 
 						} else {
 
-							// (4) The identifier requires an implicit 'this' call.
+							// (4) The identifier requires an implicit "this" call.
 							var thisResult = AccessFromThis(location, scope: null, identifier, out (IInstance, IType) _holder, prefix_generic_arguments, prefix_method_arguments, prefix_indexer_arguments);
 
 							if(thisResult.Success) {
@@ -2429,11 +2459,15 @@ public class Compiler : IDisposable {
 									holder = (null, location.Compiler.DefinedTypes[name]);
 
 								} else {
-									value = null;
+									member = null;
+									genericTypes = null;
+									argumentTypes = null;
+									argumentInstances = null;
 									return location.GetLocation(identifier) + new ResultInfo(success: false, $"Unknown identifier: '{name}'.");
 								}
 
 							}
+
 						}
 
 					}
@@ -2443,7 +2477,10 @@ public class Compiler : IDisposable {
 					// Accessing starts at the result of an expression.
 					ResultInfo prefixResult = CompileExpression(location, prefix_expression, out IInstance instanceHolder);
 					if(prefixResult.Failure) {
-						value = null;
+						member = null;
+						genericTypes = null;
+						argumentTypes = null;
+						argumentInstances = null;
 						return location.GetLocation(prefix_expression) + prefixResult;
 					}
 
@@ -2454,7 +2491,10 @@ public class Compiler : IDisposable {
 					// Accessing starts at the result of a post-step expression.
 					ResultInfo prefixResult = CompilePostStepExpression(location, prefix_post_step_expression, out IInstance instanceHolder);
 					if(prefixResult.Failure) {
-						value = null;
+						member = null;
+						genericTypes = null;
+						argumentTypes = null;
+						argumentInstances = null;
 						return location.GetLocation(prefix_post_step_expression) + prefixResult;
 					}
 
@@ -2465,7 +2505,10 @@ public class Compiler : IDisposable {
 					// Accessing starts at the result of a keyword expression.
 					ResultInfo prefixResult = CompileKeywordExpression(location, prefix_keyword_expression, out IInstance instanceHolder);
 					if(prefixResult.Failure) {
-						value = null;
+						member = null;
+						genericTypes = null;
+						argumentTypes = null;
+						argumentInstances = null;
 						return prefixResult;
 					}
 
@@ -2494,7 +2537,6 @@ public class Compiler : IDisposable {
 					IndexerArgumentsContext prefix_indexer_arguments = prefix.indexer_arguments();
 
 					ITerminalNode identifier = prefix_short_identifier.NAME();
-					string name = identifier.GetText();
 
 					if(holder.Type != null) {
 
@@ -2503,7 +2545,10 @@ public class Compiler : IDisposable {
 
 						ResultInfo result = AccessFromStaticType(location, typeHolder, identifier, out IInstance instanceHolder, prefix_generic_arguments, prefix_method_arguments, prefix_indexer_arguments);
 						if(result.Failure) {
-							value = null;
+							member = null;
+							genericTypes = null;
+							argumentTypes = null;
+							argumentInstances = null;
 							return result;
 						}
 
@@ -2516,7 +2561,10 @@ public class Compiler : IDisposable {
 
 						ResultInfo result = AccessFromInstance(location, instanceHolder, identifier, out instanceHolder, prefix_generic_arguments, prefix_method_arguments, prefix_indexer_arguments);
 						if(result.Failure) {
-							value = null;
+							member = null;
+							genericTypes = null;
+							argumentTypes = null;
+							argumentInstances = null;
 							return result;
 						}
 
@@ -2526,14 +2574,16 @@ public class Compiler : IDisposable {
 
 				} else if((prefix_post_step_expression = prefix.post_step_expression()) != null && prefix_post_step_expression.literal() != null) {
 
-					ResultInfo prefixResult = CompilePostStepExpression(location, prefix_post_step_expression, out IInstance instance);
+					ResultInfo prefixResult = CompilePostStepExpression(location, prefix_post_step_expression, out IInstance _);
 					if(prefixResult.Failure) {
-						value = null;
+						member = null;
+						genericTypes = null;
+						argumentTypes = null;
+						argumentInstances = null;
 						return location.GetLocation(prefix_post_step_expression) + prefixResult;
 					}
 
 					ITerminalNode identifier = prefix_post_step_expression.identifier().NAME()[0];
-					string name = identifier.GetText();
 
 					if(holder.Type != null) {
 
@@ -2542,7 +2592,10 @@ public class Compiler : IDisposable {
 
 						ResultInfo result = AccessFromStaticType(location, typeHolder, identifier, out IInstance instanceHolder, null, null, null);
 						if(result.Failure) {
-							value = null;
+							member = null;
+							genericTypes = null;
+							argumentTypes = null;
+							argumentInstances = null;
 							return result;
 						}
 
@@ -2555,7 +2608,10 @@ public class Compiler : IDisposable {
 
 						ResultInfo result = AccessFromInstance(location, instanceHolder, identifier, out instanceHolder, null, null, null);
 						if(result.Failure) {
-							value = null;
+							member = null;
+							genericTypes = null;
+							argumentTypes = null;
+							argumentInstances = null;
 							return result;
 						}
 
@@ -2565,7 +2621,10 @@ public class Compiler : IDisposable {
 
 				} else {
 
-					value = null;
+					member = null;
+					genericTypes = null;
+					argumentTypes = null;
+					argumentInstances = null;
 					return new ResultInfo(false, location.GetLocation(prefix) + "Expected an identifier to access a member.");
 
 				}
@@ -2579,30 +2638,336 @@ public class Compiler : IDisposable {
 
 			// Access from a type.
 			IType typeHolder = holder.Type;
+			if(method_arguments != null) {
 
-			ResultInfo finalResult = AccessFromStaticType(location, typeHolder, member_identifier.NAME(), out value, generic_arguments, method_arguments, indexer_arguments);
-			if(finalResult.Failure) return finalResult;
-			else return ResultInfo.DefaultSuccess;
+				// Access a method.
+				ResultInfo finalResult = typeHolder.FindBestMethodFromContext(location, member_identifier.NAME(), generic_arguments, method_arguments,
+					out member, out genericTypes, out argumentTypes, out argumentInstances);
+				if(finalResult.Failure) return finalResult;
+
+			} else {
+
+				genericTypes = null;
+				argumentTypes = null;
+				argumentInstances = null;
+
+				// Access a property or field member.
+				member = typeHolder.FindPropertyOrField(member_identifier.NAME().GetText());
+				if(member == null) return location.GetLocation(member_identifier) + new ResultInfo(success: false, $"");
+
+			}
 
 		} else if(holder.Instance != null) {
 
 			// Access from an instance.
 			IInstance instanceHolder = holder.Instance;
+			if(method_arguments != null) {
 
-			ResultInfo finalResult = AccessFromInstance(location, instanceHolder, member_identifier.NAME(), out value, generic_arguments, method_arguments, indexer_arguments);
-			if(finalResult.Failure) return finalResult;
-			else return ResultInfo.DefaultSuccess;
+				// Access a method.
+				ResultInfo finalResult = instanceHolder.Type.FindBestMethodFromContext(location, member_identifier.NAME(), generic_arguments, method_arguments,
+					out member, out genericTypes, out argumentTypes, out argumentInstances);
+				if(finalResult.Failure) return finalResult;
+
+			} else {
+
+				genericTypes = null;
+				argumentTypes = null;
+				argumentInstances = null;
+
+				// Access a property or field member.
+				member = instanceHolder.Type.FindPropertyOrField(member_identifier.NAME().GetText());
+				if(member == null) return location.GetLocation(member_identifier) + new ResultInfo(success: false, $"");
+
+			}
 
 		} else {
 
 			// Access from implicit "this".
-			ResultInfo finalResult = AccessFromThis(location, scope: null, member_identifier.NAME(), out holder, generic_arguments, method_arguments, indexer_arguments);
-			value = holder.Instance;
 
-			if(finalResult.Failure) return finalResult;
-			else return ResultInfo.DefaultSuccess;
+			throw new NotImplementedException();
 
 		}
+
+		location.Writer.AddBufferedLines(1);
+
+		return ResultInfo.DefaultSuccess;
+
+	}
+
+	private static ResultInfo AccessFromBase(
+		CompileArguments location, Scope scope, ITerminalNode identifier, out (IInstance Instance, IType Type) holder,
+		GenericArgumentsContext generic_arguments, MethodArgumentsContext method_arguments, IndexerArgumentsContext indexer_arguments
+	) {
+
+		throw new NotImplementedException(location.GetLocation(identifier) + "Accessing 'base' has not been implemented.");
+
+	}
+
+	private static ResultInfo AccessFromThis(
+		CompileArguments location, Scope scope, ITerminalNode identifier, out (IInstance Instance, IType Type) holder,
+		GenericArgumentsContext generic_arguments, MethodArgumentsContext method_arguments, IndexerArgumentsContext indexer_arguments
+	) {
+
+		// Access "this".
+		if(scope == null) scope = location.Scope;
+		IScopeHolder scopeHolder = scope.Holder;
+
+		if(scopeHolder == null) {
+
+			// "this" does not exist.
+			holder = (null, null);
+			return new ResultInfo(success: false, location.GetLocation(identifier) + "Accessing 'this' is not possible here.");
+
+		} else if(scopeHolder is IInstance instance) {
+
+			// "this" is an instance.
+			holder = (instance, null);
+			return ResultInfo.DefaultSuccess;
+
+		} else if(scopeHolder is IType type) {
+
+			// "this" is a type.
+			var staticResult = AccessFromStaticType(location, type, identifier, out IInstance instanceHolder, generic_arguments, method_arguments, indexer_arguments);
+			holder = (instanceHolder, null);
+			return staticResult;
+
+		} else {
+
+			// "this" is a member of a type.
+			return AccessFromThis(location, scope.Parent, identifier, out holder, generic_arguments, method_arguments, indexer_arguments);
+
+		}
+
+	}
+
+	private static ResultInfo AccessFromInstance(
+		CompileArguments location, IInstance holder, ITerminalNode identifier, out IInstance value,
+		GenericArgumentsContext generic_arguments, MethodArgumentsContext method_arguments, IndexerArgumentsContext indexer_arguments
+	) {
+
+		if(method_arguments != null) {
+
+			// Since there are method arguments, this is a method call.
+
+			// Try to invoke the method.
+			return holder.InvokeBestMethod(location, identifier, generic_arguments, method_arguments, out value);
+
+		} else {
+
+			// Since there are no arguments, this is a property or field access.
+
+			// Get the member by name.
+			IMember member = holder.Type.FindPropertyOrField(identifier.GetText());
+			if(member == null) {
+				value = null;
+				return location.GetLocation(identifier) + new ResultInfo(false, $"Member '{identifier.GetText()}' does not exist in type '{holder.Type.Identifier}'.");
+			}
+
+			// Try to invoke the property/field.
+			return holder.InvokePropertyOrFieldFromContext(location, identifier, member, out value);
+
+		}
+
+	}
+
+	private static ResultInfo AccessFromStaticType(
+		CompileArguments location, IType holder, ITerminalNode identifier, out IInstance value,
+		GenericArgumentsContext generic_arguments, MethodArgumentsContext method_arguments, IndexerArgumentsContext indexer_arguments
+	) {
+
+		if(method_arguments != null) {
+
+			// Since there are method arguments, this is a method call.
+
+			// Try to invoke the method.
+			return holder.InvokeBestMethodFromContext(location, identifier, generic_arguments, method_arguments, out value);
+
+		} else {
+
+			// Since there are no arguments, this is a property or field access.
+
+			// Get the member by name.
+			IMember member = holder.FindPropertyOrField(identifier.GetText());
+			if(member == null) {
+				value = null;
+				return location.GetLocation(identifier) + new ResultInfo(false, $"Member '{identifier.GetText()}' does not exist in type '{holder.Identifier}'.");
+			}
+
+			// Try to invoke the property/field.
+			return holder.InvokePropertyOrFieldFromContext(location, identifier, member, out value);
+
+		}
+
+	}
+
+	private static ResultInfo AccessThis(CompileArguments location, Scope scope, out (IInstance Instance, IType Type) holder) {
+
+		// Access "this".
+		if(scope == null) scope = location.Scope;
+		IScopeHolder scopeHolder = scope.Holder;
+
+		if(scopeHolder == null) {
+
+			// "this" does not exist.
+			holder = (null, null);
+			return new ResultInfo(success: false, "There is no \"this\" in this context.");
+
+		} else if(scopeHolder is IInstance instance) {
+
+			// "this" is an instance.
+			holder = (instance, null);
+			return ResultInfo.DefaultSuccess;
+
+		} else if(scopeHolder is IType type) {
+
+			// "this" is a type.
+			holder = (null, type);
+			return ResultInfo.DefaultSuccess;
+
+		} else if(scopeHolder is IMember member) {
+
+			// "this" is the owner of the member.
+			
+			if(member.Modifiers.HasFlag(Modifier.Static)) {
+
+				// "this" is a type.
+				holder = (null, member.Declarer);
+				return ResultInfo.DefaultSuccess;
+
+			} else if(member.Definition is IMethod method) {
+
+				// "this" is the "this instance".
+				holder = (method.Invoker.ThisInstance, null);
+				return ResultInfo.DefaultSuccess;
+
+			} else if(member.Definition is IProperty property) {
+
+				// "this" is the "this instance" of a property.
+				var getter = property.Getter;
+				var setter = property.Setter;
+				if(getter is not null) holder = (getter.ThisInstance, null);
+				else if(setter is not null) holder = (setter.ThisInstance, null);
+				else throw new Exception("Expected property to have at least a getter or setter.");
+				return ResultInfo.DefaultSuccess;
+
+			} else {
+
+				// "this" requires more context?
+				throw new NotImplementedException();
+
+			}
+
+		} else {
+
+			// "this" is a member of a type.
+			return AccessThis(location, scope.Parent, out holder);
+
+		}
+
+	}
+
+	/// <summary>
+	/// Compiles a member access expression:
+	/// <code>
+	/// member_access
+	///   : member_access_prefix* short_identifier generic_arguments? ( method_arguments | indexer_arguments )?
+	///   ;
+	/// </code>
+	/// </summary>
+	/// <param name="member_access">The expression to compile.</param>
+	/// <inheritdoc cref="CompileExpression(CompileArguments, ExpressionContext, out IInstance)"/>
+	public static ResultInfo CompileMemberAccess(CompileArguments location, MCSharpParser.Member_accessContext member_access, out IInstance value) {
+
+		// Find the member being accessed.
+		ResultInfo accessResult = CompileMemberAccess(
+			location, member_access,
+			out (IInstance Instance, IType Type) holder, out IMember member,
+			out IType[] genericTypes, out _, out IInstance[] argumentsInstances
+		);
+		if(accessResult.Failure) {
+			value = null;
+			return accessResult;
+		}
+
+		if(genericTypes is null) genericTypes = Array.Empty<IType>();
+		if(argumentsInstances is null) argumentsInstances = Array.Empty<IInstance>();
+
+		// Invoke the member.
+		var definition = member.Definition;
+		if(definition is IMethod method) {
+
+			// Access a method.
+
+			if(holder.Instance is not null) {
+
+				// Access a non-static member.
+				IInstance instance = holder.Instance;
+				ResultInfo invokeResult = method.Invoker.InvokeNonStatic(location, instance, genericTypes, argumentsInstances, out value);
+				if(invokeResult.Failure) return invokeResult;
+
+			} else {
+
+				// Access a static method.
+				ResultInfo invokeResult = method.Invoker.InvokeStatic(location, genericTypes, argumentsInstances, out value);
+				if(invokeResult.Failure) return invokeResult;
+
+			}
+
+		} else if(definition is IProperty property) {
+
+			// Access a property.
+
+			if(holder.Instance is not null) {
+
+				// Access a non-static property.
+				IInstance instance = holder.Instance;
+				IFunction getter = property.Getter;
+				ResultInfo invokeResult = getter.InvokeNonStatic(location, instance, genericTypes, argumentsInstances, out value);
+				if(invokeResult.Failure) return invokeResult;
+
+			} else {
+
+				// Access a static property.
+				IFunction getter = property.Getter;
+				ResultInfo invokeResult = getter.InvokeStatic(location, genericTypes, argumentsInstances, out value);
+				if(invokeResult.Failure) return invokeResult;
+
+			}
+
+		} else if(definition is IField field) {
+
+			if(holder.Instance is not null) {
+
+				// Access a non-static field.
+				IInstance instance = holder.Instance;
+
+				if(instance is StructInstance structInstance) {
+
+					value = structInstance.FieldInstances[field];
+
+				} else if(instance is ClassInstance classInstance) {
+
+					value = location.Compiler.DefinedTypes[member.TypeIdentifier].InitializeInstance(location, null);
+					value.LoadFromBlock(location, classInstance.GetSelector(location), classInstance.FieldObjectives[field]);
+
+				} else {
+					throw new NotImplementedException();
+				}
+
+			} else {
+
+				// Access a static field.
+				IType type = holder.Type;
+				value = type.StaticFieldInstances[field];
+
+			}
+
+		} else {
+			throw new Exception();
+		}
+
+		// Return a success.
+		return ResultInfo.DefaultSuccess;
 
 	}
 
@@ -2613,7 +2978,7 @@ public class Compiler : IDisposable {
 	/// <param name="literal">The literal to compile.</param>
 	/// <param name="value">The instance to assign the literal to.</param>
 	/// <returns>The result of the compilation.</returns>
-	public static ResultInfo CompileLiteral(CompileArguments location, MCSharpParser.LiteralContext literal, out IInstance value) {
+	public static ResultInfo CompileLiteral(CompileArguments location, LiteralContext literal, out IInstance value) {
 
 		// Parse integer literal.
 		ITerminalNode integer_literal = literal.INTEGER();
@@ -2721,11 +3086,11 @@ public class Compiler : IDisposable {
 					// Get method arguments.
 					IInstance[] methodArguments;
 					{
-						MCSharpParser.Argument_listContext argument_list = method_arguments.argument_list();
-						MCSharpParser.ArgumentContext[] arguments_context = argument_list?.argument() ?? Array.Empty<MCSharpParser.ArgumentContext>();
+						ArgumentListContext argument_list = method_arguments.argument_list();
+						ArgumentContext[] arguments_context = argument_list?.argument() ?? Array.Empty<ArgumentContext>();
 						methodArguments = new IInstance[arguments_context.Length];
 						for(int i = 0; i < arguments_context.Length; i++) {
-							MCSharpParser.ArgumentContext argument_context = arguments_context[i];
+							ArgumentContext argument_context = arguments_context[i];
 							ResultInfo argument_result = CompileExpression(location, argument_context.expression(), out IInstance argument);
 							if(argument_result.Failure) {
 								value = null;
@@ -2741,10 +3106,15 @@ public class Compiler : IDisposable {
 					// Get constructor.
 					var constructor = type.FindBestConstructor(location.Compiler, genericArguments, methodArguments);
 
+					// Instantiate object to construct.
+					value = type.InitializeInstance(location, null);
+					if(value is ObjectInstance objectInstance) objectInstance.CreateEntity(location);
+
 					// Invoke constructor.
 					location.Writer.WriteComments(
-						$"Invoke constructor: {type.Identifier}");
-					ResultInfo result = constructor.Invoker.Invoke(location, Array.Empty<IType>(), methodArguments, out value);
+						$"Invoke constructor: {type.Identifier}",
+						indentBefore: true);
+					ResultInfo result = constructor.Invoker.InvokeNonStatic(location, value, Array.Empty<IType>(), methodArguments, out _);
 					if(result.Failure) return location.GetLocation(new_keyword_expression) + result;
 
 					return ResultInfo.DefaultSuccess;
@@ -2758,6 +3128,7 @@ public class Compiler : IDisposable {
 			if(anonymous_object_initializer != null) {
 
 				throw new NotImplementedException("Anonymous object initializers have not been implemented.");
+
 			}
 
 			throw new Exception("Keyword 'new' expression could not be determined.");

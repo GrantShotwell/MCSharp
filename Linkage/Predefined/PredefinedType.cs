@@ -2,6 +2,7 @@
 using MCSharp.Compilation.Instancing;
 using MCSharp.Compilation;
 using MCSharp.Collections;
+using System;
 
 namespace MCSharp.Linkage.Predefined;
 
@@ -54,6 +55,8 @@ public class PredefinedType : IType {
 	/// <inheritdoc/>
 	public IReadOnlyDictionary<IField, IInstance> StaticFieldInstances { get; }
 
+	public event Action OnDispose = () => { };
+
 
 	/// <summary>
 	/// Creates a new predefined type definition.
@@ -97,7 +100,13 @@ public class PredefinedType : IType {
 
 	/// <inheritdoc/>
 	public void Dispose() {
+		OnDispose.Invoke();
 		foreach(PredefinedMember member in Members) member.Dispose();
+		GC.SuppressFinalize(this);
+	}
+
+	public override string ToString() {
+		return Identifier;
 	}
 
 }

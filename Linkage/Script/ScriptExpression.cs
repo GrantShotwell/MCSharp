@@ -7,18 +7,18 @@ namespace MCSharp.Linkage.Script;
 /// </summary>
 public class ScriptExpression : IExpression {
 
-	public MCSharpParser.ExpressionContext Context { get; }
+	public ExpressionContext Context { get; }
 
-	public ScriptExpression(MCSharpParser.ExpressionContext context) {
+	public ScriptExpression(ExpressionContext context) {
 		Context = context ?? throw new ArgumentNullException(nameof(context));
 	}
 
 	/// <summary>
 	/// Creates an array of <see cref="ScriptExpression"/>s using the individual elements of <paramref name="contexts"/> as arguments for constructors.
 	/// </summary>
-	/// <param name="contexts">The collection of <see cref="MCSharpParser.ExpressionContext"/>s to convert into <see cref="ScriptExpression"/>s.</param>
+	/// <param name="contexts">The collection of <see cref="ExpressionContext"/>s to convert into <see cref="ScriptExpression"/>s.</param>
 	/// <returns>Returns an array of <see cref="ScriptExpression"/></returns>
-	public ScriptExpression[] CreateArrayFromArray(MCSharpParser.ExpressionContext[] contexts) {
+	public ScriptExpression[] CreateArrayFromArray(ExpressionContext[] contexts) {
 
 		int size = contexts.Length;
 		ScriptExpression[] expressions = new ScriptExpression[size];

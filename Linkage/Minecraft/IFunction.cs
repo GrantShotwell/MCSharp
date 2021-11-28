@@ -28,9 +28,19 @@ public interface IFunction : IDisposable {
 	public string ReturnTypeIdentifier { get; }
 
 	/// <summary>
+	/// The identifier for the 'this' instance type.
+	/// </summary>
+	public string ThisTypeIdentifier { get; }
+
+	/// <summary>
 	/// The <see cref="IInstance"/> assigned to when returning.
 	/// </summary>
 	public IInstance ReturnInstance { get; }
+
+	/// <summary>
+	/// The <see cref="IInstance"/> used when referencing 'this'.
+	/// </summary>
+	public IInstance ThisInstance { get; }
 
 	/// <summary>
 	/// Invoke the <see cref="IFunction"/> with the given arguments.
@@ -40,6 +50,19 @@ public interface IFunction : IDisposable {
 	/// <param name="arguments">The instance arguments to invoke with.</param>
 	/// <param name="result">The result of the call.</param>
 	/// <returns>The result of the compilation.</returns>
-	public ResultInfo Invoke(Compiler.CompileArguments location, IType[] generic, IInstance[] arguments, out IInstance result);
+	/// <exception cref="InvalidOperationException">Thrown when the function is not static.</exception>
+	public ResultInfo InvokeStatic(Compiler.CompileArguments location, IType[] generic, IInstance[] arguments, out IInstance result);
+	
+	/// <summary>
+	/// Invoke the <see cref="IFunction"/> with the given arguments.
+	/// </summary>
+	/// <param name="location">The location of the call.</param>
+	/// <param name="context">The instance to invoke the function on.</param>
+	/// <param name="generic">The generic arguments to invoke with.</param>
+	/// <param name="arguments">The instance arguments to invoke with.</param>
+	/// <param name="result">The result of the call.</param>
+	/// <returns>The result of the compilation.</returns>
+	/// <exception cref="InvalidOperationException">Thrown when the function is static.</exception>
+	public ResultInfo InvokeNonStatic(Compiler.CompileArguments location, IInstance context, IType[] generic, IInstance[] arguments, out IInstance result);
 
 }

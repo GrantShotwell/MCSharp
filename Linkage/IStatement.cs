@@ -5,6 +5,6 @@
 /// </summary>
 public interface IStatement {
 
-	public MCSharpParser.StatementContext Context { get; }
+	public StatementContext Context { get; }
 
 }

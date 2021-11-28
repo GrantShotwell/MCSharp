@@ -9,8 +9,8 @@ namespace MCSharp.Linkage.Predefined;
 /// </summary>
 public class PredefinedStatement : IStatement {
 
-	public MCSharpParser.StatementContext PredefinedContext { get; }
-	MCSharpParser.StatementContext IStatement.Context => PredefinedContext;
+	public StatementContext PredefinedContext { get; }
+	StatementContext IStatement.Context => PredefinedContext;
 
 
 	/// <summary>
@@ -39,7 +39,7 @@ public class PredefinedStatement : IStatement {
 
 	}
 
-	public PredefinedStatement(MCSharpParser.StatementContext predefinedContext) {
+	public PredefinedStatement(StatementContext predefinedContext) {
 
 		PredefinedContext = predefinedContext;
 

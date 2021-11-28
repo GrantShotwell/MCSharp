@@ -216,4 +216,6 @@ public class RawText {
 
 	}
 
+	public static implicit operator RawTextList(RawText text) => new(1) { text };
+
 }

@@ -3513,6 +3513,12 @@
             <param name="location">The location the entity will be accessed in.</param>
             <returns>The selector to the entity this <see cref="T:MCSharp.Compilation.Instancing.ObjectInstance"/> currently points to as a <see cref="T:System.String"/>.</returns>
         </member>
+        <member name="M:MCSharp.Compilation.Instancing.ObjectInstance.GetExecuteAs">
+            <summary>
+            Use the <see cref="P:MCSharp.Compilation.Instancing.ObjectInstance.Pointer"/> to access the entity this <see cref="T:MCSharp.Compilation.Instancing.ObjectInstance"/> current points to.
+            </summary>
+            <returns>Returns an 'execute' command argument starting with "as", trimmed.</returns>
+        </member>
         <member name="M:MCSharp.Compilation.Instancing.ObjectInstance.Copy(MCSharp.Compilation.Compiler.CompileArguments,System.String)">
             <inheritdoc/>
         </member>
@@ -3729,7 +3735,7 @@
         <member name="P:MCSharp.Compilation.Instancing.PrimitiveInstance.JsonInstance.MCSharp#Compilation#Instancing#IConstantInstance#Value">
             <inheritdoc/>
         </member>
-        <member name="M:MCSharp.Compilation.Instancing.PrimitiveInstance.JsonInstance.#ctor(MCSharp.Linkage.IType,System.String,MCSharp.Linkage.Minecraft.Text.RawText)">
+        <member name="M:MCSharp.Compilation.Instancing.PrimitiveInstance.JsonInstance.#ctor(MCSharp.Linkage.IType,System.String,MCSharp.Linkage.Minecraft.Text.RawTextList)">
             <summary>
             Creates a new <see cref="T:MCSharp.Compilation.Instancing.PrimitiveInstance.JsonInstance"/> that holds <paramref name="value"/>.
             </summary>
@@ -3944,7 +3950,13 @@
         </member>
         <member name="M:MCSharp.Compilation.Scope.GetFirstNamedParent">
             <summary>
-            Finds the closest parent to this <see cref="T:MCSharp.Compilation.Scope"/>.
+            Finds the closest parent to this <see cref="T:MCSharp.Compilation.Scope"/> with a name.
+            </summary>
+            <returns>Returns the <see cref="T:MCSharp.Compilation.Scope"/> found.</returns>
+        </member>
+        <member name="M:MCSharp.Compilation.Scope.GetFirstNamedParentOrThis">
+            <summary>
+            Finds the closest parent to this <see cref="T:MCSharp.Compilation.Scope"/> with a name, or <see langword="this"/>.
             </summary>
             <returns>Returns the <see cref="T:MCSharp.Compilation.Scope"/> found.</returns>
         </member>
@@ -4081,6 +4093,9 @@
         <member name="P:MCSharp.Linkage.Extensions.MCSharpLinkerExtension.WorldIdentifier">
             <summary>Identifier for the "world" class.</summary>
         </member>
+        <member name="P:MCSharp.Linkage.Extensions.MCSharpLinkerExtension.MathIdentifier">
+            <summary>Identifier for the "math" class.</summary>
+        </member>
         <member name="P:MCSharp.Linkage.Extensions.MCSharpLinkerExtension.AttributeIdentifier">
             <summary>Identifier for the attribute abstract class.</summary>
         </member>
@@ -4136,6 +4151,11 @@
         <member name="M:MCSharp.Linkage.Extensions.MCSharpLinkerExtension.CreatePredefinedWorld(MCSharp.Compilation.Scope,MCSharp.Compilation.Compiler.OnLoadDelegate@)">
             <summary>
             Creates the <see cref="T:MCSharp.Linkage.Predefined.PredefinedType"/> for the type "World".
+            </summary>
+        </member>
+        <member name="M:MCSharp.Linkage.Extensions.MCSharpLinkerExtension.CreatePredefinedMath(MCSharp.Compilation.Scope,MCSharp.Compilation.Compiler.OnLoadDelegate@)">
+            <summary>
+            Creates the <see cref="T:MCSharp.Linkage.Predefined.PredefinedType"/> for the type "Math".
             </summary>
         </member>
         <member name="M:MCSharp.Linkage.Extensions.MCSharpLinkerExtension.CreatePredefinedAttribute(MCSharp.Compilation.Scope,MCSharp.Compilation.Compiler.OnLoadDelegate@)">
@@ -4247,7 +4267,7 @@
         </member>
         <member name="T:MCSharp.Linkage.IMemberDefinition">
             <summary>
-            Represents the definition details specific the member type (field, property, method) for some <see cref="T:MCSharp.Linkage.IMember"/>.
+            Represents the definition details specific to the member type (field, property, method) for some <see cref="T:MCSharp.Linkage.IMember"/>.
             </summary>
         </member>
         <member name="T:MCSharp.Linkage.IMethod">
@@ -4536,28 +4556,38 @@
         <member name="P:MCSharp.Linkage.Minecraft.CustomFunction.ReturnTypeIdentifier">
             <inheritdoc/>
         </member>
+        <member name="P:MCSharp.Linkage.Minecraft.CustomFunction.ThisTypeIdentifier">
+            <inheritdoc/>
+        </member>
         <member name="P:MCSharp.Linkage.Minecraft.CustomFunction.ReturnInstance">
             <inheritdoc/>
         </member>
-        <member name="M:MCSharp.Linkage.Minecraft.CustomFunction.#ctor(System.String,MCSharp.Linkage.Predefined.PredefinedGenericParameter[],MCSharp.Linkage.Predefined.PredefinedMethodParameter[],MCSharp.Linkage.Minecraft.CustomFunction.InvokeDelegate)">
+        <member name="P:MCSharp.Linkage.Minecraft.CustomFunction.ThisInstance">
+            <inheritdoc/>
+        </member>
+        <member name="M:MCSharp.Linkage.Minecraft.CustomFunction.#ctor(System.String,System.String,MCSharp.Linkage.Predefined.PredefinedGenericParameter[],MCSharp.Linkage.Predefined.PredefinedMethodParameter[],MCSharp.Linkage.Minecraft.CustomFunction.InvokeDelegate)">
             <summary>
             
             </summary>
-            <param name="returnTypeIdentifier"></param>
+            <param name="returnType"></param>
+            <param name="thisType">The local identifier of the 'this' type for this <see cref="T:MCSharp.Linkage.Minecraft.IFunction"/>. Pass <see langword="null"/> to define this <see cref="T:MCSharp.Linkage.Minecraft.IFunction"/> as static.</param>
             <param name="genericParameters"></param>
             <param name="methodParameters"></param>
             <param name="delegate"></param>
             <exception cref="T:System.ArgumentNullException"></exception>
         </member>
-        <member name="M:MCSharp.Linkage.Minecraft.CustomFunction.Invoke(MCSharp.Compilation.Compiler.CompileArguments,MCSharp.Linkage.IType[],MCSharp.Compilation.Instancing.IInstance[],MCSharp.Compilation.Instancing.IInstance@)">
+        <member name="M:MCSharp.Linkage.Minecraft.CustomFunction.InvokeStatic(MCSharp.Compilation.Compiler.CompileArguments,MCSharp.Linkage.IType[],MCSharp.Compilation.Instancing.IInstance[],MCSharp.Compilation.Instancing.IInstance@)">
             <summary>
             
             </summary>
             <param name="compile"></param>
-            <param name="generic"></param>
+            <param name="generics"></param>
             <param name="arguments"></param>
             <param name="result"></param>
             <returns></returns>
+        </member>
+        <member name="M:MCSharp.Linkage.Minecraft.CustomFunction.InvokeNonStatic(MCSharp.Compilation.Compiler.CompileArguments,MCSharp.Compilation.Instancing.IInstance,MCSharp.Linkage.IType[],MCSharp.Compilation.Instancing.IInstance[],MCSharp.Compilation.Instancing.IInstance@)">
+            <inheritdoc/>
         </member>
         <member name="M:MCSharp.Linkage.Minecraft.CustomFunction.Dispose">
             <inheritdoc/>
@@ -4584,12 +4614,22 @@
             The local identifier for the return type for this <see cref="T:MCSharp.Linkage.Minecraft.IFunction"/>.
             </summary>
         </member>
+        <member name="P:MCSharp.Linkage.Minecraft.IFunction.ThisTypeIdentifier">
+            <summary>
+            The identifier for the 'this' instance type.
+            </summary>
+        </member>
         <member name="P:MCSharp.Linkage.Minecraft.IFunction.ReturnInstance">
             <summary>
             The <see cref="T:MCSharp.Compilation.Instancing.IInstance"/> assigned to when returning.
             </summary>
         </member>
-        <member name="M:MCSharp.Linkage.Minecraft.IFunction.Invoke(MCSharp.Compilation.Compiler.CompileArguments,MCSharp.Linkage.IType[],MCSharp.Compilation.Instancing.IInstance[],MCSharp.Compilation.Instancing.IInstance@)">
+        <member name="P:MCSharp.Linkage.Minecraft.IFunction.ThisInstance">
+            <summary>
+            The <see cref="T:MCSharp.Compilation.Instancing.IInstance"/> used when referencing 'this'.
+            </summary>
+        </member>
+        <member name="M:MCSharp.Linkage.Minecraft.IFunction.InvokeStatic(MCSharp.Compilation.Compiler.CompileArguments,MCSharp.Linkage.IType[],MCSharp.Compilation.Instancing.IInstance[],MCSharp.Compilation.Instancing.IInstance@)">
             <summary>
             Invoke the <see cref="T:MCSharp.Linkage.Minecraft.IFunction"/> with the given arguments.
             </summary>
@@ -4598,6 +4638,19 @@
             <param name="arguments">The instance arguments to invoke with.</param>
             <param name="result">The result of the call.</param>
             <returns>The result of the compilation.</returns>
+            <exception cref="T:System.InvalidOperationException">Thrown when the function is not static.</exception>
+        </member>
+        <member name="M:MCSharp.Linkage.Minecraft.IFunction.InvokeNonStatic(MCSharp.Compilation.Compiler.CompileArguments,MCSharp.Compilation.Instancing.IInstance,MCSharp.Linkage.IType[],MCSharp.Compilation.Instancing.IInstance[],MCSharp.Compilation.Instancing.IInstance@)">
+            <summary>
+            Invoke the <see cref="T:MCSharp.Linkage.Minecraft.IFunction"/> with the given arguments.
+            </summary>
+            <param name="location">The location of the call.</param>
+            <param name="context">The instance to invoke the function on.</param>
+            <param name="generic">The generic arguments to invoke with.</param>
+            <param name="arguments">The instance arguments to invoke with.</param>
+            <param name="result">The result of the call.</param>
+            <returns>The result of the compilation.</returns>
+            <exception cref="T:System.InvalidOperationException">Thrown when the function is static.</exception>
         </member>
         <member name="P:MCSharp.Linkage.Minecraft.InlineStatementFunction.GenericParameters">
             <inheritdoc/>
@@ -4611,10 +4664,30 @@
         <member name="P:MCSharp.Linkage.Minecraft.InlineStatementFunction.ReturnTypeIdentifier">
             <inheritdoc/>
         </member>
+        <member name="P:MCSharp.Linkage.Minecraft.InlineStatementFunction.ThisTypeIdentifier">
+            <inheritdoc/>
+        </member>
         <member name="P:MCSharp.Linkage.Minecraft.InlineStatementFunction.ReturnInstance">
             <inheritdoc/>
         </member>
-        <member name="M:MCSharp.Linkage.Minecraft.InlineStatementFunction.Invoke(MCSharp.Compilation.Compiler.CompileArguments,MCSharp.Linkage.IType[],MCSharp.Compilation.Instancing.IInstance[],MCSharp.Compilation.Instancing.IInstance@)">
+        <member name="P:MCSharp.Linkage.Minecraft.InlineStatementFunction.ThisInstance">
+            <inheritdoc/>
+        </member>
+        <member name="M:MCSharp.Linkage.Minecraft.InlineStatementFunction.#ctor(MCSharp.Linkage.IGenericParameter[],MCSharp.Linkage.IMethodParameter[],MCSharp.Linkage.IStatement[],System.String,System.String)">
+            <summary>
+            
+            </summary>
+            <param name="genericParameters"></param>
+            <param name="methodParameters"></param>
+            <param name="statements"></param>
+            <param name="returnType"></param>
+            <param name="thisType">The local identifier of the 'this' type for this <see cref="T:MCSharp.Linkage.Minecraft.IFunction"/>. Pass <see langword="null"/> to define this <see cref="T:MCSharp.Linkage.Minecraft.IFunction"/> as static.</param>
+            <exception cref="T:System.ArgumentNullException"></exception>
+        </member>
+        <member name="M:MCSharp.Linkage.Minecraft.InlineStatementFunction.InvokeStatic(MCSharp.Compilation.Compiler.CompileArguments,MCSharp.Linkage.IType[],MCSharp.Compilation.Instancing.IInstance[],MCSharp.Compilation.Instancing.IInstance@)">
+            <inheritdoc/>
+        </member>
+        <member name="M:MCSharp.Linkage.Minecraft.InlineStatementFunction.InvokeNonStatic(MCSharp.Compilation.Compiler.CompileArguments,MCSharp.Compilation.Instancing.IInstance,MCSharp.Linkage.IType[],MCSharp.Compilation.Instancing.IInstance[],MCSharp.Compilation.Instancing.IInstance@)">
             <inheritdoc/>
         </member>
         <member name="T:MCSharp.Linkage.Minecraft.IStatementFunction">
@@ -4707,7 +4780,13 @@
         <member name="P:MCSharp.Linkage.Minecraft.StandaloneStatementFunction.ReturnInstance">
             <inheritdoc/>
         </member>
+        <member name="P:MCSharp.Linkage.Minecraft.StandaloneStatementFunction.ThisInstance">
+            <inheritdoc/>
+        </member>
         <member name="P:MCSharp.Linkage.Minecraft.StandaloneStatementFunction.ReturnTypeIdentifier">
+            <inheritdoc/>
+        </member>
+        <member name="P:MCSharp.Linkage.Minecraft.StandaloneStatementFunction.ThisTypeIdentifier">
             <inheritdoc/>
         </member>
         <member name="P:MCSharp.Linkage.Minecraft.StandaloneStatementFunction.Compiled">
@@ -4720,7 +4799,7 @@
             The <see cref="T:MCSharp.Compilation.Scope"/> this <see cref="T:MCSharp.Linkage.Minecraft.IFunction"/> is in.
             </summary>
         </member>
-        <member name="M:MCSharp.Linkage.Minecraft.StandaloneStatementFunction.#ctor(MCSharp.Compilation.FunctionWriter,MCSharp.Compilation.IScopeHolder,MCSharp.Linkage.IGenericParameter[],MCSharp.Linkage.IMethodParameter[],MCSharp.Linkage.IStatement[],System.String,MCSharp.Compilation.Compiler.OnLoadDelegate@)">
+        <member name="M:MCSharp.Linkage.Minecraft.StandaloneStatementFunction.#ctor(MCSharp.Compilation.FunctionWriter,MCSharp.Compilation.IScopeHolder,MCSharp.Linkage.IGenericParameter[],MCSharp.Linkage.IMethodParameter[],MCSharp.Linkage.IStatement[],System.String,System.String,System.Boolean,MCSharp.Compilation.Compiler.OnLoadDelegate@)">
             <summary>
             Creates a new <see cref="T:MCSharp.Linkage.Minecraft.StandaloneStatementFunction"/> with a scope of a <see cref="T:MCSharp.Compilation.IScopeHolder"/>.
             </summary>
@@ -4730,9 +4809,10 @@
             <param name="methodParameters">The <see cref="T:MCSharp.Linkage.IMethodParameter"/>s of this <see cref="T:MCSharp.Linkage.Minecraft.IFunction"/>.</param>
             <param name="statements">The <see cref="T:MCSharp.Linkage.IStatement"/>s of this <see cref="T:MCSharp.Linkage.Minecraft.IFunction"/>.</param>
             <param name="returnType">The local identifier of the return type for this <see cref="T:MCSharp.Linkage.Minecraft.IFunction"/>.</param>
-            <exception cref="T:System.ArgumentNullException">Thrown when any argument is <see langword="null"/></exception>
+            <param name="thisType">The local identifier of the 'this' type for this <see cref="T:MCSharp.Linkage.Minecraft.IFunction"/>. Pass <see langword="null"/> to define this <see cref="T:MCSharp.Linkage.Minecraft.IFunction"/> as static.</param>
+            <exception cref="T:System.ArgumentNullException">Thrown when any argument (except <paramref name="thisType"/>) is <see langword="null"/>.</exception>
         </member>
-        <member name="M:MCSharp.Linkage.Minecraft.StandaloneStatementFunction.#ctor(MCSharp.Compilation.FunctionWriter,MCSharp.Compilation.Scope,MCSharp.Linkage.IGenericParameter[],MCSharp.Linkage.IMethodParameter[],MCSharp.Linkage.IStatement[],System.String,MCSharp.Compilation.Compiler.OnLoadDelegate@)">
+        <member name="M:MCSharp.Linkage.Minecraft.StandaloneStatementFunction.#ctor(MCSharp.Compilation.FunctionWriter,MCSharp.Compilation.Scope,MCSharp.Linkage.IGenericParameter[],MCSharp.Linkage.IMethodParameter[],MCSharp.Linkage.IStatement[],System.String,System.String,System.Boolean,MCSharp.Compilation.Compiler.OnLoadDelegate@)">
             <summary>
             Creates a new <see cref="T:MCSharp.Linkage.Minecraft.StandaloneStatementFunction"/> with a custom <see cref="T:MCSharp.Compilation.Scope"/>.
             </summary>
@@ -4754,7 +4834,30 @@
             <returns>Returns the created <see cref="T:MCSharp.Linkage.Minecraft.StandaloneStatementFunction"/>.</returns>
             <exception cref="T:System.ArgumentNullException">Thrown when <paramref name="statements"/> is <see langword="null"/>.</exception>
         </member>
-        <member name="M:MCSharp.Linkage.Minecraft.StandaloneStatementFunction.Invoke(MCSharp.Compilation.Compiler.CompileArguments,MCSharp.Linkage.IType[],MCSharp.Compilation.Instancing.IInstance[],MCSharp.Compilation.Instancing.IInstance@)">
+        <member name="M:MCSharp.Linkage.Minecraft.StandaloneStatementFunction.InitializeContextInstances(MCSharp.Compilation.Compiler.CompileArguments)">
+            <summary>
+            
+            </summary>
+        </member>
+        <member name="M:MCSharp.Linkage.Minecraft.StandaloneStatementFunction.InstantiateContextInstances(MCSharp.Compilation.Compiler.CompileArguments)">
+            <summary>
+            
+            </summary>
+        </member>
+        <member name="M:MCSharp.Linkage.Minecraft.StandaloneStatementFunction.PrepareAtCall(MCSharp.Compilation.Compiler.CompileArguments,MCSharp.Compilation.Instancing.IInstance[],MCSharp.Compilation.Instancing.IInstance@)">
+            <summary>
+            
+            </summary>
+        </member>
+        <member name="M:MCSharp.Linkage.Minecraft.StandaloneStatementFunction.PrepareAtFunction(MCSharp.Compilation.Compiler.CompileArguments)">
+            <summary>
+            
+            </summary>
+        </member>
+        <member name="M:MCSharp.Linkage.Minecraft.StandaloneStatementFunction.InvokeStatic(MCSharp.Compilation.Compiler.CompileArguments,MCSharp.Linkage.IType[],MCSharp.Compilation.Instancing.IInstance[],MCSharp.Compilation.Instancing.IInstance@)">
+            <inheritdoc/>
+        </member>
+        <member name="M:MCSharp.Linkage.Minecraft.StandaloneStatementFunction.InvokeNonStatic(MCSharp.Compilation.Compiler.CompileArguments,MCSharp.Compilation.Instancing.IInstance,MCSharp.Linkage.IType[],MCSharp.Compilation.Instancing.IInstance[],MCSharp.Compilation.Instancing.IInstance@)">
             <inheritdoc/>
         </member>
         <member name="M:MCSharp.Linkage.Minecraft.StandaloneStatementFunction.Dispose">

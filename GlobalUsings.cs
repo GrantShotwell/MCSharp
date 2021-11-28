@@ -1,5 +1,6 @@
 
 #pragma warning disable IDE0005
+#pragma warning disable CS8019
 
 // Script
 global using ScriptContext = MCSharpParser.ScriptContext;

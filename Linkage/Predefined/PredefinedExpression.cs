@@ -9,7 +9,7 @@ namespace MCSharp.Linkage.Predefined;
 /// </summary>
 public class PredefinedExpression : IExpression {
 
-	public MCSharpParser.ExpressionContext Context { get; }
+	public ExpressionContext Context { get; }
 
 	/// <summary>
 	/// Creates a new <see cref="PredefinedExpression"/> by using Antlr to lex/parse <paramref name="expression"/>.

@@ -15,10 +15,10 @@ public class ClassInstance : ObjectInstance {
 	/// <summary>
 	/// The <see cref="Objective"/>s used to store fields in the <see cref="ClassInstance"/> of this <see cref="IType"/>.
 	/// </summary>
-	public IReadOnlyDictionary<IField, Objective[]> FieldObjectives { get; }
+	public virtual IReadOnlyDictionary<IField, Objective[]> FieldObjectives { get; }
 
-	public ClassInstance(Compiler.CompileArguments location, IType type, string identifier, PrimitiveInstance.IntegerInstance objectId, IReadOnlyDictionary<IField, Objective[]> fieldObjectives)
-	: base(location, type, identifier, objectId) {
+	public ClassInstance(Compiler.CompileArguments location, IType type, string identifier, PrimitiveInstance.IntegerInstance pointer, IReadOnlyDictionary<IField, Objective[]> fieldObjectives)
+	: base(location, type, identifier, pointer) {
 
 		#region Argument Checks
 		if(type.ClassType != ClassType.Class)
@@ -39,7 +39,9 @@ public class ClassInstance : ObjectInstance {
 
 	/// <inheritdoc/>
 	public override string ToString() {
+
 		return $"{Type.Identifier} {Identifier}";
+
 	}
 
 }

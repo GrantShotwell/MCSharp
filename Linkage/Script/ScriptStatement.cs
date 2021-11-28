@@ -2,14 +2,14 @@
 
 class ScriptStatement : IStatement {
 
-	public MCSharpParser.StatementContext ScriptContext { get; }
-	MCSharpParser.StatementContext IStatement.Context => ScriptContext;
+	public StatementContext ScriptContext { get; }
+	StatementContext IStatement.Context => ScriptContext;
 
-	public ScriptStatement(MCSharpParser.StatementContext scriptContext) {
+	public ScriptStatement(StatementContext scriptContext) {
 		ScriptContext = scriptContext;
 	}
 
-	public static ScriptStatement[] CreateArrayFromArray(MCSharpParser.StatementContext[] contexts) {
+	public static ScriptStatement[] CreateArrayFromArray(StatementContext[] contexts) {
 
 		int size = contexts.Length;
 		ScriptStatement[] statements = new ScriptStatement[size];

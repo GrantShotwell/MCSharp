@@ -73,7 +73,12 @@ public abstract class ScriptMemberDefinition : IMemberDefinition {
 						writer, new Scope("get", member.Scope),
 						Array.Empty<ScriptGenericParameter>(),
 						Array.Empty<ScriptMethodParameter>(),
-						statements, member.TypeIdentifier.GetText(), ref onLoad);
+						statements,
+						member.TypeIdentifier.GetText(),
+						member.Modifiers.HasFlag(Modifier.Static) ? null : member.Declarer.Identifier.GetText(),
+						ctor: false,
+						ref onLoad
+					);
 
 				}
 
@@ -105,7 +110,12 @@ public abstract class ScriptMemberDefinition : IMemberDefinition {
 						writer, new Scope("set", member.Scope),
 						Array.Empty<ScriptGenericParameter>(),
 						new IMethodParameter[] { new PredefinedMethodParameter(member.TypeIdentifier.GetText(), "value") },
-						statements, member.TypeIdentifier.GetText(), ref onLoad);
+						statements,
+						member.TypeIdentifier.GetText(),
+						member.Modifiers.HasFlag(Modifier.Static) ? null : member.Declarer.Identifier.GetText(),
+						ctor: false,
+						ref onLoad
+					);
 
 				}
 
@@ -137,8 +147,14 @@ public abstract class ScriptMemberDefinition : IMemberDefinition {
 				// Construct the function.
 				var function = new StandaloneStatementFunction(
 					writer, new Scope(null, member.Scope),
-					generics, parameters,
-					statements, member.TypeIdentifier.GetText(), ref onLoad);
+					generics,
+					parameters,
+					statements,
+					member.TypeIdentifier.GetText(),
+					member.Modifiers.HasFlag(Modifier.Static) ? null : member.Declarer.Identifier.GetText(),
+					ctor: false,
+					ref onLoad
+				);
 
 				// Construct and return the method.
 				return new Method(function);
@@ -167,7 +183,7 @@ public abstract class ScriptMemberDefinition : IMemberDefinition {
 		/// Creates a new <see cref="Field"/>.
 		/// </summary>
 		/// <param name="initialize">The value of <see cref="Initializer"/>.</param>
-		public Field(MCSharpParser.ExpressionContext initialize) {
+		public Field(ExpressionContext initialize) {
 			if(initialize == null) Initializer = null;
 			else Initializer = new ScriptExpression(initialize);
 		}

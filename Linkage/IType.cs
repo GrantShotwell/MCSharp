@@ -506,9 +506,11 @@ public static class ITypeExtensions {
 
 	}
 
-	public static ResultInfo FindBestMethodFromContext(this IType type, Compiler.CompileArguments location, ITerminalNode identifier,
-	GenericArgumentsContext generic_arguments, MethodArgumentsContext method_arguments,
-	out IMember member, out IType[] genericTypes, out IType[] argumentTypes, out IInstance[] argumentInstances) {
+	public static ResultInfo FindBestMethodFromContext(
+		this IType type, Compiler.CompileArguments location, ITerminalNode identifier,
+		GenericArgumentsContext generic_arguments, MethodArgumentsContext method_arguments,
+		out IMember member, out IType[] genericTypes, out IType[] argumentTypes, out IInstance[] argumentInstances
+	) {
 
 		#region Argument Checks
 		if(type is null)
@@ -533,8 +535,10 @@ public static class ITypeExtensions {
 			return argumentResult;
 		}
 
+		member = type.FindBestMethod(location.Compiler, genericTypes, argumentTypes, identifier.GetText());
+
 		// Get the method by best.
-		if((member = type.FindBestMethod(location.Compiler, genericTypes, argumentTypes, identifier.GetText())).Definition is not IMethod) {
+		if(member?.Definition is not IMethod) {
 
 			// If no method was found, then return failure.
 
@@ -579,7 +583,7 @@ public static class ITypeExtensions {
 
 		// Find the best method.
 		ResultInfo searchResult = type.FindBestMethodFromContext(location, identifier, generic_arguments, method_arguments,
-			out IMember member, out IType[] genericTypes, out IType[] argumentTypes, out IInstance[] argumentInstances);
+			out IMember member, out IType[] genericTypes, out _, out IInstance[] argumentInstances);
 		if(searchResult.Failure) {
 			value = null;
 			return searchResult;
@@ -587,7 +591,7 @@ public static class ITypeExtensions {
 		IMethod method = member.Definition as IMethod;
 
 		// Invoke method.
-		ResultInfo invokeResult = method.Invoker.Invoke(location, genericTypes, argumentInstances, out value);
+		ResultInfo invokeResult = method.Invoker.InvokeStatic(location, genericTypes, argumentInstances, out value);
 		if(invokeResult.Failure) return location.GetLocation(identifier) + invokeResult;
 
 		return ResultInfo.DefaultSuccess;
@@ -653,7 +657,7 @@ public static class ITypeExtensions {
 			}
 
 			// Invoke 'get' method.
-			ResultInfo result = property.Getter.Invoke(location, Array.Empty<IType>(), Array.Empty<IInstance>(), out value);
+			ResultInfo result = property.Getter.InvokeStatic(location, Array.Empty<IType>(), Array.Empty<IInstance>(), out value);
 			if(result.Failure) return location.GetLocation(identifier) + result;
 
 			// Return success.
@@ -663,6 +667,10 @@ public static class ITypeExtensions {
 
 			// Invoke field.
 			// Field is static, so no instance is needed.
+			if(!propertyOrField.Modifiers.HasFlag(Modifier.Static)) {
+				value = null;
+				return location.GetLocation(identifier) + new ResultInfo(success: false, $"The field '{identifier.GetText()}' is not static.");
+			}
 
 			// Get static field value.
 			value = type.StaticFieldInstances[field];

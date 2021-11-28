@@ -7,6 +7,7 @@ using MCSharp.Linkage.Minecraft;
 using MCSharp.Linkage.Predefined;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace MCSharp.Linkage.Script;
 
@@ -241,7 +242,7 @@ public class ScriptType : IType {
 		}
 
 		// Get casts.
-		var casts = new Dictionary<IType, IConversion>();
+		Dictionary<IType, IConversion> casts = new();
 		onLoad += (location) => {
 
 			// Make implicit casts to all base types.
@@ -252,20 +253,20 @@ public class ScriptType : IType {
 				IType target = baseType;
 
 				// Create cast function.
-				CustomFunction function = new CustomFunction(target.Identifier,
+				CustomFunction function = new CustomFunction(target.Identifier, null,
 					Array.Empty<PredefinedGenericParameter>(),
 					new PredefinedMethodParameter[] {
-							new PredefinedMethodParameter(reference.Identifier, "value")
+						new PredefinedMethodParameter(reference.Identifier, "value")
 					},
 					(Compiler.CompileArguments location, IType[] generic, IInstance[] arguments, out IInstance result) => {
 
-							// Get arguments.
-							ClassInstance value = arguments[0] as ClassInstance;
+						// Get arguments.
+						ClassInstance value = arguments[0] as ClassInstance;
 
 						if(ClassType == ClassType.Class) {
 
-								// Class instances inherit from object instances, so can just return the value.
-								result = value;
+							// Class instances inherit from object instances, so can just return the value.
+							result = value;
 
 						} else if(ClassType == ClassType.Struct) {
 
@@ -273,19 +274,19 @@ public class ScriptType : IType {
 
 						} else {
 
-								// Should never get here.
-								throw new Exception();
+							// Should never get here.
+							throw new Exception();
 
 						}
 
-							// Return a success.
-							return ResultInfo.DefaultSuccess;
+						// Return a success.
+						return ResultInfo.DefaultSuccess;
 
 					}
 				);
 
 				// Create and add cast.
-				var cast = new PredefinedConversion(reference, target, function, @implicit: true);
+				PredefinedConversion cast = new(reference, target, function, @implicit: true);
 				casts.Add(target, cast);
 
 			}
@@ -294,10 +295,62 @@ public class ScriptType : IType {
 
 		};
 
+		// Get operations.
+		HashSetDictionary<Operation, IOperation> operations = new();
+		onLoad += (location) => {
+
+			// Create assign operation to same type.
+			// Objects already have this.
+			if(ClassType == ClassType.Struct) {
+
+				IType type = this;
+				string typeIdentifier = type.Identifier;
+
+				// Create assign function.
+				CustomFunction function = new CustomFunction(typeIdentifier, null,
+					Array.Empty<PredefinedGenericParameter>(),
+					new PredefinedMethodParameter[] {
+						new PredefinedMethodParameter(typeIdentifier, "left"),
+						new PredefinedMethodParameter(typeIdentifier, "right")
+					},
+					(Compiler.CompileArguments location, IType[] generic, IInstance[] arguments, out IInstance result) => {
+
+						// Get arguments.
+						StructInstance left = arguments[0] as StructInstance;
+						StructInstance right = arguments[1] as StructInstance;
+
+						// Assign each field instance.
+						foreach(IField field in left.FieldInstances.Keys) {
+							ResultInfo fieldResult = Compiler.CompileSimpleOperation(location, Operation.Assign, left.FieldInstances[field], right.FieldInstances[field], out _);
+							if(fieldResult.Failure) {
+								result = null;
+								return fieldResult;
+							}
+						}
+
+						// Return a success.
+						result = left;
+						return ResultInfo.DefaultSuccess;
+
+					}
+				);
+
+				// Create and add operation.
+				Operation op = Operation.Assign;
+				PredefinedOperation operation = new(op, function);
+				operations.Add(op, operation);
+
+			}
+
+			return ResultInfo.DefaultSuccess;
+
+		};
+
+		Conversions = casts;
+		Operations = operations;
+
 		// TODO
 		SubTypes = new List<ScriptType>();
-		Conversions = casts;
-		Operations = new HashSetDictionary<Operation, IOperation>();
 
 	}
 
@@ -318,5 +371,12 @@ public class ScriptType : IType {
 		foreach(ScriptConstructor constructor in Constructors)
 			constructor.Dispose();
 
+		GC.SuppressFinalize(this);
+
 	}
+
+	public override string ToString() {
+		return Identifier.GetText();
+	}
+
 }

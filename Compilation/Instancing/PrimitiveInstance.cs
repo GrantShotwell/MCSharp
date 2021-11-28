@@ -110,7 +110,12 @@ public abstract class PrimitiveInstance : IInstance {
 
 		/// <inheritdoc/>
 		public override IInstance Copy(Compiler.CompileArguments location, string identifier) {
-			throw new NotImplementedException();
+			location.Writer.WriteComments(
+				"Copy an integer value.");
+			Objective objective = Objective.AddObjective(location.Writer, null, "dummy");
+			IntegerInstance instance = new IntegerInstance(Type, identifier, objective);
+			location.Writer.WriteCommand($"scoreboard players operation {MCSharpLinkerExtension.StorageSelector} {instance.Objective.Name} = {MCSharpLinkerExtension.StorageSelector} {Objective.Name}");
+			return instance;
 		}
 
 		/// <inheritdoc/>
@@ -158,10 +163,11 @@ public abstract class PrimitiveInstance : IInstance {
 
 			/// <inheritdoc/>
 			public override IInstance Copy(Compiler.CompileArguments location, string identifier) {
+				location.Writer.WriteComments(
+					"Copy a constant integer value.");
 				Objective objective = Objective.AddObjective(location.Writer, null, "dummy");
 				IntegerInstance instance = new IntegerInstance(Type, identifier, objective);
-				location.Writer.WriteCommand($"scoreboard players set {MCSharpLinkerExtension.StorageSelector} {instance.Objective.Name} {Value}",
-					"Copy a constant integer value.");
+				location.Writer.WriteCommand($"scoreboard players set {MCSharpLinkerExtension.StorageSelector} {instance.Objective.Name} {Value}");
 				return instance;
 			}
 
@@ -353,10 +359,10 @@ public abstract class PrimitiveInstance : IInstance {
 	}
 
 	[DebuggerDisplay("const {Type.Identifier,nq} {Identifier,nq} = {Value,nq}")]
-	public class JsonInstance : PrimitiveInstance, IConstantInstance<RawText> {
+	public class JsonInstance : PrimitiveInstance, IConstantInstance<RawTextList> {
 
 		/// <inheritdoc/>
-		public RawText Value { get; set; }
+		public RawTextList Value { get; set; }
 		/// <inheritdoc/>
 		object IConstantInstance.Value => Value;
 
@@ -366,7 +372,7 @@ public abstract class PrimitiveInstance : IInstance {
 		/// <param name="type">The <see cref="IType"/> that defines this instance.</param>
 		/// <param name="identifier">The local identifier for this instance.</param>
 		/// <param name="value">The value to hold within this <see cref="IConstantInstance"/>.</param>
-		public JsonInstance(IType type, string identifier, RawText value) : base(type, identifier) {
+		public JsonInstance(IType type, string identifier, RawTextList value) : base(type, identifier) {
 			Value = value;
 		}
 

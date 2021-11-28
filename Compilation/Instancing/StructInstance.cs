@@ -41,22 +41,27 @@ public class StructInstance : IInstance, IScopeHolder {
 			throw new IInstance.InvalidTypeException(type, "any struct");
 		#endregion
 
-
 		Type = type;
 		Identifier = identifier;
-		Scope = new Scope(null, type.Scope);
-		Scope.Holder = this;
+		Scope = new Scope(null, type.Scope) { Holder = this };
 		IDictionary<IField, IInstance> fieldInstances = new Dictionary<IField, IInstance>(type.Members.Count);
 		FieldInstances = (IReadOnlyDictionary<IField, IInstance>)fieldInstances;
 
-		// Initialize members inside of type's scope.
+		// Initialize members inside of instance's scope.
 		var typeLocation = new Compiler.CompileArguments(location.Compiler, location.Function, Scope, location.Predefined);
 		foreach(IMember member in type.Members) {
 
 			if(member.Definition is IField field) {
 
-				Compiler.CompileExpression(typeLocation, field.Initializer.Context, out IInstance value);
-				fieldInstances.Add(field, value.Copy(typeLocation, member.Identifier));
+				IType fieldType = location.Compiler.DefinedTypes[member.TypeIdentifier];
+				IInstance fieldInstance = fieldType.InitializeInstance(typeLocation, member.Identifier);
+
+				if(field.Initializer is not null) {
+					Compiler.CompileExpression(typeLocation, field.Initializer.Context, out IInstance value);
+					Compiler.CompileSimpleOperation(typeLocation, Operation.InitializationAssign, fieldInstance, value, out _);
+				}
+
+				fieldInstances.Add(field, fieldInstance);
 
 			}
 

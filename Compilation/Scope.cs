@@ -147,7 +147,7 @@ public class Scope {
 	}
 
 	/// <summary>
-	/// Finds the closest parent to this <see cref="Scope"/>.
+	/// Finds the closest parent to this <see cref="Scope"/> with a name.
 	/// </summary>
 	/// <returns>Returns the <see cref="Scope"/> found.</returns>
 	public Scope GetFirstNamedParent() {
@@ -161,6 +161,17 @@ public class Scope {
 
 		// No named parent found.
 		return null;
+
+	}
+
+	/// <summary>
+	/// Finds the closest parent to this <see cref="Scope"/> with a name, or <see langword="this"/>.
+	/// </summary>
+	/// <returns>Returns the <see cref="Scope"/> found.</returns>
+	public Scope GetFirstNamedParentOrThis() {
+
+		if(Name != null) return this;
+		else return GetFirstNamedParent();
 
 	}
 

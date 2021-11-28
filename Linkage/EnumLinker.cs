@@ -8,15 +8,15 @@ namespace MCSharp.Linkage;
 public static class EnumLinker {
 
 	/// <summary>
-	/// Links the given <see cref="MCSharpParser.ModifierContext"/>s to their corresponding <see cref="Modifier"/>s.
+	/// Links the given <see cref="ModifierContext"/>s to their corresponding <see cref="Modifier"/>s.
 	/// </summary>
-	/// <param name="modifiers">A collection of <see cref="MCSharpParser.ModifierContext"/> taken from script.</param>
+	/// <param name="modifiers">A collection of <see cref="ModifierContext"/> taken from script.</param>
 	/// <returns>Returns a <see cref="Modifier"/> value.</returns>
-	public static Modifier LinkModifiers(MCSharpParser.ModifierContext[] modifiers) {
+	public static Modifier LinkModifiers(ModifierContext[] modifiers) {
 
 		Modifier mods = 0;
 
-		foreach(MCSharpParser.ModifierContext modifier in modifiers) {
+		foreach(ModifierContext modifier in modifiers) {
 
 			if(modifier.PUBLIC() != null) mods |= Modifier.Public;
 			else if(modifier.PRIVATE() != null) mods |= Modifier.Private;

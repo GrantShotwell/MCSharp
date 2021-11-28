@@ -64,7 +64,7 @@ public static class IInstanceExtensions {
 		if(conversions.ContainsKey(toType)) {
 
 			var conversion = conversions[toType];
-			ResultInfo conversionResult = conversion.Function.Invoke(location, Array.Empty<IType>(), new IInstance[] { instance }, out value);
+			ResultInfo conversionResult = conversion.Function.InvokeStatic(location, Array.Empty<IType>(), new IInstance[] { instance }, out value);
 			if(conversionResult.Failure) { value = null; return conversionResult; }
 
 			return ResultInfo.DefaultSuccess;
@@ -105,12 +105,14 @@ public static class IInstanceExtensions {
 		instance.LoadFromBlock(location, selector, block, 0..^0);
 	}
 
-	public static ResultInfo InvokeBestMethod(this IInstance instance, Compiler.CompileArguments location, ITerminalNode identifier,
-	GenericArgumentsContext generic_arguments, MethodArgumentsContext method_arguments, out IInstance value) {
+	public static ResultInfo InvokeBestMethod(
+		this IInstance instance, Compiler.CompileArguments location, ITerminalNode identifier,
+		GenericArgumentsContext generic_arguments, MethodArgumentsContext method_arguments, out IInstance value
+	) {
 
 		// Find the best method.
 		ResultInfo searchResult = instance.Type.FindBestMethodFromContext(location, identifier, generic_arguments, method_arguments,
-			out IMember member, out IType[] genericTypes, out IType[] argumentTypes, out IInstance[] argumentInstances);
+			out IMember member, out IType[] genericTypes, out _, out IInstance[] argumentInstances);
 		if(searchResult.Failure) {
 			value = null;
 			return searchResult;
@@ -118,7 +120,7 @@ public static class IInstanceExtensions {
 		IMethod method = member.Definition as IMethod;
 
 		// Invoke method.
-		ResultInfo result = method.Invoker.Invoke(location, genericTypes, argumentInstances, out value);
+		ResultInfo result = method.Invoker.InvokeNonStatic(location, instance, genericTypes, argumentInstances, out value);
 		if(result.Failure) return location.GetLocation(identifier) + result;
 
 		return ResultInfo.DefaultSuccess;
@@ -148,7 +150,7 @@ public static class IInstanceExtensions {
 			}
 
 			// Invoke 'get' method.
-			ResultInfo result = property.Getter.Invoke(location, Array.Empty<IType>(), Array.Empty<IInstance>(), out value);
+			ResultInfo result = property.Getter.InvokeNonStatic(location, instance, Array.Empty<IType>(), Array.Empty<IInstance>(), out value);
 			if(result.Failure) return location.GetLocation(identifier) + result;
 
 			// Return success.

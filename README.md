@@ -1,2 +1,2 @@
 # MCSharp
- A programming language for Minecraft datapacks focused on object-oriented programming.
+ A tool to convert C#-like syntax into a Minecraft datapack.
