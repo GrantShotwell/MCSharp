@@ -209,11 +209,13 @@ public abstract class PrimitiveInstance : IInstance {
 	/// The decimal value is stored as an integer scoreboard objective with a scale so that <c>⌊actual*scale⌋=stored</c>.
 	/// </para>
 	/// <para>
-	/// Equations for solving math operations.
+	/// <u>Equations for solving math operations:</u>
 	///	<list type="bullet">
-	///	<item>Addition: <c>xa+yb=xc+yc=(x+y)c → c=±√(ab)</c></item>
-	///	<item>Subtraction: <c>xa-yb=xc-yc=(x-y)c → c=-±√(ab)</c></item>
-	///	<item>Square root: <c>√(xa₁)=√(x)a₂ → a₁=a₂²</c></item>
+	///	<item><c>xa+yb=xc+yc=(x+y)c → c=±√(ab)</c></item>
+	///	<item><c>xa-yb=xc-yc=(x-y)c → c=-±√(ab)</c></item>
+	///	<item><c>xa*yb=(xy)c → c=a*b</c></item>
+	///	<item><c>xa/yb=(xy)c → c=a/b</c></item>
+	///	<item><c>√(xa₁)=√(x)a₂ → a₁=a₂²</c></item>
 	///	</list>
 	///	</para>
 	/// </remarks>
