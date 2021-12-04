@@ -3634,6 +3634,60 @@
         <member name="M:MCSharp.Compilation.Instancing.PrimitiveInstance.IntegerInstance.Constant.LoadFromBlock(MCSharp.Compilation.Compiler.CompileArguments,System.String,MCSharp.Linkage.Minecraft.Objective[],System.Range)">
             <inheritdoc/>
         </member>
+        <member name="T:MCSharp.Compilation.Instancing.PrimitiveInstance.FloatInstance">
+            <summary>
+            Represents an <see cref="T:MCSharp.Compilation.Instancing.IInstance"/> of a floating-point value.
+            </summary>
+        </member>
+        <member name="P:MCSharp.Compilation.Instancing.PrimitiveInstance.FloatInstance.CoefficientObjective">
+            <summary>
+            The <see cref="T:MCSharp.Linkage.Minecraft.Objective"/> that holds the value of this <see cref="T:MCSharp.Compilation.Instancing.PrimitiveInstance.FloatInstance"/>'s coefficient.
+            </summary>
+        </member>
+        <member name="P:MCSharp.Compilation.Instancing.PrimitiveInstance.FloatInstance.ExponentObjective">
+            <summary>
+            The <see cref="T:MCSharp.Linkage.Minecraft.Objective"/> that holds the value of this <see cref="T:MCSharp.Compilation.Instancing.PrimitiveInstance.FloatInstance"/>'s exponent.
+            </summary>
+        </member>
+        <member name="M:MCSharp.Compilation.Instancing.PrimitiveInstance.FloatInstance.Copy(MCSharp.Compilation.Compiler.CompileArguments,System.String)">
+            <inheritdoc/>
+        </member>
+        <member name="M:MCSharp.Compilation.Instancing.PrimitiveInstance.FloatInstance.SaveToBlock(MCSharp.Compilation.Compiler.CompileArguments,System.String,MCSharp.Linkage.Minecraft.Objective[],System.Range)">
+            <inheritdoc/>
+        </member>
+        <member name="M:MCSharp.Compilation.Instancing.PrimitiveInstance.FloatInstance.LoadFromBlock(MCSharp.Compilation.Compiler.CompileArguments,System.String,MCSharp.Linkage.Minecraft.Objective[],System.Range)">
+            <inheritdoc/>
+        </member>
+        <member name="T:MCSharp.Compilation.Instancing.PrimitiveInstance.FloatInstance.Constant">
+            <summary>
+            Represents the <see cref="T:MCSharp.Compilation.Instancing.IConstantInstance"/> version of <see cref="T:MCSharp.Compilation.Instancing.PrimitiveInstance.FloatInstance"/>.
+            </summary>
+        </member>
+        <member name="P:MCSharp.Compilation.Instancing.PrimitiveInstance.FloatInstance.Constant.Value">
+            <summary>
+            The value of this <see cref="T:MCSharp.Compilation.Instancing.PrimitiveInstance.FloatInstance.Constant"/>.
+            </summary>
+        </member>
+        <member name="P:MCSharp.Compilation.Instancing.PrimitiveInstance.FloatInstance.Constant.MCSharp#Compilation#Instancing#IConstantInstance#Value">
+            <inheritdoc/>
+        </member>
+        <member name="M:MCSharp.Compilation.Instancing.PrimitiveInstance.FloatInstance.Constant.#ctor(MCSharp.Linkage.IType,System.String,System.ValueTuple{System.Int32,System.Int32})">
+            <summary>
+            Creates a new <see cref="T:MCSharp.Compilation.Instancing.PrimitiveInstance.FloatInstance.Constant"/> that holds <paramref name="value"/>.
+            </summary>
+            <param name="type">The <see cref="T:MCSharp.Linkage.IType"/> that defines this instance.</param>
+            <param name="identifier">The local identifier for this instance.</param>
+            <param name="value">The value to hold within this <see cref="T:MCSharp.Compilation.Instancing.IConstantInstance"/>.</param>
+        </member>
+        <member name="M:MCSharp.Compilation.Instancing.PrimitiveInstance.FloatInstance.Constant.Copy(MCSharp.Compilation.Compiler.CompileArguments,System.String)">
+            <inheritdoc/>
+        </member>
+        <member name="M:MCSharp.Compilation.Instancing.PrimitiveInstance.FloatInstance.Constant.SaveToBlock(MCSharp.Compilation.Compiler.CompileArguments,System.String,MCSharp.Linkage.Minecraft.Objective[],System.Range)">
+            <inheritdoc/>
+        </member>
+        <member name="M:MCSharp.Compilation.Instancing.PrimitiveInstance.FloatInstance.Constant.LoadFromBlock(MCSharp.Compilation.Compiler.CompileArguments,System.String,MCSharp.Linkage.Minecraft.Objective[],System.Range)">
+            <inheritdoc/>
+        </member>
         <member name="T:MCSharp.Compilation.Instancing.PrimitiveInstance.BooleanInstance">
             <summary>
             Represents an <see cref="T:MCSharp.Compilation.Instancing.IInstance"/> of a boolean value.
@@ -4072,14 +4126,14 @@
         <member name="P:MCSharp.Linkage.Extensions.MCSharpLinkerExtension.IntIdentifier">
             <summary>Identifier for the integer type.</summary>
         </member>
-        <member name="P:MCSharp.Linkage.Extensions.MCSharpLinkerExtension.BoolIdentifier">
+        <member name="P:MCSharp.Linkage.Extensions.MCSharpLinkerExtension.FloatIdentifier">
             <summary>Identifier for the boolean type.</summary>
         </member>
-        <member name="P:MCSharp.Linkage.Extensions.MCSharpLinkerExtension.FloatIdentifier">
-            <summary>Identifier for the floating-point type.</summary>
+        <member name="P:MCSharp.Linkage.Extensions.MCSharpLinkerExtension.BoolIdentifier">
+            <summary>Identifier for the string type.</summary>
         </member>
         <member name="P:MCSharp.Linkage.Extensions.MCSharpLinkerExtension.StringIdentifier">
-            <summary>Identifier for the string type.</summary>
+            <summary>Identifier for the floating-point type.</summary>
         </member>
         <member name="P:MCSharp.Linkage.Extensions.MCSharpLinkerExtension.SelectorIdentifier">
             <summary>Identifier for the selector type.</summary>
@@ -4116,6 +4170,11 @@
         <member name="M:MCSharp.Linkage.Extensions.MCSharpLinkerExtension.CreatePredefinedInt(MCSharp.Compilation.Scope,MCSharp.Compilation.Compiler.OnLoadDelegate@)">
             <summary>
             Creates the <see cref="T:MCSharp.Linkage.Predefined.PredefinedType"/> for the <see cref="T:MCSharp.Compilation.Instancing.PrimitiveInstance.IntegerInstance"/> type "int".
+            </summary>
+        </member>
+        <member name="M:MCSharp.Linkage.Extensions.MCSharpLinkerExtension.CreatePredefinedFloat(MCSharp.Compilation.Scope,MCSharp.Compilation.Compiler.OnLoadDelegate@)">
+            <summary>
+            Creates the <see cref="T:MCSharp.Linkage.Predefined.PredefinedType"/> for the <see cref="!:PrimitiveType.FloatInstance"/> type.
             </summary>
         </member>
         <member name="M:MCSharp.Linkage.Extensions.MCSharpLinkerExtension.CreatePredefinedBool(MCSharp.Compilation.Scope,MCSharp.Compilation.Compiler.OnLoadDelegate@)">

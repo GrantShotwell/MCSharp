@@ -381,7 +381,7 @@ public class Compiler : IDisposable {
 
 				Scope statement1Scope = new Scope(null, location.Scope);
 				StandaloneStatementFunction statement1Function = location.Function.CreateChildFunction(CreateIStatements(statement1, location.Predefined), location.Compiler.Settings);
-				CompileArguments statement1Location = new CompileArguments(location.Compiler, statement1Function, statement1Scope, location.Predefined);
+				CompileArguments statement1Location = location with { Function = statement1Function, Scope = statement1Scope };
 
 				ResultInfo statement1Result = CompileStatement(statement1Location, statement1);
 				if(statement1Result.Failure) return statement1Result;
@@ -395,7 +395,7 @@ public class Compiler : IDisposable {
 
 						Scope statement2Scope = new Scope(null, location.Scope);
 						StandaloneStatementFunction statement2Function = location.Function.CreateChildFunction(CreateIStatements(statement2, location.Predefined), location.Compiler.Settings);
-						CompileArguments statement2Location = new CompileArguments(location.Compiler, statement2Function, statement2Scope, location.Predefined);
+						CompileArguments statement2Location = location with { Function = statement2Function, Scope = statement2Scope };
 
 						ResultInfo statement2Result = CompileStatement(statement2Location, statement2);
 						if(statement2Result.Failure) return statement2Result;
@@ -3032,10 +3032,15 @@ public class Compiler : IDisposable {
 		ITerminalNode decimal_literal = literal.DECIMAL();
 		if(decimal_literal != null) {
 
-			string text = decimal_literal.GetText();
-			double _value = double.Parse(text);
+			string[] text = decimal_literal.GetText().Split('.');
+			int _value1 = int.Parse(text[0]), _value2 = int.Parse(text[1]);
 
-			throw new NotImplementedException("Decimal/float/ect. literals have not been implemented.");
+			IType type = location.Compiler.DefinedTypes[MCSharpLinkerExtension.FloatIdentifier];
+			value = new PrimitiveInstance.FloatInstance.Constant(type, null, (_value1, _value2));
+			ResultInfo scopeResult = location.Scope.AddInstance(value);
+			if(scopeResult.Failure) return location.GetLocation(decimal_literal) + scopeResult;
+
+			return ResultInfo.DefaultSuccess;
 
 		}
 
@@ -3294,12 +3299,12 @@ public class Compiler : IDisposable {
 		/// <summary>
 		/// The <see cref="Compilation.Compiler"/>.
 		/// </summary>
-		public Compiler Compiler { get; }
+		public Compiler Compiler { get; init; }
 
 		/// <summary>
 		/// The <see cref="StandaloneStatementFunction"/> being written to.
 		/// </summary>
-		public StandaloneStatementFunction Function { get; }
+		public StandaloneStatementFunction Function { get; init; }
 
 		/// <summary>
 		/// The <see cref="FunctionWriter"/> of <see cref="Function"/>.
@@ -3309,12 +3314,12 @@ public class Compiler : IDisposable {
 		/// <summary>
 		/// The current <see cref="Compilation.Scope"/>.
 		/// </summary>
-		public Scope Scope { get; }
+		public Scope Scope { get; init; }
 
 		/// <summary>
 		/// Whether or not the <see cref="IStatement"/>s are <see cref="PredefinedStatement"/>s.
 		/// </summary>
-		public bool Predefined { get; }
+		public bool Predefined { get; init; }
 
 
 		/// <summary>

@@ -110,29 +110,37 @@ public abstract class PrimitiveInstance : IInstance {
 
 		/// <inheritdoc/>
 		public override IInstance Copy(Compiler.CompileArguments location, string identifier) {
+
 			location.Writer.WriteComments(
 				"Copy an integer value.");
 			Objective objective = Objective.AddObjective(location.Writer, null, "dummy");
 			IntegerInstance instance = new IntegerInstance(Type, identifier, objective);
 			location.Writer.WriteCommand($"scoreboard players operation {MCSharpLinkerExtension.StorageSelector} {instance.Objective.Name} = {MCSharpLinkerExtension.StorageSelector} {Objective.Name}");
 			return instance;
+
 		}
 
 		/// <inheritdoc/>
 		public override void SaveToBlock(Compiler.CompileArguments location, string selector, Objective[] block, Range range) {
-			(int offset, int length) = range.GetOffsetAndLength(block.Length);
+
 			int expected = 1;
+			(int offset, int length) = range.GetOffsetAndLength(block.Length);
 			if(length != expected) throw IInstance.GenerateInvalidBlockRangeException(length, expected);
-			else location.Writer.WriteCommand($"scoreboard players operation {selector} {block[offset].Name} = {MCSharpLinkerExtension.StorageSelector} {Objective.Name}",
+
+			location.Writer.WriteCommand($"scoreboard players operation {selector} {block[offset].Name} = {MCSharpLinkerExtension.StorageSelector} {Objective.Name}",
 				"Save an integer value to a block.");
 		}
 
 		/// <inheritdoc/>
 		public override void LoadFromBlock(Compiler.CompileArguments location, string selector, Objective[] block, Range range) {
+
+			int expected = 1;
 			(int offset, int length) = range.GetOffsetAndLength(block.Length);
-			if(length != 1) throw IInstance.GenerateInvalidBlockRangeException(length, 1);
-			else location.Writer.WriteCommand($"scoreboard players operation {MCSharpLinkerExtension.StorageSelector} {Objective.Name} = {selector} {block[offset].Name}",
+			if(length != expected) throw IInstance.GenerateInvalidBlockRangeException(length, expected);
+
+			location.Writer.WriteCommand($"scoreboard players operation {MCSharpLinkerExtension.StorageSelector} {Objective.Name} = {selector} {block[offset].Name}",
 				"Load an integer value from a block.");
+			
 		}
 
 
@@ -163,26 +171,170 @@ public abstract class PrimitiveInstance : IInstance {
 
 			/// <inheritdoc/>
 			public override IInstance Copy(Compiler.CompileArguments location, string identifier) {
+
 				location.Writer.WriteComments(
 					"Copy a constant integer value.");
 				Objective objective = Objective.AddObjective(location.Writer, null, "dummy");
 				IntegerInstance instance = new IntegerInstance(Type, identifier, objective);
 				location.Writer.WriteCommand($"scoreboard players set {MCSharpLinkerExtension.StorageSelector} {instance.Objective.Name} {Value}");
 				return instance;
+
 			}
 
 			/// <inheritdoc/>
 			public override void SaveToBlock(Compiler.CompileArguments location, string selector, Objective[] block, Range range) {
-				(int offset, int length) = range.GetOffsetAndLength(block.Length);
+
 				int expected = 1;
+				(int offset, int length) = range.GetOffsetAndLength(block.Length);
 				if(length != expected) throw IInstance.GenerateInvalidBlockRangeException(length, expected);
-				else location.Writer.WriteCommand($"scoreboard players set {selector} {block[offset].Name} {Value}",
+
+				location.Writer.WriteCommand($"scoreboard players set {selector} {block[offset].Name} {Value}",
 					"Save a constant integer value to a block.");
 			}
 
 			/// <inheritdoc/>
 			public override void LoadFromBlock(Compiler.CompileArguments location, string selector, Objective[] block, Range range) {
 				throw new InvalidOperationException("Cannot load a constant integer value from a block.");
+			}
+
+		}
+
+	}
+
+	/// <summary>
+	/// Represents an <see cref="IInstance"/> of a floating-point value.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The decimal value is stored as an integer scoreboard objective with a scale so that <c>⌊actual*scale⌋=stored</c>.
+	/// </para>
+	/// <para>
+	/// Equations for solving math operations.
+	///	<list type="bullet">
+	///	<item>Addition: <c>xa+yb=xc+yc=(x+y)c → c=±√(ab)</c></item>
+	///	<item>Subtraction: <c>xa-yb=xc-yc=(x-y)c → c=-±√(ab)</c></item>
+	///	<item>Square root: <c>√(xa₁)=√(x)a₂ → a₁=a₂²</c></item>
+	///	</list>
+	///	</para>
+	/// </remarks>
+	public class FloatInstance : PrimitiveInstance {
+
+		/// <summary>
+		/// The <see cref="Objective"/> that holds the value of this <see cref="FloatInstance"/>'s <c>actual*scale</c> value.
+		/// </summary>
+		public Objective ValueObjective { get; }
+
+		/// <summary>
+		/// The <see cref="Objective"/> that holds the value of this <see cref="FloatInstance"/>'s <c>scale</c> value.
+		/// </summary>
+		public Objective ScaleObjective { get; }
+
+
+		public FloatInstance(IType type, string identifier, Objective valueObjective, Objective scaleObjective) : base(type, identifier) {
+			ValueObjective = valueObjective;
+			ScaleObjective = scaleObjective;
+		}
+
+
+		/// <inheritdoc/>
+		public override IInstance Copy(Compiler.CompileArguments location, string identifier) {
+			location.Writer.WriteComments(
+				"Copy a floating-point value.");
+			Objective coefficientObjective = Objective.AddObjective(location.Writer, null, "dummy");
+			Objective exponentObjective = Objective.AddObjective(location.Writer, null, "dummy");
+			FloatInstance instance = new FloatInstance(Type, identifier, coefficientObjective, exponentObjective);
+			location.Writer.WriteCommand($"scoreboard players operation {MCSharpLinkerExtension.StorageSelector} {instance.ValueObjective.Name} = {MCSharpLinkerExtension.StorageSelector} {ValueObjective.Name}");
+			location.Writer.WriteCommand($"scoreboard players operation {MCSharpLinkerExtension.StorageSelector} {instance.ScaleObjective.Name} = {MCSharpLinkerExtension.StorageSelector} {ScaleObjective.Name}");
+			return instance;
+		}
+
+		/// <inheritdoc/>
+		public override void SaveToBlock(Compiler.CompileArguments location, string selector, Objective[] block, Range range) {
+
+			int expected = 2;
+			(int offset, int length) = range.GetOffsetAndLength(block.Length);
+			if(length != expected) throw IInstance.GenerateInvalidBlockRangeException(length, expected);
+
+			location.Writer.WriteCommand($"scoreboard players operation {selector} {block[offset].Name} = {MCSharpLinkerExtension.StorageSelector} {ValueObjective.Name}",
+				"Save a floating-point value to a block.");
+			location.Writer.WriteCommand($"scoreboard players operation {selector} {block[offset + 1].Name} = {MCSharpLinkerExtension.StorageSelector} {ScaleObjective.Name}");
+		}
+
+		/// <inheritdoc/>
+		public override void LoadFromBlock(Compiler.CompileArguments location, string selector, Objective[] block, Range range) {
+
+			int expected = 2;
+			(int offset, int length) = range.GetOffsetAndLength(block.Length);
+			if(length != expected) throw IInstance.GenerateInvalidBlockRangeException(length, expected);
+
+			location.Writer.WriteCommand($"scoreboard players operation {MCSharpLinkerExtension.StorageSelector} {ValueObjective.Name} = {selector} {block[offset].Name}",
+				"Load a floating-point value from a block.");
+			location.Writer.WriteCommand($"scoreboard players operation {MCSharpLinkerExtension.StorageSelector} {ScaleObjective.Name} = {selector} {block[offset + 1].Name}");
+
+		}
+
+		/// <summary>
+		/// Represents the <see cref="IConstantInstance"/> version of <see cref="FloatInstance"/>.
+		/// </summary>
+		public class Constant : PrimitiveInstance, IConstantInstance<(int Value, int Scale)> {
+
+			/// <summary>
+			/// The value of this <see cref="Constant"/>.
+			/// </summary>
+			public (int Value, int Scale) Value { get; }
+			/// <inheritdoc/>
+			object IConstantInstance.Value => Value;
+
+
+			/// <summary>
+			/// Creates a new <see cref="Constant"/> that holds <paramref name="value"/>.
+			/// </summary>
+			/// <param name="type">The <see cref="IType"/> that defines this instance.</param>
+			/// <param name="identifier">The local identifier for this instance.</param>
+			/// <param name="value">The value to hold within this <see cref="IConstantInstance"/>.</param>
+			public Constant(IType type, string identifier, (int Value, int Scale) value) : base(type, identifier) {
+				Value = value;
+			}
+
+
+			/// <inheritdoc/>
+			public override IInstance Copy(Compiler.CompileArguments location, string identifier) {
+
+				location.Writer.WriteComments(
+					"Copy a floating-point value.");
+				Objective coefficientObjective = Objective.AddObjective(location.Writer, null, "dummy");
+				Objective exponentObjective = Objective.AddObjective(location.Writer, null, "dummy");
+				FloatInstance instance = new FloatInstance(Type, identifier, coefficientObjective, exponentObjective);
+				location.Writer.WriteCommand($"scoreboard players set {MCSharpLinkerExtension.StorageSelector} {instance.ValueObjective.Name} {Value.Value}");
+				location.Writer.WriteCommand($"scoreboard players set {MCSharpLinkerExtension.StorageSelector} {instance.ScaleObjective.Name} {Value.Scale}");
+				return instance;
+
+			}
+
+			/// <inheritdoc/>
+			public override void SaveToBlock(Compiler.CompileArguments location, string selector, Objective[] block, Range range) {
+
+				int expected = 2;
+				(int offset, int length) = range.GetOffsetAndLength(block.Length);
+				if(length != expected) throw IInstance.GenerateInvalidBlockRangeException(length, expected);
+
+				location.Writer.WriteCommand($"scoreboard players set {selector} {block[offset].Name} {Value.Value}",
+					"Save a floating-point value to a block.");
+				location.Writer.WriteCommand($"scoreboard players set {selector} {block[offset + 1].Name} {Value.Scale}");
+
+			}
+
+			/// <inheritdoc/>
+			public override void LoadFromBlock(Compiler.CompileArguments location, string selector, Objective[] block, Range range) {
+
+				int expected = 2;
+				(int offset, int length) = range.GetOffsetAndLength(block.Length);
+				if(length != expected) throw IInstance.GenerateInvalidBlockRangeException(length, expected);
+
+				location.Writer.WriteCommand($"scoreboard players set {selector} {block[offset].Name} {Value.Value}",
+					"Load a floating-point value from a block.");
+				location.Writer.WriteCommand($"scoreboard players set {selector} {block[offset + 1].Name} {Value.Scale}");
+
 			}
 
 		}

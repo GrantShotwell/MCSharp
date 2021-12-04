@@ -27,10 +27,10 @@ public class MCSharpLinkerExtension : LinkerExtension {
 	/// <summary>Identifier for the integer type.</summary>
 	public static string IntIdentifier => "int";
 	/// <summary>Identifier for the boolean type.</summary>
-	public static string BoolIdentifier => "bool";
-	/// <summary>Identifier for the floating-point type.</summary>
 	public static string FloatIdentifier => "float";
 	/// <summary>Identifier for the string type.</summary>
+	public static string BoolIdentifier => "bool";
+	/// <summary>Identifier for the floating-point type.</summary>
 	public static string StringIdentifier => "string";
 	/// <summary>Identifier for the selector type.</summary>
 	public static string SelectorIdentifier => "Selector";
@@ -80,6 +80,10 @@ public class MCSharpLinkerExtension : LinkerExtension {
 		// Add the int type.
 		PredefinedType @int = CreatePredefinedInt(rootScope, ref onLoad);
 		Compiler.DefinedTypes.Add(@int.Identifier, @int);
+
+		// Add the float type.
+		//PredefinedType @float = CreatePredefinedFloat(rootScope, ref onLoad);
+		//Compiler.DefinedTypes.Add(@float.Identifier, @float);
 
 		// Add the bool type.
 		PredefinedType @bool = CreatePredefinedBool(rootScope, ref onLoad);
@@ -951,6 +955,298 @@ public class MCSharpLinkerExtension : LinkerExtension {
 	}
 
 	/// <summary>
+	/// Creates the <see cref="PredefinedType"/> for the <see cref="PrimitiveType.FloatInstance"/> type.
+	/// </summary>
+	private static PredefinedType CreatePredefinedFloat(Scope rootScope, ref Compiler.OnLoadDelegate onLoad) {
+
+		Modifier modifiers = Modifier.Public;
+		ClassType classType = ClassType.Primitive;
+		string identifier = FloatIdentifier;
+		PredefinedType[] subtypes = Array.Empty<PredefinedType>();
+		PredefinedType predefinedType = null;
+		Scope typeScope = new Scope(identifier, rootScope);
+
+		#region Members
+
+		List<PredefinedMember> members = new List<PredefinedMember>();
+
+		{
+
+		}
+
+		#endregion
+
+		#region Constructors
+
+		List<PredefinedConstructor> constructors = new List<PredefinedConstructor>();
+
+		{
+			// Compiler creates this type through literals.
+		}
+
+		#endregion
+
+		#region Operations
+
+		HashSetDictionary<Operation, IOperation> operations = new HashSetDictionary<Operation, IOperation>();
+
+		static IInstance ScoreboardOperation(
+			Compiler.CompileArguments location, IInstance[] method, PredefinedType predefinedType,
+			string op, bool align,
+			Func<(int, int), (int, int), (int, int)> evaluateConstants
+		) {
+
+			Scope scope = location.Scope;
+			FunctionWriter writer = location.Writer;
+			string selector = StorageSelector;
+
+			PrimitiveInstance.FloatInstance left = method[0] as PrimitiveInstance.FloatInstance;
+			PrimitiveInstance.FloatInstance.Constant leftConstant = left is null ? method[0] as PrimitiveInstance.FloatInstance.Constant : null;
+			PrimitiveInstance.FloatInstance right = method[1] as PrimitiveInstance.FloatInstance;
+			PrimitiveInstance.FloatInstance.Constant rightConstant = right is null ? method[1] as PrimitiveInstance.FloatInstance.Constant : null;
+
+			if(leftConstant is not null && rightConstant is not null) {
+
+				(int, int) value = evaluateConstants(leftConstant.Value, rightConstant.Value);
+				PrimitiveInstance.FloatInstance.Constant result = new PrimitiveInstance.FloatInstance.Constant(predefinedType, null, value);
+				return result;
+
+			} else if(leftConstant is not null) {
+
+				PrimitiveInstance.FloatInstance result = predefinedType.InitializeInstance(location, null) as PrimitiveInstance.FloatInstance;
+				writer.WriteCommand($"scoreboard players set {selector} {result.ValueObjective.Name} {leftConstant.Value.Value}");
+				writer.WriteCommand($"scoreboard players set {selector} {result.ScaleObjective.Name} {leftConstant.Value.Scale}");
+
+				throw new NotImplementedException();
+				return result;
+
+			} else if(rightConstant is not null) {
+
+				PrimitiveInstance.FloatInstance result = predefinedType.InitializeInstance(location, null) as PrimitiveInstance.FloatInstance;
+				//writer.WriteCommand($"scoreboard players operation {selector} {result.Objective.Name} = {selector} {left.Objective.Name}");
+				right = predefinedType.InitializeInstance(location, null) as PrimitiveInstance.FloatInstance;
+
+				throw new NotImplementedException();
+				return result;
+
+			} else {
+
+				PrimitiveInstance.FloatInstance _left = predefinedType.InitializeInstance(location, null) as PrimitiveInstance.FloatInstance;
+				writer.WriteCommand($"scoreboard players operation {selector} {_left.ValueObjective.Name} = {selector} {left.ValueObjective.Name}");
+				writer.WriteCommand($"scoreboard players operation {selector} {_left.ScaleObjective.Name} = {selector} {left.ScaleObjective.Name}");
+
+				PrimitiveInstance.FloatInstance _right = predefinedType.InitializeInstance(location, null) as PrimitiveInstance.FloatInstance;
+				writer.WriteCommand($"scoreboard players operation {selector} {_right.ValueObjective.Name} {op} {selector} {right.ValueObjective.Name}");
+				writer.WriteCommand($"scoreboard players operation {selector} {_right.ScaleObjective.Name} {op} {selector} {right.ScaleObjective.Name}");
+
+				if(align) {
+
+					throw new NotImplementedException();
+
+				} else {
+
+					// Apply the operation to the exponent.
+					writer.WriteCommand($"scoreboard players operation {selector} {_left.ScaleObjective.Name} {op} {selector} {_right.ScaleObjective.Name}");
+					writer.WriteCommand($"scoreboard players operation {selector} {_left.ValueObjective.Name} {op} {selector} {_right.ValueObjective.Name}");
+
+				}
+				return _left;
+
+			}
+
+		}
+
+		static IInstance ScoreboardDirectOperation(Compiler.CompileArguments location, IInstance[] method, PredefinedType predefinedType, string op, string compact) {
+
+			Scope scope = location.Scope;
+			FunctionWriter writer = location.Writer;
+			string selector = StorageSelector;
+
+			PrimitiveInstance.IntegerInstance left = method[0] as PrimitiveInstance.IntegerInstance;
+			PrimitiveInstance.IntegerInstance.Constant leftConstant = left is null ? method[0] as PrimitiveInstance.IntegerInstance.Constant : null;
+			PrimitiveInstance.IntegerInstance right = method[1] as PrimitiveInstance.IntegerInstance;
+			PrimitiveInstance.IntegerInstance.Constant rightConstant = right is null ? method[1] as PrimitiveInstance.IntegerInstance.Constant : null;
+
+			if(leftConstant != null) {
+				throw new InvalidOperationException("Cannot assign to a constant.");
+			} else if(rightConstant != null) {
+				if(compact != null) {
+					writer.WriteCommand($"scoreboard players {compact} {selector} {left.Objective.Name} {rightConstant.Value}");
+				} else {
+					right = predefinedType.InitializeInstance(location, null) as PrimitiveInstance.IntegerInstance;
+					writer.WriteCommand($"scoreboard players set {selector} {right.Objective.Name} {rightConstant.Value}");
+					writer.WriteCommand($"scoreboard players operation {selector} {left.Objective.Name} {op} {selector} {right.Objective.Name}");
+				}
+				return left;
+			} else {
+				writer.WriteCommand($"scoreboard players operation {selector} {left.Objective.Name} {op} {selector} {right.Objective.Name}");
+				return left;
+			}
+
+		}
+
+		static IInstance ExecuteScoreComparison(Compiler.CompileArguments location, IInstance[] method, PredefinedType predefinedType, string op,
+			Func<int, string> matchConstant, Func<int, string> matchConstantFlipped, Func<int, int, bool> evaluateConstants) {
+
+			Scope scope = location.Scope;
+			FunctionWriter writer = location.Writer;
+			string selector = StorageSelector;
+
+			PrimitiveInstance.IntegerInstance left = method[0] as PrimitiveInstance.IntegerInstance;
+			PrimitiveInstance.IntegerInstance.Constant leftConstant = left is null ? method[0] as PrimitiveInstance.IntegerInstance.Constant : null;
+			PrimitiveInstance.IntegerInstance right = method[1] as PrimitiveInstance.IntegerInstance;
+			PrimitiveInstance.IntegerInstance.Constant rightConstant = right is null ? method[1] as PrimitiveInstance.IntegerInstance.Constant : null;
+
+			if(leftConstant != null && rightConstant != null) {
+				bool value = evaluateConstants(leftConstant.Value, rightConstant.Value);
+				PrimitiveInstance.BooleanInstance.Constant result = new PrimitiveInstance.BooleanInstance.Constant(predefinedType, null, value);
+				return result;
+			} else if(leftConstant != null) {
+				PrimitiveInstance.BooleanInstance result = predefinedType.InitializeInstance(location, null) as PrimitiveInstance.BooleanInstance;
+				writer.WriteCommand($"scoreboard players set {selector} {result.Objective.Name} 0");
+				writer.WriteCommand($"execute if score {selector} {right.Objective.Name} matches {matchConstantFlipped(leftConstant.Value)} run scoreboard players set {selector} {result.Objective.Name} 1");
+				return result;
+			} else if(rightConstant != null) {
+				PrimitiveInstance.BooleanInstance result = predefinedType.InitializeInstance(location, null) as PrimitiveInstance.BooleanInstance;
+				writer.WriteCommand($"scoreboard players set {selector} {result.Objective.Name} 0");
+				writer.WriteCommand($"execute if score {selector} {left.Objective.Name} matches {matchConstant(rightConstant.Value)} run scoreboard players set {selector} {result.Objective.Name} 1");
+				return result;
+			} else {
+				PrimitiveInstance.BooleanInstance result = predefinedType.InitializeInstance(location, null) as PrimitiveInstance.BooleanInstance;
+				writer.WriteCommand($"scoreboard players set {selector} {result.Objective.Name} 0");
+				writer.WriteCommand($"execute if score {selector} {left.Objective.Name} {op} {selector} {right.Objective.Name} run scoreboard players set {selector} {result.Objective.Name} 1");
+				return result;
+			}
+
+		}
+
+		// Assign
+		{
+
+			CustomFunction function = new CustomFunction(identifier, null,
+				Array.Empty<PredefinedGenericParameter>(),
+				new PredefinedMethodParameter[] {
+						new PredefinedMethodParameter(identifier, "left"),
+						new PredefinedMethodParameter(identifier, "right")
+				},
+				(Compiler.CompileArguments location, IType[] generic, IInstance[] arguments, out IInstance result) => {
+
+					string selector = StorageSelector;
+
+					PrimitiveInstance.FloatInstance left = arguments[0] as PrimitiveInstance.FloatInstance;
+					PrimitiveInstance.FloatInstance.Constant leftConstant = left is null ? arguments[0] as PrimitiveInstance.FloatInstance.Constant : null;
+					PrimitiveInstance.FloatInstance right = arguments[1] as PrimitiveInstance.FloatInstance;
+					PrimitiveInstance.FloatInstance.Constant rightConstant = right is null ? arguments[1] as PrimitiveInstance.FloatInstance.Constant : null;
+
+					if(leftConstant != null) {
+						throw new InvalidOperationException("Cannot assign to a constant.");
+					} else if(rightConstant != null) {
+						location.Writer.WriteCommand($"scoreboard players set {selector} {left.ValueObjective.Name} {rightConstant.Value.Value}");
+						location.Writer.WriteCommand($"scoreboard players set {selector} {left.ScaleObjective.Name} {rightConstant.Value.Scale}");
+					} else {
+						location.Writer.WriteCommand($"scoreboard players operation {selector} {left.ValueObjective.Name} = {selector} {right.ValueObjective.Name}");
+						location.Writer.WriteCommand($"scoreboard players operation {selector} {left.ScaleObjective.Name} = {selector} {right.ScaleObjective.Name}");
+					}
+
+					result = left;
+					return ResultInfo.DefaultSuccess;
+
+				}
+			);
+
+			Operation op = Operation.Assign;
+			operations.Add(op, new PredefinedOperation(op, function));
+
+		}
+
+		#endregion
+
+		#region Casts
+
+		Dictionary<IType, IConversion> casts = new Dictionary<IType, IConversion>();
+
+		ResultInfo OnLoad(Compiler.CompileArguments location) {
+
+			// Json (implicit)
+			{
+
+				// Get cast types.
+				IType reference = location.Compiler.DefinedTypes[IntIdentifier];
+				IType target = location.Compiler.DefinedTypes[JsonIdentifier];
+
+				// Create cast function.
+				CustomFunction function = new CustomFunction(JsonIdentifier, null,
+					Array.Empty<PredefinedGenericParameter>(),
+					new PredefinedMethodParameter[] {
+							new PredefinedMethodParameter(IntIdentifier, "value")
+					},
+					(Compiler.CompileArguments location, IType[] generic, IInstance[] arguments, out IInstance result) => {
+
+						// Get arguments.
+						PrimitiveInstance.IntegerInstance value = arguments[0] as PrimitiveInstance.IntegerInstance;
+						PrimitiveInstance.IntegerInstance.Constant constant = value is null ? arguments[0] as PrimitiveInstance.IntegerInstance.Constant : null;
+
+						// Make JSON text from boolean.
+						RawText json;
+						if(constant != null) {
+
+							// Use constant value.
+							json = new RawText() {
+								Text = constant.Value.ToString()
+							};
+
+						} else {
+
+							// Use dynamic value.
+							json = new RawText() {
+								Score = new ScoreData() {
+									Name = StorageSelector,
+									Objective = value.Objective.Name
+								}
+							};
+
+						}
+
+						// Create JSON instance.
+						result = new PrimitiveInstance.JsonInstance(target, null, json);
+
+						// Return a success.
+						return ResultInfo.DefaultSuccess;
+
+					}
+				);
+
+				// Create and add cast.
+				var cast = new PredefinedConversion(reference, target, function, @implicit: true);
+				casts.Add(target, cast);
+
+			}
+
+			return ResultInfo.DefaultSuccess;
+
+		}
+
+		onLoad += OnLoad;
+
+		#endregion
+
+		IInstance Init(Compiler.CompileArguments location, string identifier) {
+
+			if(predefinedType is null) throw new Exception();
+			Objective objective = Objective.AddObjective(location.Writer, null, "dummy");
+			location.Writer.WriteCommand($"scoreboard players set {StorageSelector} {objective.Name} 0");
+			return new PrimitiveInstance.IntegerInstance(predefinedType, identifier, objective);
+
+		}
+
+		predefinedType = new PredefinedType(typeScope, modifiers, classType, identifier, members.ToArray(), constructors.ToArray(), Array.Empty<PredefinedType>(), Init, operations, casts);
+		foreach(PredefinedMember member in members) member.Declarer = predefinedType;
+		foreach(PredefinedConstructor constructor in constructors) constructor.Declarer = predefinedType;
+		return predefinedType;
+
+	}
+
+	/// <summary>
 	/// Creates the <see cref="PredefinedType"/> for the <see cref="PrimitiveInstance.BooleanInstance"/> type "string".
 	/// </summary>
 	private static PredefinedType CreatePredefinedBool(Scope rootScope, ref Compiler.OnLoadDelegate onLoad) {
@@ -1447,8 +1743,9 @@ public class MCSharpLinkerExtension : LinkerExtension {
 					PrimitiveInstance.JsonInstance left = arguments[0] as PrimitiveInstance.JsonInstance;
 					PrimitiveInstance.StringInstance right = arguments[1] as PrimitiveInstance.StringInstance;
 
-					RawTextList newList = new RawTextList(1 + left.Value.Count) { new() { Text = right.Value } };
+					RawTextList newList = new RawTextList(1 + left.Value.Count);
 					foreach(RawText text in left.Value) newList.Add(text);
+					newList.Add(new() { Text = right.Value });
 					result = new PrimitiveInstance.JsonInstance(location.Compiler.DefinedTypes[returnType], null, newList);
 
 					return ResultInfo.DefaultSuccess;
@@ -2456,6 +2753,8 @@ public class MCSharpLinkerExtension : LinkerExtension {
 							"Math.Sqrt\n" +
 							"Assign value to 'in' and 'out'.");
 						Compiler.CompileSimpleOperation(location, Operation.Assign, @in, value, out _);
+						location.Writer.WriteCommand($"execute if score {StorageSelector} {@in.Objective.Name} matches {int.MaxValue} run scoreboard players remove {StorageSelector} {@in.Objective.Name} 1",
+							"Max integer value results in an integer overflow. Subtracting one gives the same result thanks to rounding.");
 						Compiler.CompileSimpleOperation(location, Operation.Assign, @out, @in, out _);
 						location.Writer.WriteCommand($"scoreboard players set {StorageSelector} {temp.Objective.Name} 1",
 							"Assign 'temp' to 1.");
