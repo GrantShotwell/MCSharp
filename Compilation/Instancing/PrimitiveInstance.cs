@@ -205,26 +205,27 @@ public abstract class PrimitiveInstance : IInstance {
 	/// Represents an <see cref="IInstance"/> of a floating-point value.
 	/// </summary>
 	/// <remarks>
-	/// <para>
-	/// The decimal value is stored as an integer scoreboard objective with a scale so that <c>⌊actual*scale⌋=stored</c>.
-	/// </para>
-	/// <para>
-	/// <u>Equations for solving math operations:</u>
-	///	<list type="bullet">
-	///	<item><c>xa+yb=xc+yc=(x+y)c → c=±√(ab)</c></item>
-	///	<item><c>xa-yb=xc-yc=(x-y)c → c=-±√(ab)</c></item>
-	///	<item><c>xa*yb=(xy)c → c=a*b</c></item>
-	///	<item><c>xa/yb=(xy)c → c=a/b</c></item>
-	///	<item><c>√(xa₁)=√(x)a₂ → a₁=a₂²</c></item>
-	///	</list>
-	///	</para>
+	///   <para>
+	///   The decimal value is stored as an integer scoreboard objective with a scale so that <c>⌊actual*scale⌋=stored</c>. The scale is also stored.
+	///   </para>
+	///   <para>
+	///   <u>Equations for solving math operations:</u>
+	///     <list type="bullet">
+	///       <item><c>xa+yb=(x+y)c → c=±√(ab)</c></item>
+	///       <item><c>xa-yb=(x-y)c → c=-±√(ab)</c></item>
+	///       <item><c>xa*yb=(xy)c → c=a*b</c></item>
+	///       <item><c>xa/yb=(xy)c → c=a/b</c></item>
+	///       <item><c>√(xa₁)=√(x)a₂ → a₁=a₂²</c></item>
+	///       <item><c>(xa)^(yb)=(x^y)c → c=?</c></item>
+	///     </list>
+	///   </para>
 	/// </remarks>
 	public class FloatInstance : PrimitiveInstance {
 
 		/// <summary>
 		/// The <see cref="Objective"/> that holds the value of this <see cref="FloatInstance"/>'s <c>actual*scale</c> value.
 		/// </summary>
-		public Objective ValueObjective { get; }
+		public Objective ProductObjective { get; }
 
 		/// <summary>
 		/// The <see cref="Objective"/> that holds the value of this <see cref="FloatInstance"/>'s <c>scale</c> value.
@@ -233,7 +234,7 @@ public abstract class PrimitiveInstance : IInstance {
 
 
 		public FloatInstance(IType type, string identifier, Objective valueObjective, Objective scaleObjective) : base(type, identifier) {
-			ValueObjective = valueObjective;
+			ProductObjective = valueObjective;
 			ScaleObjective = scaleObjective;
 		}
 
@@ -245,7 +246,7 @@ public abstract class PrimitiveInstance : IInstance {
 			Objective coefficientObjective = Objective.AddObjective(location.Writer, null, "dummy");
 			Objective exponentObjective = Objective.AddObjective(location.Writer, null, "dummy");
 			FloatInstance instance = new FloatInstance(Type, identifier, coefficientObjective, exponentObjective);
-			location.Writer.WriteCommand($"scoreboard players operation {MCSharpLinkerExtension.StorageSelector} {instance.ValueObjective.Name} = {MCSharpLinkerExtension.StorageSelector} {ValueObjective.Name}");
+			location.Writer.WriteCommand($"scoreboard players operation {MCSharpLinkerExtension.StorageSelector} {instance.ProductObjective.Name} = {MCSharpLinkerExtension.StorageSelector} {ProductObjective.Name}");
 			location.Writer.WriteCommand($"scoreboard players operation {MCSharpLinkerExtension.StorageSelector} {instance.ScaleObjective.Name} = {MCSharpLinkerExtension.StorageSelector} {ScaleObjective.Name}");
 			return instance;
 		}
@@ -257,9 +258,10 @@ public abstract class PrimitiveInstance : IInstance {
 			(int offset, int length) = range.GetOffsetAndLength(block.Length);
 			if(length != expected) throw IInstance.GenerateInvalidBlockRangeException(length, expected);
 
-			location.Writer.WriteCommand($"scoreboard players operation {selector} {block[offset].Name} = {MCSharpLinkerExtension.StorageSelector} {ValueObjective.Name}",
+			location.Writer.WriteCommand($"scoreboard players operation {selector} {block[offset].Name} = {MCSharpLinkerExtension.StorageSelector} {ProductObjective.Name}",
 				"Save a floating-point value to a block.");
 			location.Writer.WriteCommand($"scoreboard players operation {selector} {block[offset + 1].Name} = {MCSharpLinkerExtension.StorageSelector} {ScaleObjective.Name}");
+			
 		}
 
 		/// <inheritdoc/>
@@ -269,7 +271,7 @@ public abstract class PrimitiveInstance : IInstance {
 			(int offset, int length) = range.GetOffsetAndLength(block.Length);
 			if(length != expected) throw IInstance.GenerateInvalidBlockRangeException(length, expected);
 
-			location.Writer.WriteCommand($"scoreboard players operation {MCSharpLinkerExtension.StorageSelector} {ValueObjective.Name} = {selector} {block[offset].Name}",
+			location.Writer.WriteCommand($"scoreboard players operation {MCSharpLinkerExtension.StorageSelector} {ProductObjective.Name} = {selector} {block[offset].Name}",
 				"Load a floating-point value from a block.");
 			location.Writer.WriteCommand($"scoreboard players operation {MCSharpLinkerExtension.StorageSelector} {ScaleObjective.Name} = {selector} {block[offset + 1].Name}");
 
@@ -278,12 +280,12 @@ public abstract class PrimitiveInstance : IInstance {
 		/// <summary>
 		/// Represents the <see cref="IConstantInstance"/> version of <see cref="FloatInstance"/>.
 		/// </summary>
-		public class Constant : PrimitiveInstance, IConstantInstance<(int Value, int Scale)> {
+		public class Constant : PrimitiveInstance, IConstantInstance<(int Product, int Scale)> {
 
 			/// <summary>
 			/// The value of this <see cref="Constant"/>.
 			/// </summary>
-			public (int Value, int Scale) Value { get; }
+			public (int Product, int Scale) Value { get; }
 			/// <inheritdoc/>
 			object IConstantInstance.Value => Value;
 
@@ -294,7 +296,7 @@ public abstract class PrimitiveInstance : IInstance {
 			/// <param name="type">The <see cref="IType"/> that defines this instance.</param>
 			/// <param name="identifier">The local identifier for this instance.</param>
 			/// <param name="value">The value to hold within this <see cref="IConstantInstance"/>.</param>
-			public Constant(IType type, string identifier, (int Value, int Scale) value) : base(type, identifier) {
+			public Constant(IType type, string identifier, (int Product, int Scale) value) : base(type, identifier) {
 				Value = value;
 			}
 
@@ -307,7 +309,7 @@ public abstract class PrimitiveInstance : IInstance {
 				Objective coefficientObjective = Objective.AddObjective(location.Writer, null, "dummy");
 				Objective exponentObjective = Objective.AddObjective(location.Writer, null, "dummy");
 				FloatInstance instance = new FloatInstance(Type, identifier, coefficientObjective, exponentObjective);
-				location.Writer.WriteCommand($"scoreboard players set {MCSharpLinkerExtension.StorageSelector} {instance.ValueObjective.Name} {Value.Value}");
+				location.Writer.WriteCommand($"scoreboard players set {MCSharpLinkerExtension.StorageSelector} {instance.ProductObjective.Name} {Value.Product}");
 				location.Writer.WriteCommand($"scoreboard players set {MCSharpLinkerExtension.StorageSelector} {instance.ScaleObjective.Name} {Value.Scale}");
 				return instance;
 
@@ -320,7 +322,7 @@ public abstract class PrimitiveInstance : IInstance {
 				(int offset, int length) = range.GetOffsetAndLength(block.Length);
 				if(length != expected) throw IInstance.GenerateInvalidBlockRangeException(length, expected);
 
-				location.Writer.WriteCommand($"scoreboard players set {selector} {block[offset].Name} {Value.Value}",
+				location.Writer.WriteCommand($"scoreboard players set {selector} {block[offset].Name} {Value.Product}",
 					"Save a floating-point value to a block.");
 				location.Writer.WriteCommand($"scoreboard players set {selector} {block[offset + 1].Name} {Value.Scale}");
 
@@ -333,7 +335,7 @@ public abstract class PrimitiveInstance : IInstance {
 				(int offset, int length) = range.GetOffsetAndLength(block.Length);
 				if(length != expected) throw IInstance.GenerateInvalidBlockRangeException(length, expected);
 
-				location.Writer.WriteCommand($"scoreboard players set {selector} {block[offset].Name} {Value.Value}",
+				location.Writer.WriteCommand($"scoreboard players set {selector} {block[offset].Name} {Value.Product}",
 					"Load a floating-point value from a block.");
 				location.Writer.WriteCommand($"scoreboard players set {selector} {block[offset + 1].Name} {Value.Scale}");
 
